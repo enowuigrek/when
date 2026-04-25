@@ -4,16 +4,57 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
-import { getServiceBySlug } from "@/lib/db/services";
-import { createBooking } from "@/lib/db/bookings";
+import { getServiceById, getBusinessHours } from "@/lib/db/services";
+import { getBookingsInRange, createBooking } from "@/lib/db/bookings";
+import { getSettings } from "@/lib/db/settings";
+import { computeAvailableSlots, addDays } from "@/lib/slots";
+import type { Slot } from "@/lib/slots";
+
+// ── Slot loader ───────────────────────────────────────────────────────────────
+
+export async function getAdminSlotsForDate(
+  serviceId: string,
+  dateStr: string
+): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return { ok: false, message: "Niepoprawna data." };
+  }
+
+  const [service, hours, settings] = await Promise.all([
+    getServiceById(serviceId),
+    getBusinessHours(),
+    getSettings(),
+  ]);
+
+  if (!service) return { ok: false, message: "Usługa nie istnieje." };
+
+  const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
+  const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+
+  const slots = computeAvailableSlots(
+    dateStr,
+    service.duration_min,
+    hours,
+    existing,
+    settings.slot_granularity_min
+  );
+
+  return { ok: true, slots };
+}
+
+// ── Create booking ────────────────────────────────────────────────────────────
 
 const schema = z.object({
   serviceId: z.string().uuid("Wybierz usługę"),
-  serviceSlug: z.string().min(1),
-  startsAt: z.string().min(1, "Wybierz datę i godzinę"),
+  startsAtIso: z.string().datetime("Wybierz termin"),
   customerName: z.string().trim().min(2, "Podaj imię i nazwisko").max(120),
   customerPhone: z.string().trim().min(7, "Numer za krótki").max(30),
-  customerEmail: z.string().trim().email("Niepoprawny email").optional()
+  customerEmail: z
+    .string()
+    .trim()
+    .email("Niepoprawny email")
+    .optional()
     .or(z.literal("").transform(() => undefined)),
   notes: z.string().trim().max(500).optional(),
 });
@@ -30,8 +71,7 @@ export async function createAdminBookingAction(
 
   const raw = {
     serviceId: formData.get("serviceId")?.toString() ?? "",
-    serviceSlug: formData.get("serviceSlug")?.toString() ?? "",
-    startsAt: formData.get("startsAt")?.toString() ?? "",
+    startsAtIso: formData.get("startsAtIso")?.toString() ?? "",
     customerName: formData.get("customerName")?.toString() ?? "",
     customerPhone: formData.get("customerPhone")?.toString() ?? "",
     customerEmail: formData.get("customerEmail")?.toString() ?? "",
@@ -48,27 +88,19 @@ export async function createAdminBookingAction(
     return { status: "error", message: "Sprawdź formularz.", fieldErrors };
   }
 
-  const service = await getServiceBySlug(parsed.data.serviceSlug);
+  const service = await getServiceById(parsed.data.serviceId);
   if (!service) return { status: "error", message: "Usługa nie istnieje." };
 
-  // startsAt comes from datetime-local input — treat as Warsaw local time.
-  const localIso = parsed.data.startsAt; // "YYYY-MM-DDTHH:mm"
-  const startsAt = new Date(localIso); // interpreted as local (browser/server TZ)
-  // Force Warsaw interpretation using offset.
-  const warsawOffset = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Warsaw",
-    timeZoneName: "shortOffset",
-  }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "+02:00";
-  const startsAtUtc = new Date(`${localIso}:00${warsawOffset.replace("GMT", "")}`);
-  const endsAtUtc = new Date(startsAtUtc.getTime() + service.duration_min * 60_000);
+  const startsAt = new Date(parsed.data.startsAtIso);
+  const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
   const result = await createBooking({
     serviceId: service.id,
     customerName: parsed.data.customerName,
     customerPhone: parsed.data.customerPhone,
     customerEmail: parsed.data.customerEmail ?? null,
-    startsAtIso: startsAtUtc.toISOString(),
-    endsAtIso: endsAtUtc.toISOString(),
+    startsAtIso: startsAt.toISOString(),
+    endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
   });
 

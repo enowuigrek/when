@@ -27,6 +27,16 @@ export async function getServiceBySlug(slug: string): Promise<Service | null> {
   return data;
 }
 
+export async function getServiceById(id: string): Promise<Service | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("services")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  return data;
+}
+
 export async function getBusinessHours(): Promise<BusinessHours[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
