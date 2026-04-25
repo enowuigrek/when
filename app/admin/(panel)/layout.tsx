@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { logoutAction } from "./actions";
-import { business } from "@/lib/business";
+import { getSettings } from "@/lib/db/settings";
 
 export default async function PanelLayout({
   children,
@@ -12,13 +12,14 @@ export default async function PanelLayout({
   if (!(await isAdminAuthenticated())) {
     redirect("/admin/login");
   }
+  const s = await getSettings();
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950">
       <header className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link href="/admin" className="text-lg font-semibold tracking-tight">
-            {business.name}
+            {s.business_name}
             <span className="text-[var(--color-accent)]">.</span>
             <span className="ml-2 text-xs font-normal uppercase tracking-widest text-zinc-500">
               panel
@@ -33,6 +34,9 @@ export default async function PanelLayout({
             </Link>
             <Link href="/admin/uslugi" className="text-zinc-300 hover:text-zinc-100">
               Usługi
+            </Link>
+            <Link href="/admin/ustawienia" className="text-zinc-300 hover:text-zinc-100">
+              Ustawienia
             </Link>
             <Link href="/admin/rezerwacja/nowa" className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors">
               + Rezerwacja

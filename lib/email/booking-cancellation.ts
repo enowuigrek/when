@@ -1,5 +1,9 @@
-import { business } from "@/lib/business";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+
+type BusinessInfo = {
+  name: string;
+  mapsUrl: string | null;
+};
 
 type CancellationData = {
   bookingId: string;
@@ -7,6 +11,7 @@ type CancellationData = {
   serviceName: string;
   startsAtIso: string;
   reason: string | null;
+  business: BusinessInfo;
 };
 
 export function buildCancellationEmail(data: CancellationData): {
@@ -18,8 +23,11 @@ export function buildCancellationEmail(data: CancellationData): {
   const time = formatWarsawTime(data.startsAtIso);
   const shortId = data.bookingId.slice(0, 8).toUpperCase();
   const accent = "#d4a26a";
+  const b = data.business;
 
-  const subject = `Rezerwacja anulowana — ${business.name} · ${date}`;
+  const subject = `Rezerwacja anulowana — ${b.name} · ${date}`;
+
+  const ctaHref = b.mapsUrl ?? "/";
 
   const html = `<!DOCTYPE html>
 <html lang="pl">
@@ -31,7 +39,7 @@ export function buildCancellationEmail(data: CancellationData): {
       <tr>
         <td style="padding:32px 40px 28px;border-bottom:1px solid #27272a;">
           <span style="font-size:22px;font-weight:600;color:#f4f4f5;letter-spacing:-0.5px;">
-            ${business.name}<span style="color:${accent};">.</span>
+            ${b.name}<span style="color:${accent};">.</span>
           </span>
         </td>
       </tr>
@@ -73,7 +81,7 @@ export function buildCancellationEmail(data: CancellationData): {
       </tr>
       <tr>
         <td style="padding:0 40px 24px;">
-          <a href="${business.mapsUrl}" style="display:inline-block;margin-top:4px;padding:12px 24px;background:${accent};color:#09090b;font-weight:600;text-decoration:none;border-radius:999px;font-size:14px;">
+          <a href="${ctaHref}" style="display:inline-block;margin-top:4px;padding:12px 24px;background:${accent};color:#09090b;font-weight:600;text-decoration:none;border-radius:999px;font-size:14px;">
             Zarezerwuj ponownie →
           </a>
         </td>
@@ -93,7 +101,7 @@ export function buildCancellationEmail(data: CancellationData): {
 </html>`;
 
   const text = [
-    `${business.name} — Rezerwacja anulowana`,
+    `${b.name} — Rezerwacja anulowana`,
     ``,
     `Cześć ${data.customerName.split(" ")[0]},`,
     `Twoja rezerwacja została anulowana.`,
@@ -104,7 +112,7 @@ export function buildCancellationEmail(data: CancellationData): {
     ``,
     `Nr rezerwacji: ${shortId}`,
     ``,
-    `Zapraszamy do ponownej rezerwacji na ${business.name}.`,
+    `Zapraszamy do ponownej rezerwacji na ${b.name}.`,
   ]
     .filter((l) => l !== "")
     .join("\n");

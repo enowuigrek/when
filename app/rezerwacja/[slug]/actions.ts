@@ -8,6 +8,7 @@ import { computeAvailableSlots, addDays } from "@/lib/slots";
 import type { Slot } from "@/lib/slots";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
+import { getSettings } from "@/lib/db/settings";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
@@ -21,7 +22,7 @@ export async function getSlotsForDate(
   const service = await getServiceBySlug(serviceSlug);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
-  const hours = await getBusinessHours();
+  const [hours, settings] = await Promise.all([getBusinessHours(), getSettings()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
   const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
@@ -30,7 +31,8 @@ export async function getSlotsForDate(
     dateStr,
     service.duration_min,
     hours,
-    existing
+    existing,
+    settings.slot_granularity_min
   );
   return { ok: true, slots };
 }
@@ -108,6 +110,7 @@ export async function submitBooking(
 
   // Send confirmation email — fire-and-forget, never blocks booking.
   if (parsed.data.customerEmail) {
+    const s = await getSettings();
     const { subject, html, text } = buildConfirmationEmail({
       bookingId: result.id,
       customerName: parsed.data.customerName,
@@ -116,6 +119,13 @@ export async function submitBooking(
       endsAtIso: endsAt.toISOString(),
       pricePln: service.price_pln,
       notes: parsed.data.notes ?? null,
+      business: {
+        name: s.business_name,
+        addressStreet: s.address_street,
+        addressPostal: s.address_postal,
+        addressCity: s.address_city,
+        phone: s.phone,
+      },
     });
     sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
       (err) => console.error("[email] Failed to send confirmation:", err)

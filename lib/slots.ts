@@ -8,7 +8,6 @@
 // forward gap is excluded as invalid, which is fine for a barber shop).
 
 import type { BusinessHours } from "@/lib/types";
-import { business } from "@/lib/business";
 
 const TZ = "Europe/Warsaw";
 
@@ -112,7 +111,8 @@ export function computeAvailableSlots(
   dateStr: string,
   durationMin: number,
   hours: BusinessHours[],
-  existing: { startsAtIso: string; endsAtIso: string }[]
+  existing: { startsAtIso: string; endsAtIso: string }[],
+  granularityMin = 15
 ): Slot[] {
   const dow = warsawDayOfWeek(dateStr);
   const todayHours = hours.find((h) => h.day_of_week === dow);
@@ -123,7 +123,7 @@ export function computeAvailableSlots(
   const [y, m, d] = dateStr.split("-").map(Number);
   const [openH, openM] = todayHours.open_time.split(":").map(Number);
   const [closeH, closeM] = todayHours.close_time.split(":").map(Number);
-  const granularity = business.slotGranularityMin;
+  const granularity = granularityMin;
 
   const dayOpenUtc = warsawLocalToUtc(y, m, d, openH, openM).getTime();
   const dayCloseUtc = warsawLocalToUtc(y, m, d, closeH, closeM).getTime();

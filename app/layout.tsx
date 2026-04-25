@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { business } from "@/lib/business";
+import { getSettings } from "@/lib/db/settings";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,19 +13,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: `${business.name} — ${business.tagline}`,
-    template: `%s | ${business.name}`,
-  },
-  description: business.shortDescription,
-  openGraph: {
-    title: business.name,
-    description: business.shortDescription,
-    locale: "pl_PL",
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSettings();
+  const title = s.tagline
+    ? `${s.business_name} — ${s.tagline}`
+    : s.business_name;
+  return {
+    title: { default: title, template: `%s | ${s.business_name}` },
+    description: s.description ?? undefined,
+    openGraph: {
+      title: s.business_name,
+      description: s.description ?? undefined,
+      locale: "pl_PL",
+      type: "website",
+    },
+  };
+}
 
 export default function RootLayout({
   children,

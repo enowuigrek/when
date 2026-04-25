@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getBookingById } from "@/lib/db/bookings";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
-import { business } from "@/lib/business";
+import { getSettings } from "@/lib/db/settings";
 
 export const metadata = {
   title: "Rezerwacja potwierdzona",
@@ -17,7 +17,7 @@ export default async function SuccessPage({ params }: { params: Params }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
-  const booking = await getBookingById(id);
+  const [booking, s] = await Promise.all([getBookingById(id), getSettings()]);
   if (!booking) notFound();
 
   const service = (booking as { service?: { name: string; price_pln: number } })
@@ -64,16 +64,18 @@ export default async function SuccessPage({ params }: { params: Params }) {
 
           <div className="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-5 text-sm text-zinc-400">
             <p>
-              <span className="text-zinc-200">{business.name}</span>
+              <span className="text-zinc-200">{s.business_name}</span>
               <br />
-              {business.address.street}, {business.address.postal} {business.address.city}
+              {s.address_street}, {s.address_postal} {s.address_city}
               <br />
-              <a
-                href={business.phoneHref}
-                className="font-mono text-zinc-300 hover:text-[var(--color-accent)]"
-              >
-                {business.phone}
-              </a>
+              {s.phone && (
+                <a
+                  href={`tel:${s.phone.replace(/\s/g, "")}`}
+                  className="font-mono text-zinc-300 hover:text-[var(--color-accent)]"
+                >
+                  {s.phone}
+                </a>
+              )}
             </p>
           </div>
 

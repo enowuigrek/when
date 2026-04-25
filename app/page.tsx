@@ -3,10 +3,10 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { HoursTable } from "@/components/hours-table";
 import { getServices, getBusinessHours } from "@/lib/db/services";
-import { business } from "@/lib/business";
+import { getSettings } from "@/lib/db/settings";
 
 export default async function Home() {
-  const [services, hours] = await Promise.all([getServices(), getBusinessHours()]);
+  const [services, hours, s] = await Promise.all([getServices(), getBusinessHours(), getSettings()]);
 
   return (
     <>
@@ -22,13 +22,13 @@ export default async function Home() {
           <div className="relative mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:py-32">
             <div className="flex flex-col justify-center">
               <p className="mb-4 text-sm font-medium uppercase tracking-widest text-[var(--color-accent)]">
-                {business.address.city}
+                {s.address_city}
               </p>
               <h1 className="text-5xl font-semibold leading-tight tracking-tight md:text-6xl">
-                {business.tagline}
+                {s.tagline}
               </h1>
               <p className="mt-6 max-w-md text-lg text-zinc-400">
-                {business.shortDescription}
+                {s.description}
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link
@@ -50,7 +50,7 @@ export default async function Home() {
               <div className="relative">
                 <div className="absolute -inset-8 rounded-full bg-[var(--color-accent)]/10 blur-3xl" />
                 <div className="relative flex h-80 w-80 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60 font-serif text-9xl font-light tracking-tight text-zinc-100">
-                  {business.name.charAt(0)}
+                  {s.business_name.charAt(0)}
                 </div>
               </div>
             </div>
@@ -135,14 +135,14 @@ export default async function Home() {
                   </dt>
                   <dd className="mt-1 text-zinc-200">
                     <a
-                      href={business.mapsUrl}
+                      href={s.maps_url ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-[var(--color-accent)]"
                     >
-                      {business.address.street}
+                      {s.address_street}
                       <br />
-                      {business.address.postal} {business.address.city}
+                      {s.address_postal} {s.address_city}
                     </a>
                   </dd>
                 </div>
@@ -152,10 +152,10 @@ export default async function Home() {
                   </dt>
                   <dd className="mt-1">
                     <a
-                      href={business.phoneHref}
+                      href={s.phone ? `tel:${s.phone.replace(/\s/g, "")}` : undefined}
                       className="font-mono text-zinc-200 hover:text-[var(--color-accent)]"
                     >
-                      {business.phone}
+                      {s.phone}
                     </a>
                   </dd>
                 </div>
@@ -165,10 +165,10 @@ export default async function Home() {
                   </dt>
                   <dd className="mt-1">
                     <a
-                      href={`mailto:${business.email}`}
+                      href={s.email ? `mailto:${s.email}` : undefined}
                       className="text-zinc-200 hover:text-[var(--color-accent)]"
                     >
-                      {business.email}
+                      {s.email}
                     </a>
                   </dd>
                 </div>

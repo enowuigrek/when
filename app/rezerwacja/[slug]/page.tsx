@@ -11,7 +11,8 @@ import {
   formatShortDate,
   warsawDayOfWeek,
 } from "@/lib/slots";
-import { business, dayLabelsShort } from "@/lib/business";
+import { dayLabelsShort } from "@/lib/business";
+import { getSettings } from "@/lib/db/settings";
 import { BookingFlow } from "./booking-flow";
 
 type Params = Promise<{ slug: string }>;
@@ -33,11 +34,11 @@ export default async function BookingServicePage({
   const service = await getServiceBySlug(slug);
   if (!service) notFound();
 
-  const hours = await getBusinessHours();
+  const [hours, settings] = await Promise.all([getBusinessHours(), getSettings()]);
   const today = warsawToday();
 
   // Pre-build the day strip for the next N days.
-  const days = Array.from({ length: business.bookingHorizonDays }, (_, i) => {
+  const days = Array.from({ length: settings.booking_horizon_days }, (_, i) => {
     const date = addDays(today, i);
     const dow = warsawDayOfWeek(date);
     const dayHours = hours.find((h) => h.day_of_week === dow);
@@ -62,7 +63,8 @@ export default async function BookingServicePage({
     initialDate,
     service.duration_min,
     hours,
-    existing
+    existing,
+    settings.slot_granularity_min
   );
 
   return (

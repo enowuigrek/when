@@ -6,6 +6,7 @@ import { destroyAdminSession, isAdminAuthenticated } from "@/lib/auth/admin-sess
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
+import { getSettings } from "@/lib/db/settings";
 
 export async function logoutAction() {
   await destroyAdminSession();
@@ -38,12 +39,14 @@ export async function cancelBookingAction(formData: FormData) {
 
   // Send cancellation email if customer has one.
   if (booking?.customer_email) {
+    const s = await getSettings();
     const { subject, html, text } = buildCancellationEmail({
       bookingId: id,
       customerName: booking.customer_name,
       serviceName: (booking.service as { name: string } | null)?.name ?? "—",
       startsAtIso: booking.starts_at,
       reason,
+      business: { name: s.business_name, mapsUrl: s.maps_url },
     });
     sendEmail({ to: booking.customer_email, subject, html, text }).catch(
       (err) => console.error("[email] Cancel notification failed:", err)

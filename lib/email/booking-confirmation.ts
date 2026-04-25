@@ -1,5 +1,12 @@
-import { business } from "@/lib/business";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+
+type BusinessInfo = {
+  name: string;
+  addressStreet: string | null;
+  addressPostal: string | null;
+  addressCity: string | null;
+  phone: string | null;
+};
 
 type ConfirmationData = {
   bookingId: string;
@@ -9,6 +16,7 @@ type ConfirmationData = {
   endsAtIso: string;
   pricePln: number;
   notes: string | null;
+  business: BusinessInfo;
 };
 
 export function buildConfirmationEmail(data: ConfirmationData): {
@@ -21,8 +29,11 @@ export function buildConfirmationEmail(data: ConfirmationData): {
   const end = formatWarsawTime(data.endsAtIso);
   const shortId = data.bookingId.slice(0, 8).toUpperCase();
   const accent = "#d4a26a";
+  const b = data.business;
 
-  const subject = `Rezerwacja potwierdzona — ${business.name} · ${date}`;
+  const subject = `Rezerwacja potwierdzona — ${b.name} · ${date}`;
+
+  const phoneHref = b.phone ? `tel:${b.phone.replace(/\s/g, "")}` : null;
 
   const html = `<!DOCTYPE html>
 <html lang="pl">
@@ -35,7 +46,7 @@ export function buildConfirmationEmail(data: ConfirmationData): {
       <tr>
         <td style="padding:32px 40px 28px;border-bottom:1px solid #27272a;">
           <span style="font-size:22px;font-weight:600;color:#f4f4f5;letter-spacing:-0.5px;">
-            ${business.name}<span style="color:${accent};">.</span>
+            ${b.name}<span style="color:${accent};">.</span>
           </span>
         </td>
       </tr>
@@ -75,12 +86,10 @@ export function buildConfirmationEmail(data: ConfirmationData): {
             <tr>
               <td style="padding:16px 0 0;">
                 <p style="margin:0;font-size:13px;color:#71717a;line-height:1.8;">
-                  ${business.name}<br/>
-                  ${business.address.street}<br/>
-                  ${business.address.postal} ${business.address.city}<br/>
-                  <a href="${business.phoneHref}" style="color:${accent};text-decoration:none;">
-                    ${business.phone}
-                  </a>
+                  ${b.name}<br/>
+                  ${b.addressStreet ?? ""}<br/>
+                  ${b.addressPostal ?? ""} ${b.addressCity ?? ""}<br/>
+                  ${phoneHref ? `<a href="${phoneHref}" style="color:${accent};text-decoration:none;">${b.phone}</a>` : ""}
                 </p>
               </td>
             </tr>
@@ -102,7 +111,7 @@ export function buildConfirmationEmail(data: ConfirmationData): {
 </html>`;
 
   const text = [
-    `${business.name} — Rezerwacja potwierdzona`,
+    `${b.name} — Rezerwacja potwierdzona`,
     ``,
     `Cześć ${data.customerName.split(" ")[0]},`,
     `Twoja rezerwacja jest potwierdzona.`,
@@ -115,9 +124,9 @@ export function buildConfirmationEmail(data: ConfirmationData): {
     ``,
     `Nr rezerwacji: ${shortId}`,
     ``,
-    `${business.name}`,
-    `${business.address.street}, ${business.address.postal} ${business.address.city}`,
-    `${business.phone}`,
+    `${b.name}`,
+    `${b.addressStreet ?? ""}, ${b.addressPostal ?? ""} ${b.addressCity ?? ""}`,
+    b.phone ?? "",
   ]
     .filter((l) => l !== "")
     .join("\n");
