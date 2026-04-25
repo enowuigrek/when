@@ -35,7 +35,8 @@ export async function getSlotsForDate(
     hours,
     existing,
     settings.slot_granularity_min,
-    staffCount
+    staffCount,
+    true
   );
   return { ok: true, slots };
 }

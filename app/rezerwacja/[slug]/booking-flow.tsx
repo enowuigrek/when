@@ -95,20 +95,25 @@ export function BookingFlow({
         ) : visibleSlots.length === 0 ? (
           <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-4 text-sm text-zinc-400">
             {slots.length === 0
-              ? "Brak wolnych terminów tego dnia. Wybierz inny."
+              ? "Brak terminów tego dnia. Wybierz inny."
               : "Brak terminów w tym przedziale — spróbuj inny filtr."}
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
             {visibleSlots.map((s) => {
               const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;
+              const isTaken = s.available === false;
               return (
                 <button
                   key={s.startsAtIso}
                   type="button"
-                  onClick={() => setSelectedSlot(s)}
+                  disabled={isTaken}
+                  onClick={() => !isTaken && setSelectedSlot(s)}
+                  title={isTaken ? "Termin zajęty" : undefined}
                   className={`rounded-md border py-2 font-mono text-sm transition-colors ${
-                    isSelected
+                    isTaken
+                      ? "cursor-not-allowed border-zinc-800/40 bg-zinc-900/20 text-zinc-600 line-through"
+                      : isSelected
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950"
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
                   }`}

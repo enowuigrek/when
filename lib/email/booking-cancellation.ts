@@ -2,7 +2,7 @@ import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
 type BusinessInfo = {
   name: string;
-  mapsUrl: string | null;
+  siteUrl: string;
 };
 
 type CancellationData = {
@@ -27,7 +27,7 @@ export function buildCancellationEmail(data: CancellationData): {
 
   const subject = `Rezerwacja anulowana — ${b.name} · ${date}`;
 
-  const ctaHref = b.mapsUrl ?? "/";
+  const ctaHref = `${b.siteUrl}/rezerwacja`;
 
   const html = `<!DOCTYPE html>
 <html lang="pl">

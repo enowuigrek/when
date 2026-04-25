@@ -97,6 +97,7 @@ export type Slot = {
   startsAtIso: string; // UTC ISO
   endsAtIso: string;
   label: string; // "HH:MM" in Warsaw
+  available?: boolean; // undefined / true = bookable; false = taken
 };
 
 /**
@@ -115,7 +116,8 @@ export function computeAvailableSlots(
   hours: BusinessHours[],
   existing: { startsAtIso: string; endsAtIso: string }[],
   granularityMin = 15,
-  staffCount = 1
+  staffCount = 1,
+  includeUnavailable = false
 ): Slot[] {
   const dow = warsawDayOfWeek(dateStr);
   const todayHours = hours.find((h) => h.day_of_week === dow);
@@ -145,7 +147,8 @@ export function computeAvailableSlots(
     if (t < now) continue; // skip past slots
     const end = t + durMs;
     const overlapCount = existingRanges.filter((r) => r.s < end && t < r.e).length;
-    if (overlapCount >= staffCount) continue;
+    const available = overlapCount < staffCount;
+    if (!available && !includeUnavailable) continue;
 
     const dtf = new Intl.DateTimeFormat("pl-PL", {
       timeZone: TZ,
@@ -157,6 +160,7 @@ export function computeAvailableSlots(
       startsAtIso: new Date(t).toISOString(),
       endsAtIso: new Date(end).toISOString(),
       label: dtf.format(new Date(t)),
+      available,
     });
   }
 

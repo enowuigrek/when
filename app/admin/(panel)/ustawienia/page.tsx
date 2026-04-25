@@ -1,6 +1,8 @@
 import { getSettings, getAllTimeFilters } from "@/lib/db/settings";
+import { getBusinessHours } from "@/lib/db/services";
 import { SettingsForm } from "./settings-form";
 import { FiltersSection } from "./filters-section";
+import { HoursSection } from "./hours-section";
 
 export const metadata = {
   title: "Ustawienia",
@@ -8,7 +10,11 @@ export const metadata = {
 };
 
 export default async function UstawieniaPage() {
-  const [settings, filters] = await Promise.all([getSettings(), getAllTimeFilters()]);
+  const [settings, filters, hours] = await Promise.all([
+    getSettings(),
+    getAllTimeFilters(),
+    getBusinessHours(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -30,6 +36,17 @@ export default async function UstawieniaPage() {
 
       <div className="mt-6">
         <FiltersSection filters={filters} />
+      </div>
+
+      <hr className="my-10 border-zinc-800/60" />
+
+      <h2 className="text-lg font-semibold tracking-tight">Godziny otwarcia</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Ustaw godziny i dni działalności. Klienci nie będą mogli rezerwować poza tymi godzinami.
+      </p>
+
+      <div className="mt-6">
+        <HoursSection hours={hours} />
       </div>
     </div>
   );

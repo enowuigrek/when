@@ -52,7 +52,8 @@ export default async function BookingServicePage({ params }: { params: Params })
     hours,
     existing,
     settings.slot_granularity_min,
-    staffCount
+    staffCount,
+    true
   );
 
   return (

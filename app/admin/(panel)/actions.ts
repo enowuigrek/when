@@ -46,7 +46,7 @@ export async function cancelBookingAction(formData: FormData) {
       serviceName: (booking.service as { name: string } | null)?.name ?? "—",
       startsAtIso: booking.starts_at,
       reason,
-      business: { name: s.business_name, mapsUrl: s.maps_url },
+      business: { name: s.business_name, siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "" },
     });
     sendEmail({ to: booking.customer_email, subject, html, text }).catch(
       (err) => console.error("[email] Cancel notification failed:", err)

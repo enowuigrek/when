@@ -67,6 +67,41 @@ export async function updateSettingsAction(
   return { status: "ok" };
 }
 
+// ── Business hours ────────────────────────────────────────────────────────────
+
+export type HoursFormState =
+  | { status: "idle" }
+  | { status: "ok" }
+  | { status: "error"; message: string };
+
+export async function updateBusinessHoursAction(
+  _prev: HoursFormState,
+  formData: FormData
+): Promise<HoursFormState> {
+  await requireAdmin();
+
+  const supabase = createAdminClient();
+
+  for (const dow of [0, 1, 2, 3, 4, 5, 6]) {
+    const closed = formData.get(`closed_${dow}`) === "1";
+    const open_time = formData.get(`open_${dow}`)?.toString() || null;
+    const close_time = formData.get(`close_${dow}`)?.toString() || null;
+
+    const { error } = await supabase.from("business_hours").upsert({
+      day_of_week: dow,
+      closed,
+      open_time: closed ? null : open_time,
+      close_time: closed ? null : close_time,
+    });
+
+    if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/ustawienia");
+  return { status: "ok" };
+}
+
 // ── Time filters ──────────────────────────────────────────────────────────────
 
 const filterSchema = z.object({

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSettings } from "@/lib/db/settings";
+import { SiteHeaderCta } from "./site-header-cta";
 
 export async function SiteHeader() {
   const s = await getSettings();
@@ -17,12 +18,7 @@ export async function SiteHeader() {
           <a href="#kontakt" className="hover:text-zinc-100">Kontakt</a>
         </nav>
 
-        <Link
-          href="/rezerwacja"
-          className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
-        >
-          Zarezerwuj
-        </Link>
+        <SiteHeaderCta />
       </div>
     </header>
   );
