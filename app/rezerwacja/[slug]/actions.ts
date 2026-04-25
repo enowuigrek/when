@@ -10,6 +10,7 @@ import type { Slot } from "@/lib/slots";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
+import { signBookingToken } from "@/lib/booking-token";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
@@ -115,6 +116,9 @@ export async function submitBooking(
   // Send confirmation email — fire-and-forget, never blocks booking.
   if (parsed.data.customerEmail) {
     const s = await getSettings();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    const cancelToken = signBookingToken(result.id, "cancel");
+    const rescheduleToken = signBookingToken(result.id, "reschedule");
     const { subject, html, text } = buildConfirmationEmail({
       bookingId: result.id,
       customerName: parsed.data.customerName,
@@ -130,6 +134,8 @@ export async function submitBooking(
         addressCity: s.address_city,
         phone: s.phone,
       },
+      cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
+      rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
     });
     sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
       (err) => console.error("[email] Failed to send confirmation:", err)

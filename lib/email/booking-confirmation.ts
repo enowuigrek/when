@@ -17,6 +17,8 @@ type ConfirmationData = {
   pricePln: number;
   notes: string | null;
   business: BusinessInfo;
+  cancelUrl?: string;
+  rescheduleUrl?: string;
 };
 
 export function buildConfirmationEmail(data: ConfirmationData): {
@@ -79,6 +81,18 @@ export function buildConfirmationEmail(data: ConfirmationData): {
           </p>
         </td>
       </tr>
+      <!-- ACTIONS -->
+      ${data.rescheduleUrl || data.cancelUrl ? `
+      <tr>
+        <td style="padding:0 40px 24px;">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              ${data.rescheduleUrl ? `<td style="padding-right:8px;"><a href="${data.rescheduleUrl}" style="display:inline-block;padding:10px 20px;background:#27272a;color:#f4f4f5;text-decoration:none;border-radius:999px;font-size:13px;font-weight:500;">Zmień termin</a></td>` : ""}
+              ${data.cancelUrl ? `<td><a href="${data.cancelUrl}" style="display:inline-block;padding:10px 20px;border:1px solid #3f3f46;color:#a1a1aa;text-decoration:none;border-radius:999px;font-size:13px;">Anuluj</a></td>` : ""}
+            </tr>
+          </table>
+        </td>
+      </tr>` : ""}
       <!-- ADDRESS -->
       <tr>
         <td style="padding:0 40px 32px;border-top:1px solid #27272a;padding-top:24px;">

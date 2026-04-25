@@ -117,7 +117,7 @@ export async function getBookingById(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("bookings")
-    .select("*, service:services(name, duration_min, price_pln)")
+    .select("*, service:services(name, slug, duration_min, price_pln)")
     .eq("id", id)
     .maybeSingle();
 
