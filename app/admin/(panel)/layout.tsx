@@ -28,11 +28,11 @@ export default async function PanelLayout({
             <Link href="/admin" className="text-zinc-300 hover:text-zinc-100">
               Dziś
             </Link>
-            <Link
-              href="/admin/tydzien"
-              className="text-zinc-300 hover:text-zinc-100"
-            >
+            <Link href="/admin/tydzien" className="text-zinc-300 hover:text-zinc-100">
               Tydzień
+            </Link>
+            <Link href="/admin/uslugi" className="text-zinc-300 hover:text-zinc-100">
+              Usługi
             </Link>
             <form action={logoutAction}>
               <button
