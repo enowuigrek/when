@@ -66,6 +66,7 @@ export default async function AdminNewBookingPage() {
         initialSlots={initialSlots}
         timeFilters={timeFilters}
         granularityMin={settings.slot_granularity_min}
+        today={today}
       />
     </section>
   );
