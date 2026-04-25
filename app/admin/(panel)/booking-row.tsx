@@ -49,6 +49,15 @@ export function BookingRow({ b }: { b: BookingWithService }) {
             >
               {b.customer_phone}
             </a>
+            {b.staff && (
+              <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: b.staff.color }}
+                />
+                {b.staff.name}
+              </span>
+            )}
           </div>
           <div className="mt-1 text-sm text-zinc-400">
             {b.service?.name ?? "—"}

@@ -35,6 +35,12 @@ export default async function PanelLayout({
             <Link href="/admin/uslugi" className="text-zinc-300 hover:text-zinc-100">
               Usługi
             </Link>
+            <Link href="/admin/pracownicy" className="text-zinc-300 hover:text-zinc-100">
+              Pracownicy
+            </Link>
+            <Link href="/admin/klienci" className="text-zinc-300 hover:text-zinc-100">
+              Klienci
+            </Link>
             <Link href="/admin/ustawienia" className="text-zinc-300 hover:text-zinc-100">
               Ustawienia
             </Link>

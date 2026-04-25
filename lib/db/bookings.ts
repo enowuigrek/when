@@ -7,15 +7,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 export async function getBookingsInRange(
   startIso: string,
-  endIso: string
+  endIso: string,
+  staffId?: string
 ): Promise<{ startsAtIso: string; endsAtIso: string }[]> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("bookings")
     .select("starts_at, ends_at")
     .eq("status", "confirmed")
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);
+
+  if (staffId) {
+    query = query.eq("staff_id", staffId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(`Failed to load bookings: ${error.message}`);
   return (data ?? []).map((b) => ({
@@ -32,6 +39,7 @@ export type CreateBookingInput = {
   startsAtIso: string;
   endsAtIso: string;
   notes: string | null;
+  staffId?: string | null;
 };
 
 export type CreateBookingResult =
@@ -53,6 +61,7 @@ export async function createBooking(
       ends_at: input.endsAtIso,
       notes: input.notes,
       status: "confirmed",
+      staff_id: input.staffId ?? null,
     })
     .select("id")
     .single();
@@ -83,7 +92,9 @@ export type BookingWithService = {
   status: "confirmed" | "cancelled" | "completed" | "no_show";
   notes: string | null;
   created_at: string;
+  staff_id: string | null;
   service: { name: string; duration_min: number; price_pln: number } | null;
+  staff: { name: string; color: string } | null;
 };
 
 export async function getBookingsBetween(
@@ -93,7 +104,7 @@ export async function getBookingsBetween(
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("bookings")
-    .select("*, service:services(name, duration_min, price_pln)")
+    .select("*, service:services(name, duration_min, price_pln), staff:staff(name, color)")
     .gte("starts_at", startIso)
     .lt("starts_at", endIso)
     .order("starts_at", { ascending: true });

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { getActiveStaff } from "@/lib/db/staff";
 import type { Slot } from "@/lib/slots";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
@@ -22,17 +23,19 @@ export async function getSlotsForDate(
   const service = await getServiceBySlug(serviceSlug);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
-  const [hours, settings] = await Promise.all([getBusinessHours(), getSettings()]);
+  const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
   const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const staffCount = Math.max(1, activeStaff.length);
 
   const slots = computeAvailableSlots(
     dateStr,
     service.duration_min,
     hours,
     existing,
-    settings.slot_granularity_min
+    settings.slot_granularity_min,
+    staffCount
   );
   return { ok: true, slots };
 }

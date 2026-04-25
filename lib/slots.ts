@@ -106,13 +106,16 @@ export type Slot = {
  * @param durationMin    Service duration
  * @param hours          business_hours rows
  * @param existing       confirmed bookings overlapping the day, [start, end) UTC ISO
+ * @param granularityMin slot step in minutes
+ * @param staffCount     number of staff that can serve concurrently (default 1)
  */
 export function computeAvailableSlots(
   dateStr: string,
   durationMin: number,
   hours: BusinessHours[],
   existing: { startsAtIso: string; endsAtIso: string }[],
-  granularityMin = 15
+  granularityMin = 15,
+  staffCount = 1
 ): Slot[] {
   const dow = warsawDayOfWeek(dateStr);
   const todayHours = hours.find((h) => h.day_of_week === dow);
@@ -141,8 +144,8 @@ export function computeAvailableSlots(
   for (let t = dayOpenUtc; t + durMs <= dayCloseUtc; t += stepMs) {
     if (t < now) continue; // skip past slots
     const end = t + durMs;
-    const overlaps = existingRanges.some((r) => r.s < end && t < r.e);
-    if (overlaps) continue;
+    const overlapCount = existingRanges.filter((r) => r.s < end && t < r.e).length;
+    if (overlapCount >= staffCount) continue;
 
     const dtf = new Intl.DateTimeFormat("pl-PL", {
       timeZone: TZ,

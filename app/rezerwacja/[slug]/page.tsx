@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange } from "@/lib/db/bookings";
 import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
+import { getActiveStaff } from "@/lib/db/staff";
 import { getSettings, getTimeFilters } from "@/lib/db/settings";
 import { BookingFlow } from "./booking-flow";
 
@@ -23,10 +24,11 @@ export default async function BookingServicePage({ params }: { params: Params })
   const service = await getServiceBySlug(slug);
   if (!service) notFound();
 
-  const [hours, settings, timeFilters] = await Promise.all([
+  const [hours, settings, timeFilters, activeStaff] = await Promise.all([
     getBusinessHours(),
     getSettings(),
     getTimeFilters(),
+    getActiveStaff(),
   ]);
 
   const today = warsawToday();
@@ -43,12 +45,14 @@ export default async function BookingServicePage({ params }: { params: Params })
   const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
   const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const staffCount = Math.max(1, activeStaff.length);
   const initialSlots = computeAvailableSlots(
     initialDate,
     service.duration_min,
     hours,
     existing,
-    settings.slot_granularity_min
+    settings.slot_granularity_min,
+    staffCount
   );
 
   return (

@@ -8,42 +8,49 @@ import { getServiceById, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking } from "@/lib/db/bookings";
 import { getSettings } from "@/lib/db/settings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { getActiveStaff } from "@/lib/db/staff";
+import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
 import type { Slot } from "@/lib/slots";
 
-// ── Slot loader ───────────────────────────────────────────────────────────────
+export async function searchCustomersAction(query: string) {
+  return searchCustomersByPhone(query);
+}
 
 export async function getAdminSlotsForDate(
   serviceId: string,
-  dateStr: string
+  dateStr: string,
+  staffId?: string
 ): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return { ok: false, message: "Niepoprawna data." };
   }
 
-  const [service, hours, settings] = await Promise.all([
+  const [service, hours, settings, activeStaff] = await Promise.all([
     getServiceById(serviceId),
     getBusinessHours(),
     getSettings(),
+    getActiveStaff(),
   ]);
 
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+
+  const staffCount = staffId ? 1 : Math.max(1, activeStaff.length);
 
   const slots = computeAvailableSlots(
     dateStr,
     service.duration_min,
     hours,
     existing,
-    settings.slot_granularity_min
+    settings.slot_granularity_min,
+    staffCount
   );
 
   return { ok: true, slots };
 }
-
-// ── Create booking ────────────────────────────────────────────────────────────
 
 const schema = z.object({
   serviceId: z.string().uuid("Wybierz usługę"),
@@ -57,6 +64,7 @@ const schema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   notes: z.string().trim().max(500).optional(),
+  staffId: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
 });
 
 export type AdminBookingState =
@@ -76,6 +84,7 @@ export async function createAdminBookingAction(
     customerPhone: formData.get("customerPhone")?.toString() ?? "",
     customerEmail: formData.get("customerEmail")?.toString() ?? "",
     notes: formData.get("notes")?.toString() ?? "",
+    staffId: formData.get("staffId")?.toString() ?? "",
   };
 
   const parsed = schema.safeParse(raw);
@@ -102,9 +111,19 @@ export async function createAdminBookingAction(
     startsAtIso: startsAt.toISOString(),
     endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
+    staffId: parsed.data.staffId ?? null,
   });
 
   if (!result.ok) return { status: "error", message: result.message };
+
+  try {
+    await upsertCustomer({
+      phone: parsed.data.customerPhone,
+      name: parsed.data.customerName,
+      email: parsed.data.customerEmail ?? null,
+    });
+  } catch {
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/tydzien");

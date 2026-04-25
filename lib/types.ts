@@ -29,4 +29,5 @@ export type Booking = {
   status: BookingStatus;
   notes: string | null;
   created_at: string;
+  staff_id: string | null;
 };

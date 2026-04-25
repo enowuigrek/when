@@ -1,26 +1,23 @@
 import { getServices, getBusinessHours } from "@/lib/db/services";
 import { getSettings, getTimeFilters } from "@/lib/db/settings";
 import { getBookingsInRange } from "@/lib/db/bookings";
-import {
-  computeAvailableSlots,
-  warsawToday,
-  addDays,
-  formatShortDate,
-  warsawDayOfWeek,
-} from "@/lib/slots";
-import { dayLabelsShort } from "@/lib/business";
+import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
+import { getAllStaff } from "@/lib/db/staff";
 import { AdminBookingForm } from "./admin-booking-form";
 
 export const metadata = { title: "Nowa rezerwacja", robots: { index: false } };
 
 export default async function AdminNewBookingPage() {
-  const [services, hours, settings, timeFilters] = await Promise.all([
+  const [services, hours, settings, timeFilters, allStaff] = await Promise.all([
     getServices(),
     getBusinessHours(),
     getSettings(),
     getTimeFilters(),
+    getAllStaff(),
   ]);
 
+  const activeStaff = allStaff.filter((s) => s.active);
+  const staffCount = Math.max(1, activeStaff.length);
   const firstService = services[0] ?? null;
   const today = warsawToday();
 
@@ -28,19 +25,11 @@ export default async function AdminNewBookingPage() {
     const date = addDays(today, i);
     const dow = warsawDayOfWeek(date);
     const dayHours = hours.find((h) => h.day_of_week === dow);
-    return {
-      date,
-      dow,
-      dayLabel: dayLabelsShort[dow],
-      dayNum: Number(date.split("-")[2]),
-      shortDate: formatShortDate(date),
-      closed: !dayHours || dayHours.closed,
-    };
+    return { date, closed: !dayHours || dayHours.closed };
   });
 
   const initialDate = days.find((d) => !d.closed)?.date ?? today;
 
-  // Pre-compute initial slots server-side.
   let initialSlots: ReturnType<typeof computeAvailableSlots> = [];
   if (firstService) {
     const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
@@ -51,7 +40,8 @@ export default async function AdminNewBookingPage() {
       firstService.duration_min,
       hours,
       existing,
-      settings.slot_granularity_min
+      settings.slot_granularity_min,
+      staffCount
     );
   }
 
@@ -61,6 +51,7 @@ export default async function AdminNewBookingPage() {
       <p className="text-sm text-zinc-500 mb-8">Rezerwacja przez telefon lub wizytę osobistą.</p>
       <AdminBookingForm
         services={services}
+        staff={activeStaff}
         days={days}
         initialDate={initialDate}
         initialSlots={initialSlots}
