@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllStaff } from "@/lib/db/staff";
-import { toggleStaffActiveAction, deleteStaffAction } from "./actions";
+import { toggleStaffActiveAction } from "./actions";
+import { DeleteStaffButton } from "./delete-button";
 
 export const metadata = { title: "Pracownicy", robots: { index: false } };
 
@@ -35,12 +36,10 @@ export default async function PracownicyPage() {
                 s.active ? "" : "opacity-50"
               }`}
             >
-              {/* Color swatch */}
               <div
                 className="h-10 w-10 shrink-0 rounded-full"
                 style={{ backgroundColor: s.color }}
               />
-
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-zinc-100">{s.name}</p>
                 {s.bio && (
@@ -50,7 +49,6 @@ export default async function PracownicyPage() {
                   <p className="mt-0.5 text-xs uppercase tracking-wider text-zinc-600">Nieaktywny</p>
                 )}
               </div>
-
               <div className="flex items-center gap-2">
                 <Link
                   href={`/admin/pracownicy/${s.id}`}
@@ -68,20 +66,7 @@ export default async function PracownicyPage() {
                     {s.active ? "Ukryj" : "Aktywuj"}
                   </button>
                 </form>
-                <form
-                  action={deleteStaffAction}
-                  onSubmit={(e) => {
-                    if (!confirm(`Usunąć ${s.name}?`)) e.preventDefault();
-                  }}
-                >
-                  <input type="hidden" name="id" value={s.id} />
-                  <button
-                    type="submit"
-                    className="rounded-md border border-red-900/60 px-3 py-1.5 text-xs text-red-500 hover:border-red-700/60 hover:text-red-300 transition-colors"
-                  >
-                    Usuń
-                  </button>
-                </form>
+                <DeleteStaffButton id={s.id} name={s.name} />
               </div>
             </div>
           ))}
