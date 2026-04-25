@@ -34,6 +34,9 @@ export default async function PanelLayout({
             <Link href="/admin/uslugi" className="text-zinc-300 hover:text-zinc-100">
               Usługi
             </Link>
+            <Link href="/admin/rezerwacja/nowa" className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors">
+              + Rezerwacja
+            </Link>
             <form action={logoutAction}>
               <button
                 type="submit"
