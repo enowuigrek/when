@@ -56,3 +56,22 @@ export async function cancelBookingAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/tydzien");
 }
+
+export async function assignStaffAction(formData: FormData) {
+  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+
+  const id = formData.get("id")?.toString();
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid booking id");
+
+  const staffId = formData.get("staffId")?.toString() || null;
+
+  const { error } = await createAdminClient()
+    .from("bookings")
+    .update({ staff_id: staffId })
+    .eq("id", id);
+
+  if (error) throw new Error(`Assign failed: ${error.message}`);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/tydzien");
+}

@@ -113,6 +113,20 @@ export async function getBookingsBetween(
   return (data ?? []) as BookingWithService[];
 }
 
+export async function getBusyStaffIds(
+  startIso: string,
+  endIso: string
+): Promise<string[]> {
+  const { data } = await createAdminClient()
+    .from("bookings")
+    .select("staff_id")
+    .eq("status", "confirmed")
+    .not("staff_id", "is", null)
+    .lt("starts_at", endIso)
+    .gt("ends_at", startIso);
+  return (data ?? []).map((b) => b.staff_id as string);
+}
+
 export async function getBookingById(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase

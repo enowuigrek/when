@@ -102,6 +102,7 @@ export default async function BookingServicePage({ params }: { params: Params })
             initialSlots={initialSlots}
             timeFilters={timeFilters}
             today={today}
+            staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
           />
         </section>
       </main>

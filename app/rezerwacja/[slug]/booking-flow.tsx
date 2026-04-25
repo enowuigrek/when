@@ -8,6 +8,7 @@ import { getSlotsForDate, submitBooking } from "./actions";
 import type { BookingFormState } from "./actions";
 
 type Day = { date: string; closed: boolean };
+type StaffOption = { id: string; name: string; color: string };
 
 export function BookingFlow({
   serviceSlug,
@@ -16,6 +17,7 @@ export function BookingFlow({
   initialSlots,
   timeFilters,
   today,
+  staff,
 }: {
   serviceSlug: string;
   days: Day[];
@@ -23,11 +25,13 @@ export function BookingFlow({
   initialSlots: Slot[];
   timeFilters: TimeFilter[];
   today: string;
+  staff: StaffOption[];
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [loadingSlots, startSlotLoad] = useTransition();
 
   const [formState, formAction, formPending] = useActionState<BookingFormState, FormData>(
@@ -35,14 +39,23 @@ export function BookingFlow({
     { status: "idle" }
   );
 
-  function pickDate(date: string) {
-    setSelectedDate(date);
+  function reloadSlots(date: string, staffId: string | null) {
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await getSlotsForDate(serviceSlug, date);
+      const res = await getSlotsForDate(serviceSlug, date, staffId);
       setSlots(res.ok ? res.slots : []);
     });
+  }
+
+  function pickDate(date: string) {
+    setSelectedDate(date);
+    reloadSlots(date, selectedStaffId);
+  }
+
+  function pickStaff(staffId: string | null) {
+    setSelectedStaffId(staffId);
+    reloadSlots(selectedDate, staffId);
   }
 
   const visibleSlots = activeFilter
@@ -56,6 +69,46 @@ export function BookingFlow({
 
   return (
     <div className="mt-8 space-y-10">
+      {/* STAFF PICKER — only show when >1 staff */}
+      {staff.length > 1 && (
+        <div>
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
+            Pracownik
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => pickStaff(null)}
+              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                selectedStaffId === null
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+              }`}
+            >
+              Dowolny
+            </button>
+            {staff.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => pickStaff(s.id)}
+                className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                  selectedStaffId === s.id
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                }`}
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* CALENDAR */}
       <div>
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
@@ -143,6 +196,7 @@ export function BookingFlow({
 
           <input type="hidden" name="serviceSlug" value={serviceSlug} />
           <input type="hidden" name="startsAtIso" value={selectedSlot.startsAtIso} />
+          {selectedStaffId && <input type="hidden" name="staffId" value={selectedStaffId} />}
 
           <Field
             label="Imię i nazwisko"

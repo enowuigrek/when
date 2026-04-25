@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { logoutAction } from "./actions";
 import { getSettings } from "@/lib/db/settings";
+import { AdminNotificationBell } from "@/components/admin-notification-bell";
 
 export default async function PanelLayout({
   children,
@@ -44,13 +45,14 @@ export default async function PanelLayout({
             {/* Separator */}
             <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />
 
-            {/* CTA + logout */}
+            {/* CTA + bell + logout */}
             <Link
               href="/admin/rezerwacja/nowa"
               className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors"
             >
               + Rezerwacja
             </Link>
+            <AdminNotificationBell />
             <form action={logoutAction} className="ml-1">
               <button type="submit" className="text-zinc-500 hover:text-zinc-300 px-2 py-1">
                 Wyloguj

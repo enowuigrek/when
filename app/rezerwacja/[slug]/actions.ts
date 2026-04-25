@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange, createBooking } from "@/lib/db/bookings";
+import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import type { Slot } from "@/lib/slots";
@@ -16,7 +16,8 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
 export async function getSlotsForDate(
   serviceSlug: string,
-  dateStr: string
+  dateStr: string,
+  staffId?: string | null
 ): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
   const dateRes = dateSchema.safeParse(dateStr);
   if (!dateRes.success) return { ok: false, message: "Niepoprawna data." };
@@ -27,8 +28,8 @@ export async function getSlotsForDate(
   const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
-  const staffCount = Math.max(1, activeStaff.length);
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId ?? undefined);
+  const staffCount = staffId ? 1 : Math.max(1, activeStaff.length);
 
   const slots = computeAvailableSlots(
     dateStr,
@@ -45,6 +46,7 @@ export async function getSlotsForDate(
 const bookingSchema = z.object({
   serviceSlug: z.string().min(1),
   startsAtIso: z.string().datetime(),
+  staffId: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
   customerName: z.string().trim().min(2, "Podaj imię i nazwisko").max(120),
   customerPhone: z
     .string()
@@ -71,6 +73,7 @@ export async function submitBooking(
   const raw = {
     serviceSlug: formData.get("serviceSlug")?.toString() ?? "",
     startsAtIso: formData.get("startsAtIso")?.toString() ?? "",
+    staffId: formData.get("staffId")?.toString() ?? "",
     customerName: formData.get("customerName")?.toString() ?? "",
     customerPhone: formData.get("customerPhone")?.toString() ?? "",
     customerEmail: formData.get("customerEmail")?.toString() ?? "",
@@ -99,6 +102,17 @@ export async function submitBooking(
   const startsAt = new Date(parsed.data.startsAtIso);
   const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
+  // Auto-assign staff when client selected "Dowolny"
+  let resolvedStaffId: string | null = parsed.data.staffId ?? null;
+  if (!resolvedStaffId) {
+    const [busyIds, allStaff] = await Promise.all([
+      getBusyStaffIds(startsAt.toISOString(), endsAt.toISOString()),
+      getActiveStaff(),
+    ]);
+    const free = allStaff.filter((s) => !busyIds.includes(s.id));
+    resolvedStaffId = free[0]?.id ?? null;
+  }
+
   const result = await createBooking({
     serviceId: service.id,
     customerName: parsed.data.customerName,
@@ -107,6 +121,7 @@ export async function submitBooking(
     startsAtIso: startsAt.toISOString(),
     endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
+    staffId: resolvedStaffId,
   });
 
   if (!result.ok) {

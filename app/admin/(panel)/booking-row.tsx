@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { formatWarsawTime } from "@/lib/slots";
 import type { BookingWithService } from "@/lib/db/bookings";
-import { cancelBookingAction } from "./actions";
+import { cancelBookingAction, assignStaffAction } from "./actions";
+
+type StaffOption = { id: string; name: string; color: string };
 
 const CANCEL_REASONS = [
   "Choroba fryzjera",
@@ -14,10 +16,17 @@ const CANCEL_REASONS = [
   "Inne",
 ];
 
-export function BookingRow({ b }: { b: BookingWithService }) {
+export function BookingRow({
+  b,
+  allStaff = [],
+}: {
+  b: BookingWithService;
+  allStaff?: StaffOption[];
+}) {
   const [showCancel, setShowCancel] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [pending, startTransition] = useTransition();
+  const [assignPending, startAssign] = useTransition();
   const isOther = selectedReason === "Inne";
   const cancelled = b.status === "cancelled";
 
@@ -49,7 +58,33 @@ export function BookingRow({ b }: { b: BookingWithService }) {
             >
               {b.customer_phone}
             </a>
-            {b.staff && (
+            {allStaff.length > 0 && !cancelled ? (
+              <form
+                action={(fd) => startAssign(async () => { await assignStaffAction(fd); })}
+                className="flex items-center gap-1.5"
+              >
+                <input type="hidden" name="id" value={b.id} />
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full transition-colors"
+                  style={{ backgroundColor: b.staff?.color ?? "#52525b" }}
+                />
+                <select
+                  name="staffId"
+                  defaultValue={b.staff_id ?? ""}
+                  disabled={assignPending}
+                  onChange={(e) => {
+                    const fd = new FormData(e.currentTarget.form!);
+                    startAssign(async () => { await assignStaffAction(fd); });
+                  }}
+                  className="rounded border border-transparent bg-transparent py-0 text-xs text-zinc-400 focus:border-zinc-700 focus:outline-none hover:text-zinc-200 disabled:opacity-50"
+                >
+                  <option value="">— brak —</option>
+                  {allStaff.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </form>
+            ) : b.staff ? (
               <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-full"
@@ -57,7 +92,7 @@ export function BookingRow({ b }: { b: BookingWithService }) {
                 />
                 {b.staff.name}
               </span>
-            )}
+            ) : null}
           </div>
           <div className="mt-1 text-sm text-zinc-400">
             {b.service?.name ?? "—"}

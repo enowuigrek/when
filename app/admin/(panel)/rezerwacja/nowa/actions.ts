@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { getServiceById, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange, createBooking } from "@/lib/db/bookings";
+import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getSettings } from "@/lib/db/settings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
@@ -103,6 +103,16 @@ export async function createAdminBookingAction(
   const startsAt = new Date(parsed.data.startsAtIso);
   const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
+  let resolvedStaffId: string | null = parsed.data.staffId ?? null;
+  if (!resolvedStaffId) {
+    const [busyIds, allStaff] = await Promise.all([
+      getBusyStaffIds(startsAt.toISOString(), endsAt.toISOString()),
+      getActiveStaff(),
+    ]);
+    const free = allStaff.filter((s) => !busyIds.includes(s.id));
+    resolvedStaffId = free[0]?.id ?? null;
+  }
+
   const result = await createBooking({
     serviceId: service.id,
     customerName: parsed.data.customerName,
@@ -111,7 +121,7 @@ export async function createAdminBookingAction(
     startsAtIso: startsAt.toISOString(),
     endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
-    staffId: parsed.data.staffId ?? null,
+    staffId: resolvedStaffId,
   });
 
   if (!result.ok) return { status: "error", message: result.message };

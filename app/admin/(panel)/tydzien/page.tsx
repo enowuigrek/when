@@ -1,4 +1,5 @@
 import { getBookingsBetween } from "@/lib/db/bookings";
+import { getActiveStaff } from "@/lib/db/staff";
 import {
   warsawToday,
   addDays,
@@ -21,7 +22,10 @@ export default async function WeekPage() {
   // Single query covering the whole week.
   const startIso = warsawDayBoundsUtc(days[0]).startIso;
   const endIso = warsawDayBoundsUtc(days[6]).endIso;
-  const all = await getBookingsBetween(startIso, endIso);
+  const [all, allStaff] = await Promise.all([
+    getBookingsBetween(startIso, endIso),
+    getActiveStaff(),
+  ]);
   const active = all.filter((b) => b.status !== "cancelled");
 
   // Group by Warsaw-local day.
@@ -86,7 +90,7 @@ export default async function WeekPage() {
               ) : (
                 <ul className="space-y-2">
                   {dayBookings.map((b) => (
-                    <BookingRow key={b.id} b={b} />
+                    <BookingRow key={b.id} b={b} allStaff={allStaff} />
                   ))}
                 </ul>
               )}
