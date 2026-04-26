@@ -2,6 +2,12 @@
 
 import { useActionState, useState } from "react";
 import type { Settings } from "@/lib/db/settings";
+
+const THEMES = [
+  { value: "dark", label: "Ciemny" },
+  { value: "light", label: "Jasny" },
+  { value: "system", label: "System" },
+] as const;
 import { updateSettingsAction, type SettingsFormState } from "./actions";
 
 const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30];
@@ -12,6 +18,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     { status: "idle" }
   );
   const [accentColor, setAccentColor] = useState(settings.color_accent ?? "#d4a26a");
+  const [theme, setTheme] = useState<"dark" | "light" | "system">(settings.theme ?? "system");
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 
@@ -152,10 +159,23 @@ export function SettingsForm({ settings }: { settings: Settings }) {
           </Field>
 
           <Field label="Motyw" error={err.theme}>
-            <select name="theme" defaultValue={settings.theme ?? "dark"} className={input}>
-              <option value="dark">Ciemny</option>
-              <option value="light">Jasny</option>
-            </select>
+            <input type="hidden" name="theme" value={theme} />
+            <div className="flex rounded-lg border border-zinc-800 overflow-hidden">
+              {THEMES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTheme(t.value)}
+                  className={`flex-1 py-2 text-sm transition-colors ${
+                    theme === t.value
+                      ? "bg-[var(--color-accent)] text-zinc-950 font-medium"
+                      : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </Field>
         </div>
       </fieldset>

@@ -28,7 +28,7 @@ const settingsSchema = z.object({
   website_url: urlOptional,
   maps_url: urlOptional,
   color_accent: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Niepoprawny kolor").default("#d4a26a"),
-  theme: z.enum(["dark", "light"]).default("dark"),
+  theme: z.enum(["dark", "light", "system"]).default("system"),
   slot_granularity_min: z.coerce.number().int().refine(v => [5,10,15,20,30].includes(v), "Niedozwolona wartość"),
   booking_horizon_days: z.coerce.number().int().min(1).max(90),
 });

@@ -20,7 +20,7 @@ export type Settings = {
   slot_granularity_min: number;
   booking_horizon_days: number;
   color_accent: string;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "system";
 };
 
 export type TimeFilter = {
@@ -51,7 +51,7 @@ const FALLBACK: Settings = {
   slot_granularity_min: 15,
   booking_horizon_days: 21,
   color_accent: "#d4a26a",
-  theme: "dark" as const,
+  theme: "system" as const,
 };
 
 export async function getSettings(): Promise<Settings> {

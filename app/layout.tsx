@@ -34,17 +34,31 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const s = await getSettings();
-  const theme = s.theme ?? "dark";
+  const theme = s.theme ?? "system";
   const accent = s.color_accent ?? "#d4a26a";
-  const accentHover = accent; // close enough for now
+  const accentHover = accent;
+
+  const resolvedTheme = theme === "system" ? "dark" : theme;
 
   return (
     <html
       lang="pl"
-      data-theme={theme}
+      data-theme={resolvedTheme}
+      data-theme-pref={theme}
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={{ "--accent": accent, "--accent-hover": accentHover } as React.CSSProperties}
     >
+      <head>
+        {theme === "system" && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                "(function(){try{var d=document.documentElement;var m=window.matchMedia('(prefers-color-scheme: dark)');function set(){d.dataset.theme=m.matches?'dark':'light';}set();m.addEventListener('change',set);}catch(e){}})();",
+            }}
+          />
+        )}
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 font-sans">
         {children}
       </body>
