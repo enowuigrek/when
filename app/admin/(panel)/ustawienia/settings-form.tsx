@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
 
@@ -11,6 +11,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     updateSettingsAction,
     { status: "idle" }
   );
+  const [accentColor, setAccentColor] = useState(settings.color_accent ?? "#d4a26a");
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 
@@ -107,22 +108,56 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         </Field>
 
         <Field label="URL do Google Maps" error={err.maps_url}>
-          <input
-            name="maps_url"
-            defaultValue={settings.maps_url ?? ""}
-            placeholder="https://maps.google.com/?q=..."
-            className={input}
-          />
+          <input name="maps_url" defaultValue={settings.maps_url ?? ""} placeholder="https://maps.google.com/?q=..." className={input} />
         </Field>
 
-        <Field label="URL Instagram" error={err.instagram_url}>
-          <input
-            name="instagram_url"
-            defaultValue={settings.instagram_url ?? ""}
-            placeholder="https://instagram.com/..."
-            className={input}
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Instagram" error={err.instagram_url}>
+            <input name="instagram_url" defaultValue={settings.instagram_url ?? ""} placeholder="https://instagram.com/..." className={input} />
+          </Field>
+          <Field label="Facebook" error={err.facebook_url}>
+            <input name="facebook_url" defaultValue={settings.facebook_url ?? ""} placeholder="https://facebook.com/..." className={input} />
+          </Field>
+        </div>
+
+        <Field label="Własna strona WWW" error={err.website_url}>
+          <input name="website_url" defaultValue={settings.website_url ?? ""} placeholder="https://twojasalon.pl" className={input} />
         </Field>
+      </fieldset>
+
+      {/* Wygląd */}
+      <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
+        <legend className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          Wygląd
+        </legend>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Kolor akcentu" error={err.color_accent}>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                name="color_accent"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="h-9 w-14 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-0.5"
+              />
+              <input
+                type="text"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                placeholder="#d4a26a"
+                className={`${input} font-mono`}
+              />
+            </div>
+          </Field>
+
+          <Field label="Motyw" error={err.theme}>
+            <select name="theme" defaultValue={settings.theme ?? "dark"} className={input}>
+              <option value="dark">Ciemny</option>
+              <option value="light">Jasny</option>
+            </select>
+          </Field>
+        </div>
       </fieldset>
 
       {/* Booking config */}

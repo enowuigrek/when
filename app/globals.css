@@ -3,9 +3,48 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-accent: #d4a26a;
-  --color-accent-hover: #c4915a;
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
 }
+
+/* ── Dark theme (default) ──────────────────────────────── */
+:root {
+  --accent: #d4a26a;
+  --accent-hover: #c4915a;
+  color-scheme: dark;
+}
+
+/* ── Light theme ───────────────────────────────────────── */
+[data-theme="light"] {
+  --accent: #b07d45;
+  --accent-hover: #9a6c38;
+  color-scheme: light;
+}
+
+[data-theme="light"] body {
+  background-color: #f9f9f9;
+  color: #18181b;
+}
+
+/* Light theme overrides for admin panel surfaces */
+[data-theme="light"] .bg-zinc-950 { background-color: #f4f4f5 !important; }
+[data-theme="light"] .bg-zinc-900\/40 { background-color: rgba(228,228,231,0.5) !important; }
+[data-theme="light"] .bg-zinc-900\/20 { background-color: rgba(228,228,231,0.3) !important; }
+[data-theme="light"] .bg-zinc-900\/60 { background-color: rgba(228,228,231,0.7) !important; }
+[data-theme="light"] .bg-zinc-900\/30 { background-color: rgba(228,228,231,0.4) !important; }
+[data-theme="light"] .bg-zinc-900 { background-color: #e4e4e7 !important; }
+[data-theme="light"] .bg-zinc-800\/60 { background-color: rgba(212,212,216,0.6) !important; }
+[data-theme="light"] .bg-zinc-800\/30 { background-color: rgba(212,212,216,0.3) !important; }
+[data-theme="light"] .bg-zinc-800 { background-color: #d4d4d8 !important; }
+[data-theme="light"] .border-zinc-800\/60 { border-color: rgba(161,161,170,0.5) !important; }
+[data-theme="light"] .border-zinc-800 { border-color: #a1a1aa !important; }
+[data-theme="light"] .border-zinc-700 { border-color: #71717a !important; }
+[data-theme="light"] .text-zinc-100 { color: #18181b !important; }
+[data-theme="light"] .text-zinc-200 { color: #27272a !important; }
+[data-theme="light"] .text-zinc-300 { color: #3f3f46 !important; }
+[data-theme="light"] .text-zinc-400 { color: #52525b !important; }
+[data-theme="light"] .text-zinc-500 { color: #71717a !important; }
+[data-theme="light"] .text-zinc-600 { color: #a1a1aa !important; }
 
 html {
   scroll-behavior: smooth;

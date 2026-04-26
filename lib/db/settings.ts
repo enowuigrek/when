@@ -13,10 +13,14 @@ export type Settings = {
   phone: string | null;
   email: string | null;
   instagram_url: string | null;
+  facebook_url: string | null;
+  website_url: string | null;
   maps_url: string | null;
   logo_url: string | null;
   slot_granularity_min: number;
   booking_horizon_days: number;
+  color_accent: string;
+  theme: "dark" | "light";
 };
 
 export type TimeFilter = {
@@ -40,10 +44,14 @@ const FALLBACK: Settings = {
   phone: null,
   email: null,
   instagram_url: null,
+  facebook_url: null,
+  website_url: null,
   maps_url: null,
   logo_url: null,
   slot_granularity_min: 15,
   booking_horizon_days: 21,
+  color_accent: "#d4a26a",
+  theme: "dark" as const,
 };
 
 export async function getSettings(): Promise<Settings> {

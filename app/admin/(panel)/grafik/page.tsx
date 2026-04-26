@@ -156,11 +156,20 @@ export default async function GrafikPage({
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex flex-wrap gap-4 text-xs text-zinc-600">
-        <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-6 rounded border border-zinc-700 bg-zinc-900/40" /> godziny pracy</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-6 rounded border border-zinc-800/40" /> wolny</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-6 rounded border border-zinc-700 bg-zinc-900/40 text-[8px] text-red-400">L4</span> nieobecność</span>
-        <span className="text-zinc-700">(domyślne) = używa godzin biznesu z ustawień</span>
+      <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500">
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-4 w-8 rounded border border-zinc-700 bg-zinc-900/60" />
+          godziny pracy
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-4 w-8 rounded border border-zinc-800/40 bg-transparent" />
+          wolny
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-flex h-4 w-8 items-center justify-center rounded border border-red-900/50 bg-zinc-900/40 font-medium text-red-400" style={{ fontSize: 9 }}>L4</span>
+          nieobecność
+        </span>
+        <span className="text-zinc-600">(domyślne) = godziny z ustawień</span>
       </div>
     </section>
   );

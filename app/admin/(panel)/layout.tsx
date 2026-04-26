@@ -5,6 +5,7 @@ import { logoutAction } from "./actions";
 import { getSettings } from "@/lib/db/settings";
 import { AdminNotificationBell } from "@/components/admin-notification-bell";
 import { AdminMobileNav } from "@/components/admin-mobile-nav";
+import { AdminNavLink } from "@/components/admin-nav-link";
 
 export default async function PanelLayout({
   children,
@@ -32,15 +33,15 @@ export default async function PanelLayout({
 
           {/* Scrollable nav links — hidden on mobile, shown sm+ */}
           <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm sm:flex">
-            <NavLink href="/admin">Dziś</NavLink>
-            <NavLink href="/admin/tydzien">Tydzień</NavLink>
-            <NavLink href="/admin/harmonogram">Harmonogram</NavLink>
-            <NavLink href="/admin/grafik">Grafik</NavLink>
+            <AdminNavLink href="/admin">Dziś</AdminNavLink>
+            <AdminNavLink href="/admin/tydzien">Tydzień</AdminNavLink>
+            <AdminNavLink href="/admin/harmonogram">Harmonogram</AdminNavLink>
+            <AdminNavLink href="/admin/grafik">Grafik</AdminNavLink>
             <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />
-            <NavLink href="/admin/uslugi">Usługi</NavLink>
-            <NavLink href="/admin/pracownicy">Pracownicy</NavLink>
-            <NavLink href="/admin/klienci">Klienci</NavLink>
-            <NavLink href="/admin/ustawienia">Ustawienia</NavLink>
+            <AdminNavLink href="/admin/uslugi">Usługi</AdminNavLink>
+            <AdminNavLink href="/admin/pracownicy">Pracownicy</AdminNavLink>
+            <AdminNavLink href="/admin/klienci">Klienci</AdminNavLink>
+            <AdminNavLink href="/admin/ustawienia">Ustawienia</AdminNavLink>
           </nav>
 
           {/* Fixed right side — outside overflow nav so dropdowns work */}
@@ -69,13 +70,3 @@ export default async function PanelLayout({
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-md px-2.5 py-1.5 text-zinc-400 transition-colors hover:bg-zinc-800/60 hover:text-zinc-100"
-    >
-      {children}
-    </Link>
-  );
-}

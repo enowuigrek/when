@@ -12,6 +12,8 @@ async function requireAdmin() {
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 
+const urlOptional = z.string().trim().url("Niepoprawny URL").optional().or(z.literal("").transform(() => undefined));
+
 const settingsSchema = z.object({
   business_name: z.string().trim().min(1, "Nazwa jest wymagana").max(120),
   tagline: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
@@ -21,8 +23,12 @@ const settingsSchema = z.object({
   address_postal: z.string().trim().max(20).optional().or(z.literal("").transform(() => undefined)),
   phone: z.string().trim().max(30).optional().or(z.literal("").transform(() => undefined)),
   email: z.string().trim().email("Niepoprawny email").optional().or(z.literal("").transform(() => undefined)),
-  instagram_url: z.string().trim().url("Niepoprawny URL").optional().or(z.literal("").transform(() => undefined)),
-  maps_url: z.string().trim().url("Niepoprawny URL").optional().or(z.literal("").transform(() => undefined)),
+  instagram_url: urlOptional,
+  facebook_url: urlOptional,
+  website_url: urlOptional,
+  maps_url: urlOptional,
+  color_accent: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Niepoprawny kolor").default("#d4a26a"),
+  theme: z.enum(["dark", "light"]).default("dark"),
   slot_granularity_min: z.coerce.number().int().refine(v => [5,10,15,20,30].includes(v), "Niedozwolona wartość"),
   booking_horizon_days: z.coerce.number().int().min(1).max(90),
 });
@@ -41,8 +47,8 @@ export async function updateSettingsAction(
   const raw = Object.fromEntries(
     [
       "business_name","tagline","description","address_street","address_city",
-      "address_postal","phone","email","instagram_url","maps_url",
-      "slot_granularity_min","booking_horizon_days",
+      "address_postal","phone","email","instagram_url","facebook_url","website_url",
+      "maps_url","color_accent","theme","slot_granularity_min","booking_horizon_days",
     ].map((k) => [k, formData.get(k)?.toString() ?? ""])
   );
 
