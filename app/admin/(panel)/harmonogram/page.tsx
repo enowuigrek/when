@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getBookingsBetween } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours } from "@/lib/db/services";
+import { DayBookingCard } from "./day-booking-card";
 import {
   warsawToday,
   addDays,
@@ -233,14 +234,15 @@ function DayView({
                 return (
                   <td key={s.id} className="px-2 py-1 align-top">
                     {booking && isFirstSlot ? (
-                      <div
-                        className="rounded px-2 py-1"
-                        style={{ backgroundColor: `${s.color}20`, borderLeft: `2px solid ${s.color}` }}
-                      >
-                        <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(booking.starts_at)}</p>
-                        <p className="text-xs font-medium text-zinc-200 leading-tight">{booking.customer_name}</p>
-                        {booking.service && <p className="text-xs text-zinc-500">{booking.service.name}</p>}
-                      </div>
+                      <DayBookingCard
+                        id={booking.id}
+                        startsAtIso={booking.starts_at}
+                        endsAtIso={booking.ends_at}
+                        customerName={booking.customer_name}
+                        serviceName={booking.service?.name ?? null}
+                        timeLabel={formatWarsawTime(booking.starts_at)}
+                        color={s.color}
+                      />
                     ) : booking ? (
                       <div className="h-5" style={{ borderLeft: `2px solid ${s.color}40` }} />
                     ) : (

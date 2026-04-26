@@ -21,10 +21,11 @@ export default async function PanelLayout({
       <header className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-6">
           {/* Logo */}
-          <Link href="/admin" className="shrink-0 text-base font-semibold tracking-tight">
-            {s.business_name}
-            <span className="text-[var(--color-accent)]">.</span>
-            <span className="ml-1.5 text-xs font-normal uppercase tracking-widest text-zinc-500">
+          <Link href="/admin" className="shrink-0 leading-tight">
+            <span className="text-base font-semibold tracking-tight">
+              {s.business_name}<span className="text-[var(--color-accent)]">.</span>
+            </span>
+            <span className="block text-[10px] font-normal uppercase tracking-widest text-zinc-500">
               panel
             </span>
           </Link>
