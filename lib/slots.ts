@@ -93,6 +93,15 @@ export function addDays(dateStr: string, days: number): string {
   return next.toISOString().slice(0, 10);
 }
 
+/** ISO Monday-start week: returns YYYY-MM-DD of Monday for the given date. */
+export function mondayOfWeek(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay(); // 0=Sun…6=Sat
+  const diff = dow === 0 ? -6 : 1 - dow; // shift to Monday
+  return addDays(dateStr, diff);
+}
+
 export type Slot = {
   startsAtIso: string; // UTC ISO
   endsAtIso: string;

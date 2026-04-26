@@ -26,7 +26,8 @@ export async function addTimeOffFromGrafikAction(formData: FormData) {
   await requireAdmin();
   const staffId = formData.get("staffId")?.toString();
   const startDate = formData.get("start_date")?.toString();
-  const endDate = formData.get("end_date")?.toString();
+  const endDateRaw = formData.get("end_date")?.toString();
+  const endDate = endDateRaw && endDateRaw.length > 0 ? endDateRaw : startDate;
   const type = (formData.get("type")?.toString() ?? "other") as "sick" | "vacation" | "personal" | "other";
   const note = formData.get("note")?.toString().trim() || null;
 
