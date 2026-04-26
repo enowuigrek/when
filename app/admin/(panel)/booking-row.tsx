@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { formatWarsawTime } from "@/lib/slots";
 import type { BookingWithService } from "@/lib/db/bookings";
-import { cancelBookingAction, assignStaffAction } from "./actions";
+import { cancelBookingAction, assignStaffAction, markNoShowAction } from "./actions";
 
 type StaffOption = { id: string; name: string; color: string };
 
@@ -30,8 +30,10 @@ export function BookingRow({
   const [assignError, setAssignError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [assignPending, startAssign] = useTransition();
+  const [noShowPending, startNoShow] = useTransition();
   const isOther = selectedReason === "Inne";
   const cancelled = b.status === "cancelled";
+  const noShow = b.status === "no_show";
 
   function handleCancel(formData: FormData) {
     startTransition(async () => {
@@ -41,7 +43,7 @@ export function BookingRow({
   }
 
   return (
-    <li className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 ${cancelled ? "opacity-50" : ""}`}>
+    <li className={`rounded-lg border border-zinc-800/60 bg-zinc-900/40 ${cancelled || noShow ? "opacity-50" : ""}`}>
       <div className="flex items-start gap-4 p-4">
         {/* Time */}
         <div className="w-20 shrink-0 font-mono text-lg text-[var(--color-accent)]">
@@ -61,7 +63,7 @@ export function BookingRow({
             >
               {b.customer_phone}
             </a>
-            {allStaff.length > 0 && !cancelled ? (
+            {allStaff.length > 0 && !cancelled && !noShow ? (
               <>
                 <form
                   action={(fd) => startAssign(async () => {
@@ -131,17 +133,32 @@ export function BookingRow({
           {cancelled && (
             <p className="mt-1 text-xs uppercase tracking-wider text-red-400">Anulowana</p>
           )}
+          {noShow && (
+            <p className="mt-1 text-xs uppercase tracking-wider text-amber-500">Nie przyszedł</p>
+          )}
         </div>
 
         {/* Actions */}
-        {!cancelled && (
-          <button
-            type="button"
-            onClick={() => setShowCancel((v) => !v)}
-            className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-red-900 hover:bg-red-950/20 hover:text-red-400"
-          >
-            {showCancel ? "Zamknij" : "Anuluj"}
-          </button>
+        {!cancelled && !noShow && (
+          <div className="flex shrink-0 flex-col gap-1.5">
+            <form action={(fd) => startNoShow(async () => { await markNoShowAction(fd); })}>
+              <input type="hidden" name="id" value={b.id} />
+              <button
+                type="submit"
+                disabled={noShowPending}
+                className="w-full rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-amber-900 hover:bg-amber-950/20 hover:text-amber-400 disabled:opacity-50"
+              >
+                Nie przyszedł
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setShowCancel((v) => !v)}
+              className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-red-900 hover:bg-red-950/20 hover:text-red-400"
+            >
+              {showCancel ? "Zamknij" : "Anuluj"}
+            </button>
+          </div>
         )}
       </div>
 

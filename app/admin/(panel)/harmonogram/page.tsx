@@ -31,7 +31,7 @@ export default async function HarmonogramPage({
     getBookingsBetween(startIso, endIso),
     getActiveStaff(),
   ]);
-  const active = all.filter((b) => b.status !== "cancelled");
+  const active = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
 
   // Group by day and staff
   const byDayStaff = new Map<string, Map<string, typeof active>>();

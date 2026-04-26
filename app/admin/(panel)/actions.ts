@@ -79,3 +79,22 @@ export async function assignStaffAction(formData: FormData): Promise<{ ok: true 
   revalidatePath("/admin/tydzien");
   return { ok: true };
 }
+
+export async function markNoShowAction(formData: FormData) {
+  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+
+  const id = formData.get("id")?.toString();
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid booking id");
+
+  const { error } = await createAdminClient()
+    .from("bookings")
+    .update({ status: "no_show" })
+    .eq("id", id)
+    .eq("status", "confirmed");
+
+  if (error) throw new Error(`No-show failed: ${error.message}`);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/tydzien");
+  revalidatePath("/admin/harmonogram");
+}

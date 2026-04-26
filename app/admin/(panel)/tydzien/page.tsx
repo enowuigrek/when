@@ -26,7 +26,7 @@ export default async function WeekPage() {
     getBookingsBetween(startIso, endIso),
     getActiveStaff(),
   ]);
-  const active = all.filter((b) => b.status !== "cancelled");
+  const active = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
 
   // Group by Warsaw-local day.
   const byDay = new Map<string, typeof active>();

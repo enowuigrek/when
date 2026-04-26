@@ -26,7 +26,8 @@ export default async function TodayPage({
     getBookingsBetween(startIso, endIso),
     getActiveStaff(),
   ]);
-  const active = bookings.filter((b) => b.status !== "cancelled");
+  const active = bookings.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
+  const noShows = bookings.filter((b) => b.status === "no_show");
   const cancelled = bookings.filter((b) => b.status === "cancelled");
 
   const [y, m, d] = viewDate.split("-").map(Number);
@@ -84,8 +85,21 @@ export default async function TodayPage({
         )}
       </div>
 
-      {cancelled.length > 0 && (
+      {noShows.length > 0 && (
         <details className="mt-8">
+          <summary className="cursor-pointer text-sm text-amber-600 hover:text-amber-400">
+            Nie przyszli ({noShows.length})
+          </summary>
+          <ul className="mt-3 space-y-2">
+            {noShows.map((b) => (
+              <BookingRow key={b.id} b={b} allStaff={allStaff} />
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {cancelled.length > 0 && (
+        <details className="mt-4">
           <summary className="cursor-pointer text-sm text-zinc-500 hover:text-zinc-300">
             Anulowane ({cancelled.length})
           </summary>
