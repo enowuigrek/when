@@ -32,6 +32,7 @@ export function AdminBookingForm({
   initialSlots,
   timeFilters,
   today,
+  prefilledTime,
 }: {
   services: Service[];
   staff: Staff[];
@@ -41,6 +42,7 @@ export function AdminBookingForm({
   timeFilters: TimeFilter[];
   granularityMin: number;
   today: string;
+  prefilledTime?: string | null;
 }) {
   const [state, formAction, formPending] = useActionState<AdminBookingState, FormData>(
     createAdminBookingAction,
@@ -60,7 +62,9 @@ export function AdminBookingForm({
   const [selectedStaffId, setSelectedStaffId] = useState<string>(""); // "" = any
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(() =>
+    prefilledTime ? (initialSlots.find((s) => s.label === prefilledTime) ?? null) : null
+  );
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [loadingSlots, startSlotLoad] = useTransition();
 

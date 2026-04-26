@@ -7,7 +7,13 @@ import { AdminBookingForm } from "./admin-booking-form";
 
 export const metadata = { title: "Nowa rezerwacja", robots: { index: false } };
 
-export default async function AdminNewBookingPage() {
+export default async function AdminNewBookingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ data?: string; godzina?: string }>;
+}) {
+  const { data: dataParam, godzina: godzinaParam } = await searchParams;
+
   const [services, hours, settings, timeFilters, allStaff] = await Promise.all([
     getServices(),
     getBusinessHours(),
@@ -28,7 +34,8 @@ export default async function AdminNewBookingPage() {
     return { date, closed: !dayHours || dayHours.closed };
   });
 
-  const initialDate = days.find((d) => !d.closed)?.date ?? today;
+  const prefilledDate = dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam) ? dataParam : null;
+  const initialDate = prefilledDate ?? days.find((d) => !d.closed)?.date ?? today;
 
   let initialSlots: ReturnType<typeof computeAvailableSlots> = [];
   if (firstService) {
@@ -58,6 +65,7 @@ export default async function AdminNewBookingPage() {
         timeFilters={timeFilters}
         granularityMin={settings.slot_granularity_min}
         today={today}
+        prefilledTime={godzinaParam ?? null}
       />
     </section>
   );
