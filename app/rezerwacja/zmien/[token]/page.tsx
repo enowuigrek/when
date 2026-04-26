@@ -40,6 +40,8 @@ export default async function ReschedulePage({ params }: { params: Params }) {
     getActiveStaff(),
   ]);
 
+  const staffId = booking.staff_id ?? null;
+
   const today = warsawToday();
   const days = Array.from({ length: settings.booking_horizon_days }, (_, i) => {
     const date = addDays(today, i);
@@ -53,17 +55,27 @@ export default async function ReschedulePage({ params }: { params: Params }) {
   const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
 
   const { getBookingsInRange } = await import("@/lib/db/bookings");
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
-  const staffCount = Math.max(1, activeStaff.length);
-  const initialSlots = computeAvailableSlots(
-    initialDate,
-    service.duration_min,
-    hours,
-    existing,
-    settings.slot_granularity_min,
-    staffCount,
-    true
-  );
+  const { getStaffAvailabilityMap } = await import("@/lib/db/staff-schedule");
+  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), initialDate);
+
+  let initialSlots;
+  if (staffId) {
+    const avail = availMap.get(staffId);
+    const effectiveHours = avail?.startTime && avail?.endTime
+      ? hours.map((h) => {
+          const dow = new Date(Date.UTC(...(initialDate.split("-").map(Number) as [number, number, number]), 12)).getUTCDay();
+          return h.day_of_week === dow
+            ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
+            : h;
+        })
+      : hours;
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    initialSlots = computeAvailableSlots(initialDate, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
+  } else {
+    const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+    initialSlots = computeAvailableSlots(initialDate, service.duration_min, hours, existing, settings.slot_granularity_min, Math.max(1, availableStaff.length), true);
+  }
 
   return (
     <>
@@ -86,6 +98,7 @@ export default async function ReschedulePage({ params }: { params: Params }) {
           <RescheduleFlow
             token={token}
             serviceSlug={service.slug}
+            staffId={staffId}
             days={days}
             initialDate={initialDate}
             initialSlots={initialSlots}

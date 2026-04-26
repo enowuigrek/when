@@ -156,7 +156,7 @@ export function AdminNotificationBell() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl transition-all animate-in slide-in-from-bottom-2"
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl transition-all"
             onClick={() => {
               setToasts((prev) => prev.filter((x) => x.id !== t.id));
               navigateTo(t.startsAt);

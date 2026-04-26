@@ -28,37 +28,33 @@ export default async function PanelLayout({
             </span>
           </Link>
 
-          <nav className="flex items-center gap-1 text-sm overflow-x-auto">
-            {/* Widoki */}
+          {/* Scrollable nav links — overflow-x-auto must NOT contain any dropdowns */}
+          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
             <NavLink href="/admin">Dziś</NavLink>
             <NavLink href="/admin/tydzien">Tydzień</NavLink>
-
-            {/* Separator */}
+            <NavLink href="/admin/harmonogram">Harmonogram</NavLink>
             <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />
-
-            {/* Zarządzanie */}
             <NavLink href="/admin/uslugi">Usługi</NavLink>
             <NavLink href="/admin/pracownicy">Pracownicy</NavLink>
             <NavLink href="/admin/klienci">Klienci</NavLink>
             <NavLink href="/admin/ustawienia">Ustawienia</NavLink>
+          </nav>
 
-            {/* Separator */}
-            <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />
-
-            {/* CTA + bell + logout */}
+          {/* Fixed right side — outside overflow nav so dropdowns work */}
+          <div className="flex shrink-0 items-center gap-1">
             <Link
               href="/admin/rezerwacja/nowa"
-              className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors"
+              className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
             >
               + Rezerwacja
             </Link>
             <AdminNotificationBell />
-            <form action={logoutAction} className="ml-1">
-              <button type="submit" className="text-zinc-500 hover:text-zinc-300 px-2 py-1">
+            <form action={logoutAction}>
+              <button type="submit" className="px-2 py-1 text-zinc-500 hover:text-zinc-300">
                 Wyloguj
               </button>
             </form>
-          </nav>
+          </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>

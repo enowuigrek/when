@@ -57,11 +57,11 @@ export async function cancelBookingAction(formData: FormData) {
   revalidatePath("/admin/tydzien");
 }
 
-export async function assignStaffAction(formData: FormData) {
+export async function assignStaffAction(formData: FormData): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
 
   const id = formData.get("id")?.toString();
-  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid booking id");
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, message: "Nieprawidłowe ID." };
 
   const staffId = formData.get("staffId")?.toString() || null;
 
@@ -70,8 +70,12 @@ export async function assignStaffAction(formData: FormData) {
     .update({ staff_id: staffId })
     .eq("id", id);
 
-  if (error) throw new Error(`Assign failed: ${error.message}`);
+  if (error) {
+    if (error.code === "23P01") return { ok: false, message: "Pracownik jest już zajęty w tym terminie." };
+    return { ok: false, message: `Błąd: ${error.message}` };
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/tydzien");
+  return { ok: true };
 }

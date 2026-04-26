@@ -19,12 +19,15 @@ const CANCEL_REASONS = [
 export function BookingRow({
   b,
   allStaff = [],
+  busyStaffIds = [],
 }: {
   b: BookingWithService;
   allStaff?: StaffOption[];
+  busyStaffIds?: string[];
 }) {
   const [showCancel, setShowCancel] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
+  const [assignError, setAssignError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [assignPending, startAssign] = useTransition();
   const isOther = selectedReason === "Inne";
@@ -59,31 +62,49 @@ export function BookingRow({
               {b.customer_phone}
             </a>
             {allStaff.length > 0 && !cancelled ? (
-              <form
-                action={(fd) => startAssign(async () => { await assignStaffAction(fd); })}
-                className="flex items-center gap-1.5"
-              >
-                <input type="hidden" name="id" value={b.id} />
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full transition-colors"
-                  style={{ backgroundColor: b.staff?.color ?? "#52525b" }}
-                />
-                <select
-                  name="staffId"
-                  defaultValue={b.staff_id ?? ""}
-                  disabled={assignPending}
-                  onChange={(e) => {
-                    const fd = new FormData(e.currentTarget.form!);
-                    startAssign(async () => { await assignStaffAction(fd); });
-                  }}
-                  className="rounded border border-transparent bg-transparent py-0 text-xs text-zinc-400 focus:border-zinc-700 focus:outline-none hover:text-zinc-200 disabled:opacity-50"
+              <>
+                <form
+                  action={(fd) => startAssign(async () => {
+                    setAssignError(null);
+                    const res = await assignStaffAction(fd);
+                    if (!res.ok) setAssignError(res.message);
+                  })}
+                  className="flex items-center gap-1.5"
                 >
-                  <option value="">— brak —</option>
-                  {allStaff.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </form>
+                  <input type="hidden" name="id" value={b.id} />
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full transition-colors"
+                    style={{ backgroundColor: b.staff?.color ?? "#52525b" }}
+                  />
+                  <select
+                    name="staffId"
+                    defaultValue={b.staff_id ?? ""}
+                    disabled={assignPending}
+                    onChange={(e) => {
+                      setAssignError(null);
+                      const fd = new FormData(e.currentTarget.form!);
+                      startAssign(async () => {
+                        const res = await assignStaffAction(fd);
+                        if (!res.ok) setAssignError(res.message);
+                      });
+                    }}
+                    className="rounded border border-transparent bg-transparent py-0 text-xs text-zinc-400 focus:border-zinc-700 focus:outline-none hover:text-zinc-200 disabled:opacity-50"
+                  >
+                    <option value="">— brak —</option>
+                    {allStaff.map((s) => {
+                      const busy = busyStaffIds.includes(s.id) && s.id !== b.staff_id;
+                      return (
+                        <option key={s.id} value={s.id} disabled={busy}>
+                          {s.name}{busy ? " (zajęty)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </form>
+                {assignError && (
+                  <span className="text-xs text-red-400">{assignError}</span>
+                )}
+              </>
             ) : b.staff ? (
               <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                 <span

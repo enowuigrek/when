@@ -74,9 +74,12 @@ export default async function TodayPage({
           </div>
         ) : (
           <ul className="space-y-2">
-            {active.map((b) => (
-              <BookingRow key={b.id} b={b} allStaff={allStaff} />
-            ))}
+            {active.map((b) => {
+              const busyStaffIds = active
+                .filter((other) => other.id !== b.id && other.staff_id && new Date(other.starts_at) < new Date(b.ends_at) && new Date(other.ends_at) > new Date(b.starts_at))
+                .map((other) => other.staff_id as string);
+              return <BookingRow key={b.id} b={b} allStaff={allStaff} busyStaffIds={busyStaffIds} />;
+            })}
           </ul>
         )}
       </div>

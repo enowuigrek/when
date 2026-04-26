@@ -89,9 +89,12 @@ export default async function WeekPage() {
                 <p className="px-1 text-sm text-zinc-600">Wolny dzień.</p>
               ) : (
                 <ul className="space-y-2">
-                  {dayBookings.map((b) => (
-                    <BookingRow key={b.id} b={b} allStaff={allStaff} />
-                  ))}
+                  {dayBookings.map((b) => {
+                    const busyStaffIds = dayBookings
+                      .filter((other) => other.id !== b.id && other.staff_id && new Date(other.starts_at) < new Date(b.ends_at) && new Date(other.ends_at) > new Date(b.starts_at))
+                      .map((other) => other.staff_id as string);
+                    return <BookingRow key={b.id} b={b} allStaff={allStaff} busyStaffIds={busyStaffIds} />;
+                  })}
                 </ul>
               )}
             </div>

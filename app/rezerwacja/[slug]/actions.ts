@@ -6,13 +6,30 @@ import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
+import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import type { Slot } from "@/lib/slots";
+import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
+
+function applyStaffHours(
+  hours: BusinessHours[],
+  dateStr: string,
+  avail: { startTime: string | null; endTime: string | null } | null
+): BusinessHours[] {
+  if (!avail?.startTime || !avail?.endTime) return hours;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+  return hours.map((h) =>
+    h.day_of_week === dayOfWeek
+      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
+      : h
+  );
+}
 
 export async function getSlotsForDate(
   serviceSlug: string,
@@ -28,18 +45,25 @@ export async function getSlotsForDate(
   const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId ?? undefined);
-  const staffCount = staffId ? 1 : Math.max(1, activeStaff.length);
 
-  const slots = computeAvailableSlots(
-    dateStr,
-    service.duration_min,
-    hours,
-    existing,
-    settings.slot_granularity_min,
-    staffCount,
-    true
-  );
+  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
+
+  if (staffId) {
+    const avail = availMap.get(staffId);
+    if (avail && !avail.available) return { ok: true, slots: [] };
+
+    // Override business hours with this staff's personal schedule if set
+    const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    const slots = computeAvailableSlots(dateStr, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
+    return { ok: true, slots };
+  }
+
+  // "Dowolny" — count only staff available today
+  const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
+  const staffCount = Math.max(1, availableStaff.length);
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const slots = computeAvailableSlots(dateStr, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount, true);
   return { ok: true, slots };
 }
 

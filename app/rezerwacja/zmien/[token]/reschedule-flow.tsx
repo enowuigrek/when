@@ -11,6 +11,7 @@ type Day = { date: string; closed: boolean };
 export function RescheduleFlow({
   token,
   serviceSlug,
+  staffId,
   days,
   initialDate,
   initialSlots,
@@ -19,6 +20,7 @@ export function RescheduleFlow({
 }: {
   token: string;
   serviceSlug: string;
+  staffId?: string | null;
   days: Day[];
   initialDate: string;
   initialSlots: Slot[];
@@ -37,7 +39,7 @@ export function RescheduleFlow({
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await getSlotsForReschedule(serviceSlug, date);
+      const res = await getSlotsForReschedule(serviceSlug, date, staffId);
       setSlots(res.ok ? res.slots : []);
     });
   }
