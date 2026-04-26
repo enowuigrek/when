@@ -220,7 +220,7 @@ export function AdminNotificationBell() {
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
           {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-accent)] text-[10px] font-bold text-zinc-950">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[10px] font-bold text-zinc-950">
               {unread > 9 ? "9+" : unread}
             </span>
           )}

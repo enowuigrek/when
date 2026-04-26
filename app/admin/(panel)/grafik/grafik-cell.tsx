@@ -33,7 +33,9 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("schedule");
   const [pending, start] = useTransition();
+  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -44,6 +46,18 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
+  function handleToggle() {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      // Prefer left-aligned, but flip left if near right edge
+      const left = rect.left + rect.width / 2 + window.scrollX;
+      const top = rect.bottom + 4 + window.scrollY;
+      setPopupStyle({ top, left });
+    }
+    setTab("schedule");
+    setOpen((v) => !v);
+  }
+
   // Derive display state
   const isWorking = !timeOff && (scheduleRow ? !!(scheduleRow.start_time && scheduleRow.end_time) : true);
   const currentStart = fmt(scheduleRow?.start_time) || businessOpen || "09:00";
@@ -53,7 +67,8 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => { setTab("schedule"); setOpen((v) => !v); }}
+        ref={btnRef}
+        onClick={handleToggle}
         className={`w-full rounded-lg border px-2 py-2 text-left text-xs transition-colors ${
           timeOff
             ? `border-zinc-700 bg-zinc-900/40 ${TYPE_COLORS[timeOff.type]}`
@@ -74,8 +89,11 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
         )}
       </button>
 
-      {open && !timeOff && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+      {open && !timeOff && popupStyle && (
+        <div
+          className="fixed z-[300] w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl"
+          style={{ top: popupStyle.top, left: popupStyle.left }}
+        >
           {/* Tab switcher */}
           <div className="mb-3 flex gap-1 rounded-md border border-zinc-800 p-0.5">
             <button
@@ -217,8 +235,11 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
         </div>
       )}
 
-      {open && timeOff && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl text-sm text-zinc-300">
+      {open && timeOff && popupStyle && (
+        <div
+          className="fixed z-[300] w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl text-sm text-zinc-300"
+          style={{ top: popupStyle.top, left: popupStyle.left }}
+        >
           <p className="font-medium">{TYPE_LABELS[timeOff.type]}</p>
           <p className="mt-1 font-mono text-xs text-zinc-500">{timeOff.start_date} — {timeOff.end_date}</p>
           {timeOff.note && <p className="mt-1 text-xs text-zinc-500">{timeOff.note}</p>}

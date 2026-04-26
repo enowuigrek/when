@@ -51,12 +51,7 @@ export default async function HarmonogramPage({
   const today = warsawToday();
   const baseDate = od && /^\d{4}-\d{2}-\d{2}$/.test(od) ? od : today;
 
-  const [allStaff, hours] = await Promise.all([getActiveStaff(), getBusinessHours()]);
-
-  const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
-  const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
-
-  // ── Determine date range to fetch ─────────────────────────────────────────
+  // ── Determine date range before any DB calls ──────────────────────────────
   let startDate: string;
   let endDate: string;
 
@@ -75,7 +70,16 @@ export default async function HarmonogramPage({
   const startIso = warsawDayBoundsUtc(startDate).startIso;
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
-  const all = await getBookingsBetween(startIso, endIso);
+  // Fetch all in parallel
+  const [allStaff, hours, all] = await Promise.all([
+    getActiveStaff(),
+    getBusinessHours(),
+    getBookingsBetween(startIso, endIso),
+  ]);
+
+  const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
+  const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
+
   const activeAll = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
   const active = selectedStaffId ? activeAll.filter((b) => b.staff_id === selectedStaffId) : activeAll;
 
@@ -250,7 +254,7 @@ function DayView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="w-full min-w-[480px] border-collapse text-sm">
+      <table className="w-full border-collapse text-sm" style={{ minWidth: visibleStaff.length <= 1 ? 320 : 480 }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="w-16 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Godz.</th>
@@ -346,7 +350,7 @@ function WeekView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="w-full min-w-[640px] border-collapse text-sm">
+      <table className="w-full border-collapse text-sm" style={{ minWidth: visibleStaff.length <= 1 ? 320 : 640 }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="w-28 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
@@ -463,11 +467,21 @@ function MonthView({
             const isCurrentMonth = d.slice(0, 7) === baseDate.slice(0, 7);
             const dayNum = parseInt(d.split("-")[2]);
 
+            if (!isCurrentMonth) {
+              return (
+                <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/80 p-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium text-zinc-800">
+                    {dayNum}
+                  </span>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={di}
                 href={navUrl("dzien", d)}
-                className={`group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30 ${!isCurrentMonth ? "opacity-40" : ""}`}
+                className="group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30"
               >
                 <div className="flex items-start justify-between">
                   <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${

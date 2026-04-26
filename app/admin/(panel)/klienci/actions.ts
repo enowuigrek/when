@@ -92,6 +92,50 @@ export async function deleteCustomerAction(formData: FormData): Promise<void> {
   redirect("/admin/klienci");
 }
 
+export type UpdateContactState =
+  | { status: "idle" }
+  | { status: "ok" }
+  | { status: "error"; message: string };
+
+export async function updateCustomerContactAction(
+  _prev: UpdateContactState,
+  formData: FormData
+): Promise<UpdateContactState> {
+  await requireAdmin();
+  const id = formData.get("id")?.toString();
+  if (!id) return { status: "error", message: "Brak ID" };
+
+  const phone = formData.get("phone")?.toString().trim() ?? "";
+  const email = formData.get("email")?.toString().trim() ?? "";
+
+  if (phone.length < 6) return { status: "error", message: "Numer telefonu za krótki" };
+
+  const supabase = createAdminClient();
+
+  // Check uniqueness only if phone changed
+  const { data: existing } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("phone", phone)
+    .neq("id", id)
+    .maybeSingle();
+  if (existing) return { status: "error", message: "Ten numer jest już przypisany do innego klienta" };
+
+  const { error } = await supabase
+    .from("customers")
+    .update({
+      phone,
+      email: email || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) return { status: "error", message: `Błąd: ${error.message}` };
+
+  revalidatePath(`/admin/klienci/${id}`);
+  return { status: "ok" };
+}
+
 export async function updateCustomerNotesAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const id = formData.get("id")?.toString();

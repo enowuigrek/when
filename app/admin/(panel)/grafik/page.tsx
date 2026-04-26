@@ -26,24 +26,24 @@ export default async function GrafikPage({
   const weekStart = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? mondayOfWeek(weekParam) : todayMonday;
   const weekEnd = addDays(weekStart, 6);
 
-  const [staff, hours, allSchedules] = await Promise.all([
+  const [staff, hours, allSchedules, timeOffWeek] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getAllStaffSchedules(),
+    getTimeOffInRange(weekStart, weekEnd),
   ]);
 
-  // Time-off across the displayed week
-  const timeOffWeek = await getTimeOffInRange(weekStart, weekEnd);
-
-  // Per-staff time-off list for sidebar (full upcoming history)
+  // Per-staff time-off list for sidebar — runs after staff resolves (needs staffId)
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? staff[0] ?? null;
   const selectedTimeOff = selectedStaff ? await getStaffTimeOff(selectedStaff.id) : [];
 
-  // Build week dates (Mon..Sun) with their day-of-week
-  const weekDates = ORDERED_DAYS.map((dow, i) => ({
-    dow,
-    date: addDays(weekStart, i),
-  }));
+  // Build week dates — skip days where business is closed
+  const weekDates = ORDERED_DAYS
+    .map((dow, i) => ({ dow, date: addDays(weekStart, i) }))
+    .filter(({ dow }) => {
+      const h = hours.find((h) => h.day_of_week === dow);
+      return !h?.closed;
+    });
 
   function bizHours(dow: number) {
     const h = hours.find((h) => h.day_of_week === dow);

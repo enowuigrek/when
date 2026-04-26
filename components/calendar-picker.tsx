@@ -130,20 +130,28 @@ export function CalendarPicker({
           const isToday = date === today;
           const isAvailable = !!dayInfo && !dayInfo.closed;
           const isClosed = !!dayInfo && dayInfo.closed;
-          const isOutOfRange = !dayInfo;
+
+          // Other-month days: clearly non-interactive, darker bg
+          if (!isCurrentMonth) {
+            return (
+              <div
+                key={date}
+                className="flex h-9 w-full items-center justify-center rounded-lg bg-zinc-900/80 text-sm text-zinc-800"
+              >
+                {date.split("-")[2].replace(/^0/, "")}
+              </div>
+            );
+          }
 
           let cls =
             "relative flex h-9 w-full items-center justify-center rounded-lg text-sm transition-colors ";
-
-          if (!isCurrentMonth) {
-            cls += "text-zinc-700 cursor-default";
-          } else if (isSelected) {
+          if (isSelected) {
             cls += "bg-[var(--color-accent)] text-zinc-950 font-semibold cursor-pointer";
           } else if (isAvailable) {
             cls += "text-zinc-100 hover:bg-zinc-800 cursor-pointer";
           } else if (isClosed) {
             cls += "text-zinc-600 cursor-not-allowed line-through";
-          } else if (isOutOfRange) {
+          } else {
             cls += "text-zinc-700 cursor-default";
           }
 
@@ -151,11 +159,11 @@ export function CalendarPicker({
             <button
               key={date}
               type="button"
-              disabled={!isAvailable || !isCurrentMonth}
-              onClick={() => isAvailable && isCurrentMonth && onPick(date)}
+              disabled={!isAvailable}
+              onClick={() => isAvailable && onPick(date)}
               className={cls}
             >
-              {isToday && isCurrentMonth && !isSelected && (
+              {isToday && !isSelected && (
                 <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--color-accent)]" />
               )}
               {date.split("-")[2].replace(/^0/, "")}

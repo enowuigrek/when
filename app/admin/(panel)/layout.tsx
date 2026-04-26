@@ -47,10 +47,10 @@ export default async function PanelLayout({
             {/* Desktop: full label. Mobile: just "+" */}
             <Link
               href="/admin/rezerwacja/nowa"
-              className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
+              className="rounded-full bg-[var(--color-accent)] text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] sm:px-3 sm:py-1.5 sm:text-xs sm:font-medium flex h-8 w-8 items-center justify-center sm:h-auto sm:w-auto"
             >
               <span className="hidden sm:inline">+ Rezerwacja</span>
-              <span className="sm:hidden">+</span>
+              <span className="sm:hidden text-base font-medium leading-none">+</span>
             </Link>
             <AdminNotificationBell />
             {/* Desktop: show Wyloguj inline. Mobile: in hamburger */}
