@@ -29,10 +29,14 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     .filter(Boolean)
     .join(", ");
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const uid = `booking-${booking.id}@when`;
   const now = fmtIcal(new Date().toISOString());
   const dtstart = fmtIcal(booking.starts_at);
   const dtend = fmtIcal(booking.ends_at);
+  const description = escape(
+    `Nr rezerwacji: ${booking.id.slice(0, 8).toUpperCase()}\nZarządzaj rezerwacją: ${siteUrl}/rezerwacja/sukces/${booking.id}`
+  );
 
   const ics = [
     "BEGIN:VCALENDAR",
@@ -47,7 +51,7 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     `DTEND:${dtend}`,
     `SUMMARY:${escape(title)}`,
     location ? `LOCATION:${escape(location)}` : "",
-    `DESCRIPTION:Nr rezerwacji: ${booking.id.slice(0, 8).toUpperCase()}`,
+    `DESCRIPTION:${description}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ]

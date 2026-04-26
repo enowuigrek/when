@@ -4,6 +4,7 @@ import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { logoutAction } from "./actions";
 import { getSettings } from "@/lib/db/settings";
 import { AdminNotificationBell } from "@/components/admin-notification-bell";
+import { AdminMobileNav } from "@/components/admin-mobile-nav";
 
 export default async function PanelLayout({
   children,
@@ -28,8 +29,8 @@ export default async function PanelLayout({
             </span>
           </Link>
 
-          {/* Scrollable nav links — overflow-x-auto must NOT contain any dropdowns */}
-          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm">
+          {/* Scrollable nav links — hidden on mobile, shown sm+ */}
+          <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm sm:flex">
             <NavLink href="/admin">Dziś</NavLink>
             <NavLink href="/admin/tydzien">Tydzień</NavLink>
             <NavLink href="/admin/harmonogram">Harmonogram</NavLink>
@@ -49,6 +50,7 @@ export default async function PanelLayout({
               + Rezerwacja
             </Link>
             <AdminNotificationBell />
+            <AdminMobileNav />
             <form action={logoutAction}>
               <button type="submit" className="px-2 py-1 text-zinc-500 hover:text-zinc-300">
                 Wyloguj

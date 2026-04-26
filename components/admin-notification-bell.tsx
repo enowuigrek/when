@@ -215,7 +215,7 @@ export function AdminNotificationBell() {
             {items.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
             ) : (
-              <ul className="max-h-96 divide-y divide-zinc-800/60 overflow-y-auto">
+              <ul className="max-h-96 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
                 {items.map((item) => (
                   <li
                     key={item.id}
