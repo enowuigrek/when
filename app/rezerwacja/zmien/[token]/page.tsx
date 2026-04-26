@@ -69,11 +69,11 @@ export default async function ReschedulePage({ params }: { params: Params }) {
             : h;
         })
       : hours;
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId, booking.id);
     initialSlots = computeAvailableSlots(initialDate, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
   } else {
     const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, booking.id);
     initialSlots = computeAvailableSlots(initialDate, service.duration_min, hours, existing, settings.slot_granularity_min, Math.max(1, availableStaff.length), true);
   }
 

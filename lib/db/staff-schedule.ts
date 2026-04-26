@@ -66,6 +66,65 @@ export async function getTimeOffInRange(startDate: string, endDate: string): Pro
   return (data ?? []) as StaffTimeOff[];
 }
 
+/** For each staff id, return Set of YYYY-MM-DD dates they're unavailable in [startDate, endDate]. */
+export async function getStaffUnavailableDatesMap(
+  staffIds: string[],
+  startDate: string,
+  endDate: string
+): Promise<Map<string, Set<string>>> {
+  const result = new Map<string, Set<string>>(staffIds.map((id) => [id, new Set<string>()]));
+  if (staffIds.length === 0) return result;
+
+  // 1) Time off
+  const { data: timeOff } = await createAdminClient()
+    .from("staff_time_off")
+    .select("staff_id, start_date, end_date")
+    .in("staff_id", staffIds)
+    .lte("start_date", endDate)
+    .gte("end_date", startDate);
+
+  const rangeStart = new Date(`${startDate}T00:00:00Z`);
+  const rangeEnd = new Date(`${endDate}T00:00:00Z`);
+  for (const r of timeOff ?? []) {
+    const sid = r.staff_id as string;
+    const set = result.get(sid)!;
+    let cur = new Date(`${(r.start_date as string)}T00:00:00Z`);
+    const end = new Date(`${(r.end_date as string)}T00:00:00Z`);
+    if (cur < rangeStart) cur = rangeStart;
+    const lastDay = end > rangeEnd ? rangeEnd : end;
+    while (cur <= lastDay) {
+      set.add(cur.toISOString().slice(0, 10));
+      cur = new Date(cur.getTime() + 86400000);
+    }
+  }
+
+  // 2) Days off via schedule (start_time/end_time NULL means explicitly not working)
+  const { data: schedules } = await createAdminClient()
+    .from("staff_schedules")
+    .select("staff_id, day_of_week, start_time, end_time")
+    .in("staff_id", staffIds);
+
+  const offDays = new Map<string, Set<number>>(staffIds.map((id) => [id, new Set<number>()]));
+  for (const s of schedules ?? []) {
+    if (!s.start_time || !s.end_time) {
+      offDays.get(s.staff_id as string)!.add(s.day_of_week as number);
+    }
+  }
+
+  // Walk every date in range, mark offDays per staff
+  let cur = new Date(rangeStart);
+  while (cur <= rangeEnd) {
+    const iso = cur.toISOString().slice(0, 10);
+    const dow = cur.getUTCDay();
+    for (const sid of staffIds) {
+      if (offDays.get(sid)!.has(dow)) result.get(sid)!.add(iso);
+    }
+    cur = new Date(cur.getTime() + 86400000);
+  }
+
+  return result;
+}
+
 export async function upsertOneDaySchedule(
   staffId: string,
   dayOfWeek: number,

@@ -7,6 +7,7 @@ import { getBookingsInRange } from "@/lib/db/bookings";
 import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getSettings, getTimeFilters } from "@/lib/db/settings";
+import { getStaffUnavailableDatesMap } from "@/lib/db/staff-schedule";
 import { BookingFlow } from "./booking-flow";
 
 type Params = Promise<{ slug: string }>;
@@ -39,6 +40,15 @@ export default async function BookingServicePage({ params }: { params: Params })
     const dayHours = hours.find((h) => h.day_of_week === dow);
     return { date, closed: !dayHours || dayHours.closed };
   });
+
+  const lastDate = days[days.length - 1]?.date ?? today;
+  const unavailableMap = await getStaffUnavailableDatesMap(
+    activeStaff.map((s) => s.id),
+    today,
+    lastDate
+  );
+  const staffUnavailable: Record<string, string[]> = {};
+  for (const [sid, set] of unavailableMap) staffUnavailable[sid] = Array.from(set);
 
   const initialDate = days.find((d) => !d.closed)?.date ?? today;
 
@@ -103,6 +113,7 @@ export default async function BookingServicePage({ params }: { params: Params })
             timeFilters={timeFilters}
             today={today}
             staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
+            staffUnavailable={staffUnavailable}
           />
         </section>
       </main>

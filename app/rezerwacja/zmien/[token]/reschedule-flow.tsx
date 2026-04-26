@@ -39,7 +39,7 @@ export function RescheduleFlow({
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await getSlotsForReschedule(serviceSlug, date, staffId);
+      const res = await getSlotsForReschedule(serviceSlug, date, staffId, token);
       setSlots(res.ok ? res.slots : []);
     });
   }

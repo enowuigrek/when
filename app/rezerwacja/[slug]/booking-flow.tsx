@@ -18,6 +18,7 @@ export function BookingFlow({
   timeFilters,
   today,
   staff,
+  staffUnavailable,
 }: {
   serviceSlug: string;
   days: Day[];
@@ -26,6 +27,7 @@ export function BookingFlow({
   timeFilters: TimeFilter[];
   today: string;
   staff: StaffOption[];
+  staffUnavailable: Record<string, string[]>;
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
@@ -58,6 +60,11 @@ export function BookingFlow({
     reloadSlots(selectedDate, staffId);
   }
 
+  const unavailableSet = selectedStaffId ? new Set(staffUnavailable[selectedStaffId] ?? []) : null;
+  const daysWithLeave: Day[] = unavailableSet
+    ? days.map((d) => (unavailableSet.has(d.date) ? { ...d, closed: true } : d))
+    : days;
+
   const visibleSlots = activeFilter
     ? slots.filter((s) => {
         const f = timeFilters.find((f) => f.id === activeFilter);
@@ -87,24 +94,30 @@ export function BookingFlow({
             >
               Dowolny
             </button>
-            {staff.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => pickStaff(s.id)}
-                className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                  selectedStaffId === s.id
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: s.color }}
-                />
-                {s.name}
-              </button>
-            ))}
+            {staff.map((s) => {
+              const unavailableToday = (staffUnavailable[s.id] ?? []).includes(selectedDate);
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => pickStaff(s.id)}
+                  title={unavailableToday ? "Niedostępny tego dnia" : undefined}
+                  className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                    selectedStaffId === s.id
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
+                      : unavailableToday
+                      ? "border-zinc-800/60 text-zinc-600 opacity-60"
+                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                  }`}
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: s.color, opacity: unavailableToday ? 0.4 : 1 }}
+                  />
+                  {s.name}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -114,7 +127,7 @@ export function BookingFlow({
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
           Wybierz dzień
         </h2>
-        <CalendarPicker days={days} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
       </div>
 
       {/* SLOTS */}

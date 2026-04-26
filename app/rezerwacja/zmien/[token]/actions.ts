@@ -34,10 +34,16 @@ function applyStaffHours(
 export async function getSlotsForReschedule(
   serviceSlug: string,
   dateStr: string,
-  staffId?: string | null
+  staffId?: string | null,
+  rescheduleToken?: string
 ): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
   const service = await getServiceBySlug(serviceSlug);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
+
+  // If we have a token, derive the booking id so we can exclude it from busy-slot calc.
+  const excludeId = rescheduleToken
+    ? verifyBookingToken(rescheduleToken, "reschedule") ?? undefined
+    : undefined;
 
   const [hours, settings, activeStaff] = await Promise.all([
     getBusinessHours(),
@@ -53,14 +59,14 @@ export async function getSlotsForReschedule(
     const avail = availMap.get(staffId);
     if (avail && !avail.available) return { ok: true, slots: [] };
     const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId, excludeId);
     const slots = computeAvailableSlots(dateStr, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
     return { ok: true, slots };
   }
 
   const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
   const staffCount = Math.max(1, availableStaff.length);
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, excludeId);
   const slots = computeAvailableSlots(dateStr, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount, true);
   return { ok: true, slots };
 }

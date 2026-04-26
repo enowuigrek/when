@@ -8,7 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function getBookingsInRange(
   startIso: string,
   endIso: string,
-  staffId?: string
+  staffId?: string,
+  excludeBookingId?: string
 ): Promise<{ startsAtIso: string; endsAtIso: string }[]> {
   const supabase = createAdminClient();
   let query = supabase
@@ -20,6 +21,9 @@ export async function getBookingsInRange(
 
   if (staffId) {
     query = query.eq("staff_id", staffId);
+  }
+  if (excludeBookingId) {
+    query = query.neq("id", excludeBookingId);
   }
 
   const { data, error } = await query;
