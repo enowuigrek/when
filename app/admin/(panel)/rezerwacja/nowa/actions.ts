@@ -155,7 +155,6 @@ export async function createAdminBookingAction(
   } catch {
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/tydzien");
-  redirect("/admin");
+  revalidatePath("/admin/harmonogram");
+  redirect("/admin/harmonogram");
 }

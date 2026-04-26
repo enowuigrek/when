@@ -388,7 +388,7 @@ export function AdminBookingForm({
               {formPending ? "Rezerwuję…" : "Dodaj rezerwację"}
             </button>
             <a
-              href="/admin"
+              href="/admin/harmonogram"
               className="rounded-full border border-zinc-800 px-5 py-2.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
             >
               Anuluj

@@ -33,8 +33,6 @@ export default async function PanelLayout({
 
           {/* Scrollable nav links — hidden on mobile, shown sm+ */}
           <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm sm:flex">
-            <AdminNavLink href="/admin">Dziś</AdminNavLink>
-            <AdminNavLink href="/admin/tydzien">Tydzień</AdminNavLink>
             <AdminNavLink href="/admin/harmonogram">Harmonogram</AdminNavLink>
             <AdminNavLink href="/admin/grafik">Grafik</AdminNavLink>
             <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />

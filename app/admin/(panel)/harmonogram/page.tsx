@@ -26,17 +26,35 @@ function daysInMonth(dateStr: string): number {
   return new Date(y, m, 0).getDate();
 }
 
+/** Warsaw-local "HH:MM" → minutes since midnight, derived from UTC instant. */
+function warsawMinutes(iso: string): number {
+  const t = formatWarsawTime(iso); // "HH:MM"
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+/** Warsaw-local YYYY-MM-DD for an UTC instant. */
+function warsawDate(iso: string): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(iso));
+}
+
 export default async function HarmonogramPage({
   searchParams,
 }: {
-  searchParams: Promise<{ widok?: string; od?: string }>;
+  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string }>;
 }) {
-  const { widok, od } = await searchParams;
+  const { widok, od, pracownik } = await searchParams;
   const view: View = widok === "dzien" || widok === "miesiac" ? widok : "tydzien";
   const today = warsawToday();
   const baseDate = od && /^\d{4}-\d{2}-\d{2}$/.test(od) ? od : today;
 
   const [allStaff, hours] = await Promise.all([getActiveStaff(), getBusinessHours()]);
+
+  const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
+  const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
 
   // ── Determine date range to fetch ─────────────────────────────────────────
   let startDate: string;
@@ -58,31 +76,27 @@ export default async function HarmonogramPage({
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
   const all = await getBookingsBetween(startIso, endIso);
-  const active = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
-
-  // Helper: group bookings by Warsaw date string
-  function bookingDateStr(b: (typeof active)[0]): string {
-    return new Intl.DateTimeFormat("sv-SE", {
-      timeZone: "Europe/Warsaw",
-      year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(new Date(b.starts_at));
-  }
+  const activeAll = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
+  const active = selectedStaffId ? activeAll.filter((b) => b.staff_id === selectedStaffId) : activeAll;
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
-  function navUrl(v: View, date: string) {
-    return `/admin/harmonogram?widok=${v}&od=${date}`;
+  function navUrl(v: View, date: string, staffOverride?: string | null) {
+    const params = new URLSearchParams({ widok: v, od: date });
+    const sid = staffOverride === undefined ? selectedStaffId : staffOverride;
+    if (sid) params.set("pracownik", sid);
+    return `/admin/harmonogram?${params.toString()}`;
   }
 
   const prevDate = view === "dzien"
     ? addDays(baseDate, -1)
     : view === "miesiac"
-    ? addDays(startOfMonth(baseDate), -1).slice(0, 7) + "-01" // previous month
+    ? addDays(startOfMonth(baseDate), -1).slice(0, 7) + "-01"
     : addDays(baseDate, -7);
 
   const nextDate = view === "dzien"
     ? addDays(baseDate, 1)
     : view === "miesiac"
-    ? addDays(addDays(startOfMonth(baseDate), daysInMonth(baseDate)), 0) // next month start
+    ? addDays(addDays(startOfMonth(baseDate), daysInMonth(baseDate)), 0)
     : addDays(baseDate, 7);
 
   const periodLabel = view === "dzien"
@@ -91,9 +105,9 @@ export default async function HarmonogramPage({
     ? new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(new Date(baseDate + "T12:00:00Z"))
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
-  // ── Staff stats ────────────────────────────────────────────────────────────
+  // ── Staff stats (always over allStaff so filter chips show counts) ────────
   const staffStats = allStaff.map((s) => {
-    const bookings = active.filter((b) => b.staff_id === s.id);
+    const bookings = activeAll.filter((b) => b.staff_id === s.id);
     return { ...s, count: bookings.length, revenue: bookings.reduce((sum, b) => sum + (b.service?.price_pln ?? 0), 0) };
   });
 
@@ -131,10 +145,45 @@ export default async function HarmonogramPage({
         </div>
       </div>
 
-      {/* Staff stats */}
+      {/* Staff filter chips */}
+      {allStaff.length > 1 && (
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-zinc-600">Pracownik:</span>
+          <Link
+            href={navUrl(view, baseDate, null)}
+            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+              !selectedStaffId
+                ? "border-zinc-600 bg-zinc-800 text-zinc-100"
+                : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+            }`}
+          >
+            Wszyscy
+          </Link>
+          {staffStats.map((s) => {
+            const isActive = selectedStaffId === s.id;
+            return (
+              <Link
+                key={s.id}
+                href={navUrl(view, baseDate, s.id)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+                  isActive
+                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
+                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                {s.name}
+                {s.count > 0 && <span className="ml-0.5 font-mono text-[10px] text-zinc-500">{s.count}</span>}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Period summary */}
       {staffStats.some((s) => s.count > 0) && (
-        <div className="mt-5 flex flex-wrap gap-3">
-          {staffStats.filter((s) => s.count > 0).map((s) => (
+        <div className="mt-4 flex flex-wrap gap-3">
+          {staffStats.filter((s) => s.count > 0 && (!selectedStaffId || s.id === selectedStaffId)).map((s) => (
             <div key={s.id} className="flex items-center gap-2.5 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-2.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
               <div>
@@ -147,9 +196,9 @@ export default async function HarmonogramPage({
       )}
 
       <div className="mt-6">
-        {view === "dzien" && <DayView date={baseDate} active={active} allStaff={allStaff} hours={hours} bookingDateStr={bookingDateStr} today={today} />}
-        {view === "tydzien" && <WeekView startDate={startDate} active={active} allStaff={allStaff} bookingDateStr={bookingDateStr} today={today} navUrl={navUrl} />}
-        {view === "miesiac" && <MonthView baseDate={baseDate} active={active} bookingDateStr={bookingDateStr} today={today} navUrl={navUrl} />}
+        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} hours={hours} today={today} />}
+        {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} today={today} navUrl={navUrl} />}
+        {view === "miesiac" && <MonthView baseDate={baseDate} active={active} today={today} navUrl={navUrl} />}
       </div>
     </section>
   );
@@ -159,16 +208,14 @@ export default async function HarmonogramPage({
 function DayView({
   date,
   active,
-  allStaff,
+  visibleStaff,
   hours,
-  bookingDateStr,
   today,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
-  allStaff: { id: string; name: string; color: string }[];
+  visibleStaff: { id: string; name: string; color: string }[];
   hours: Awaited<ReturnType<typeof getBusinessHours>>;
-  bookingDateStr: (b: (typeof active)[0]) => string;
   today: string;
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
@@ -181,26 +228,21 @@ function DayView({
   const startMin = openH * 60 + openM;
   const endMin = closeH * 60 + closeM;
 
-  const slots: string[] = [];
+  const slots: { label: string; min: number }[] = [];
   for (let m = startMin; m < endMin; m += 30) {
     const h = String(Math.floor(m / 60)).padStart(2, "0");
     const min = String(m % 60).padStart(2, "0");
-    slots.push(`${h}:${min}`);
+    slots.push({ label: `${h}:${min}`, min: m });
   }
 
-  const dayBookings = active.filter((b) => bookingDateStr(b) === date);
+  const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
 
-  function bookingAtSlot(staffId: string, slotTime: string) {
+  function bookingAtSlot(staffId: string, slotMin: number) {
     return dayBookings.find((b) => {
       if (b.staff_id !== staffId) return false;
-      const [sh, sm] = slotTime.split(":").map(Number);
-      const slotMinStart = sh * 60 + sm;
-      const slotMinEnd = slotMinStart + 30;
-      const bStart = new Date(b.starts_at);
-      const bEnd = new Date(b.ends_at);
-      const bStartMin = bStart.getUTCHours() * 60 + bStart.getUTCMinutes() + 60; // +60 for Warsaw UTC+1 approx
-      const bEndMin = bEnd.getUTCHours() * 60 + bEnd.getUTCMinutes() + 60;
-      return bStartMin < slotMinEnd && bEndMin > slotMinStart;
+      const bStart = warsawMinutes(b.starts_at);
+      const bEnd = warsawMinutes(b.ends_at);
+      return bStart < slotMin + 30 && bEnd > slotMin;
     });
   }
 
@@ -212,7 +254,7 @@ function DayView({
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="w-16 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Godz.</th>
-            {allStaff.length > 0 ? allStaff.map((s) => (
+            {visibleStaff.length > 0 ? visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>
                 {s.name}
               </th>
@@ -223,14 +265,13 @@ function DayView({
         </thead>
         <tbody>
           {slots.map((slot, i) => (
-            <tr key={slot} className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}>
+            <tr key={slot.label} className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}>
               <td className="px-3 py-1 align-top">
-                <span className="font-mono text-xs text-zinc-600">{slot}</span>
+                <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
-              {allStaff.length > 0 ? allStaff.map((s) => {
-                const booking = bookingAtSlot(s.id, slot);
-                const bStart = booking ? formatWarsawTime(booking.starts_at) : null;
-                const isFirstSlot = bStart === slot || (booking && formatWarsawTime(booking.starts_at).slice(0, 5) === slot);
+              {visibleStaff.length > 0 ? visibleStaff.map((s) => {
+                const booking = bookingAtSlot(s.id, slot.min);
+                const isFirstSlot = booking && warsawMinutes(booking.starts_at) === slot.min;
                 return (
                   <td key={s.id} className="px-2 py-1 align-top">
                     {booking && isFirstSlot ? (
@@ -247,23 +288,23 @@ function DayView({
                       <div className="h-5" style={{ borderLeft: `2px solid ${s.color}40` }} />
                     ) : (
                       <Link
-                        href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot}`}
+                        href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
                         className="block h-7 w-full rounded hover:bg-zinc-800/40"
-                        aria-label={`Dodaj rezerwację ${slot}`}
+                        aria-label={`Dodaj rezerwację ${slot.label}`}
                       />
                     )}
                   </td>
                 );
               }) : (
                 <td className="px-2 py-1 align-top">
-                  {dayBookings.filter((b) => formatWarsawTime(b.starts_at).slice(0, 5) === slot).map((b) => (
+                  {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).map((b) => (
                     <div key={b.id} className="mb-1 rounded border border-zinc-800 px-2 py-1">
                       <p className="font-mono text-xs text-zinc-400">{formatWarsawTime(b.starts_at)}</p>
                       <p className="text-xs text-zinc-300">{b.customer_name}</p>
                     </div>
                   ))}
-                  {dayBookings.filter((b) => formatWarsawTime(b.starts_at).slice(0, 5) === slot).length === 0 && (
-                    <Link href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
+                  {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).length === 0 && (
+                    <Link href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
                   )}
                 </td>
               )}
@@ -282,22 +323,20 @@ function DayView({
 function WeekView({
   startDate,
   active,
-  allStaff,
-  bookingDateStr,
+  visibleStaff,
   today,
   navUrl,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
-  allStaff: { id: string; name: string; color: string }[];
-  bookingDateStr: (b: (typeof active)[0]) => string;
+  visibleStaff: { id: string; name: string; color: string }[];
   today: string;
   navUrl: (v: View, d: string) => string;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
   const byDayStaff = new Map<string, Map<string, typeof active>>();
   for (const b of active) {
-    const ds = bookingDateStr(b);
+    const ds = warsawDate(b.starts_at);
     if (!byDayStaff.has(ds)) byDayStaff.set(ds, new Map());
     const sid = b.staff_id ?? "__none__";
     const dm = byDayStaff.get(ds)!;
@@ -311,10 +350,10 @@ function WeekView({
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="w-28 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
-            {allStaff.map((s) => (
+            {visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
-            {allStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
+            {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>
         </thead>
         <tbody>
@@ -322,7 +361,7 @@ function WeekView({
             const dow = warsawDayOfWeek(d);
             const isToday = d === today;
             const dayMap = byDayStaff.get(d);
-            const totalForDay = active.filter((b) => bookingDateStr(b) === d).length;
+            const totalForDay = active.filter((b) => warsawDate(b.starts_at) === d).length;
 
             return (
               <tr key={d} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
@@ -333,7 +372,7 @@ function WeekView({
                     {totalForDay > 0 && <p className="mt-1 text-xs text-zinc-500">{totalForDay} rez.</p>}
                   </Link>
                 </td>
-                {allStaff.map((s) => {
+                {visibleStaff.map((s) => {
                   const bookings = dayMap?.get(s.id) ?? [];
                   return (
                     <td key={s.id} className="px-3 py-3 align-top">
@@ -353,7 +392,7 @@ function WeekView({
                     </td>
                   );
                 })}
-                {allStaff.length === 0 && (
+                {visibleStaff.length === 0 && (
                   <td className="px-3 py-3 align-top">
                     {(dayMap?.get("__none__") ?? []).map((b) => (
                       <div key={b.id} className="mb-1.5 rounded-lg border border-zinc-800 px-2 py-1.5">
@@ -376,27 +415,23 @@ function WeekView({
 function MonthView({
   baseDate,
   active,
-  bookingDateStr,
   today,
   navUrl,
 }: {
   baseDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
-  bookingDateStr: (b: (typeof active)[0]) => string;
   today: string;
   navUrl: (v: View, d: string) => string;
 }) {
   const monthStart = startOfMonth(baseDate);
   const [y, m] = monthStart.split("-").map(Number);
   const count = daysInMonth(baseDate);
-  const firstDow = new Date(Date.UTC(y, m - 1, 1, 12)).getUTCDay(); // 0=Sun
-  // Monday-first offset
+  const firstDow = new Date(Date.UTC(y, m - 1, 1, 12)).getUTCDay();
   const offset = firstDow === 0 ? 6 : firstDow - 1;
 
-  // Count bookings per day
   const countByDay = new Map<string, number>();
   for (const b of active) {
-    const ds = bookingDateStr(b);
+    const ds = warsawDate(b.starts_at);
     countByDay.set(ds, (countByDay.get(ds) ?? 0) + 1);
   }
 
@@ -404,7 +439,6 @@ function MonthView({
     ...Array(offset).fill(null),
     ...Array.from({ length: count }, (_, i) => addDays(monthStart, i)),
   ];
-  // Pad to complete weeks
   while (cells.length % 7 !== 0) cells.push(null);
 
   const weeks: (string | null)[][] = [];
@@ -414,51 +448,46 @@ function MonthView({
 
   return (
     <div className="rounded-xl border border-zinc-800/60 overflow-hidden">
-      {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-zinc-800/60 bg-zinc-900/60">
         {DOW_LABELS.map((l) => (
           <div key={l} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">{l}</div>
         ))}
       </div>
 
-      {/* Weeks */}
-      {weeks.map((week, wi) => {
-        const weekStart = week.find((d) => d !== null)!;
-        return (
-          <div key={wi} className="grid grid-cols-7 border-b border-zinc-800/30 last:border-0">
-            {week.map((d, di) => {
-              if (!d) return <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/50" />;
-              const cnt = countByDay.get(d) ?? 0;
-              const isToday = d === today;
-              const isCurrentMonth = d.slice(0, 7) === baseDate.slice(0, 7);
-              const dayNum = parseInt(d.split("-")[2]);
+      {weeks.map((week, wi) => (
+        <div key={wi} className="grid grid-cols-7 border-b border-zinc-800/30 last:border-0">
+          {week.map((d, di) => {
+            if (!d) return <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/50" />;
+            const cnt = countByDay.get(d) ?? 0;
+            const isToday = d === today;
+            const isCurrentMonth = d.slice(0, 7) === baseDate.slice(0, 7);
+            const dayNum = parseInt(d.split("-")[2]);
 
-              return (
-                <Link
-                  key={di}
-                  href={navUrl("dzien", d)}
-                  className={`group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30 ${!isCurrentMonth ? "opacity-40" : ""}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${
-                      isToday
-                        ? "bg-[var(--color-accent)] text-zinc-950"
-                        : "text-zinc-400 group-hover:text-zinc-200"
-                    }`}>
-                      {dayNum}
+            return (
+              <Link
+                key={di}
+                href={navUrl("dzien", d)}
+                className={`group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30 ${!isCurrentMonth ? "opacity-40" : ""}`}
+              >
+                <div className="flex items-start justify-between">
+                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${
+                    isToday
+                      ? "bg-[var(--color-accent)] text-zinc-950"
+                      : "text-zinc-400 group-hover:text-zinc-200"
+                  }`}>
+                    {dayNum}
+                  </span>
+                  {cnt > 0 && (
+                    <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
+                      {cnt}
                     </span>
-                    {cnt > 0 && (
-                      <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-                        {cnt}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        );
-      })}
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

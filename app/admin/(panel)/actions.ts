@@ -53,8 +53,7 @@ export async function cancelBookingAction(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/tydzien");
+  revalidatePath("/admin/harmonogram");
 }
 
 export async function assignStaffAction(formData: FormData): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -75,8 +74,7 @@ export async function assignStaffAction(formData: FormData): Promise<{ ok: true 
     return { ok: false, message: `Błąd: ${error.message}` };
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/tydzien");
+  revalidatePath("/admin/harmonogram");
   return { ok: true };
 }
 
@@ -94,7 +92,5 @@ export async function markNoShowAction(formData: FormData) {
 
   if (error) throw new Error(`No-show failed: ${error.message}`);
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/tydzien");
   revalidatePath("/admin/harmonogram");
 }

@@ -146,7 +146,7 @@ export function AdminNotificationBell() {
   function navigateTo(startsAt: string) {
     setOpen(false);
     const date = warsawDateStr(startsAt);
-    router.push(`/admin?date=${date}`);
+    router.push(`/admin/harmonogram?widok=dzien&od=${date}`);
   }
 
   return (
