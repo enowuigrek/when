@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
 import { getSettings } from "@/lib/db/settings";
+import { recordBookingEvent } from "@/lib/db/booking-events";
 
 export async function logoutAction() {
   await destroyAdminSession();
@@ -36,6 +37,17 @@ export async function cancelBookingAction(formData: FormData) {
     .eq("id", id);
 
   if (error) throw new Error(`Cancel failed: ${error.message}`);
+
+  if (booking) {
+    await recordBookingEvent({
+      bookingId: id,
+      eventType: "cancelled",
+      source: "admin",
+      customerName: booking.customer_name,
+      serviceName: (booking.service as { name: string } | null)?.name ?? null,
+      startsAtIso: booking.starts_at,
+    });
+  }
 
   // Send cancellation email if customer has one.
   if (booking?.customer_email) {

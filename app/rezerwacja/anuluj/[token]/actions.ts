@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSettings } from "@/lib/db/settings";
 import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
+import { recordBookingEvent } from "@/lib/db/booking-events";
 
 export async function customerCancelAction(formData: FormData) {
   const token = formData.get("token")?.toString() ?? "";
@@ -26,6 +27,16 @@ export async function customerCancelAction(formData: FormData) {
     .from("bookings")
     .update({ status: "cancelled" })
     .eq("id", bookingId);
+
+  const cancelService = (booking as { service?: { name: string } }).service;
+  await recordBookingEvent({
+    bookingId,
+    eventType: "cancelled",
+    source: "customer",
+    customerName: booking.customer_name,
+    serviceName: cancelService?.name ?? null,
+    startsAtIso: booking.starts_at,
+  });
 
   if (booking.customer_email) {
     const s = await getSettings();

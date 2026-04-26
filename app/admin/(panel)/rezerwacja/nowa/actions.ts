@@ -11,6 +11,7 @@ import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
+import { recordBookingEvent } from "@/lib/db/booking-events";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 
@@ -145,6 +146,15 @@ export async function createAdminBookingAction(
   });
 
   if (!result.ok) return { status: "error", message: result.message };
+
+  await recordBookingEvent({
+    bookingId: result.id,
+    eventType: "created",
+    source: "admin",
+    customerName: parsed.data.customerName,
+    serviceName: service.name,
+    startsAtIso: startsAt.toISOString(),
+  });
 
   try {
     await upsertCustomer({

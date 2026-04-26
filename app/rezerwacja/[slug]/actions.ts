@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
+import { recordBookingEvent } from "@/lib/db/booking-events";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
@@ -151,6 +152,15 @@ export async function submitBooking(
   if (!result.ok) {
     return { status: "error", message: result.message };
   }
+
+  await recordBookingEvent({
+    bookingId: result.id,
+    eventType: "created",
+    source: "customer",
+    customerName: parsed.data.customerName,
+    serviceName: service.name,
+    startsAtIso: startsAt.toISOString(),
+  });
 
   // Send confirmation email — fire-and-forget, never blocks booking.
   if (parsed.data.customerEmail) {

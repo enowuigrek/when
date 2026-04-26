@@ -4,8 +4,24 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
+type EventType = "created" | "rescheduled" | "cancelled";
+type EventSource = "customer" | "admin";
+
+type RawEvent = {
+  id: string;
+  booking_id: string | null;
+  event_type: EventType;
+  source: EventSource;
+  customer_name: string;
+  service_name: string | null;
+  starts_at: string;
+  created_at: string;
+};
+
 type NotifItem = {
   id: string;
+  eventType: EventType;
+  source: EventSource;
   customerName: string;
   serviceName: string | null;
   startsAt: string;
@@ -13,9 +29,9 @@ type NotifItem = {
   read: boolean;
 };
 
-type Toast = { id: string; customerName: string; serviceName: string | null; startsAt: string };
+type Toast = NotifItem;
 
-const STORAGE_KEY = "when_admin_notifs_v1";
+const STORAGE_KEY = "when_admin_notifs_v2"; // bumped: v1 was bookings-only
 const POLL_MS = 30_000;
 
 function loadStored(): NotifItem[] {
@@ -40,6 +56,24 @@ function warsawDateStr(iso: string) {
   }).format(new Date(iso));
 }
 
+const TITLE: Record<EventType, string> = {
+  created: "Nowa rezerwacja",
+  rescheduled: "Zmiana terminu",
+  cancelled: "Anulowana rezerwacja",
+};
+
+const ICON: Record<EventType, string> = {
+  created: "🟢",
+  rescheduled: "🔄",
+  cancelled: "🔴",
+};
+
+const ACCENT: Record<EventType, string> = {
+  created: "text-emerald-400",
+  rescheduled: "text-blue-400",
+  cancelled: "text-red-400",
+};
+
 export function AdminNotificationBell() {
   const router = useRouter();
   const [items, setItems] = useState<NotifItem[]>([]);
@@ -54,28 +88,30 @@ export function AdminNotificationBell() {
     try {
       const res = await fetch("/api/admin/notifications");
       if (!res.ok) return;
-      const { bookings } = await res.json() as {
-        bookings: { id: string; customer_name: string; created_at: string; starts_at: string; service?: { name: string } | null }[];
-      };
+      const { events } = await res.json() as { events: RawEvent[] };
 
       setItems((prev) => {
         const seenIds = new Set(prev.map((i) => i.id));
         const newItems: NotifItem[] = [];
         const newToasts: Toast[] = [];
 
-        for (const b of bookings) {
-          if (!seenIds.has(b.id)) {
+        for (const e of events) {
+          if (!seenIds.has(e.id)) {
+            // Skip self-generated admin events from showing as toasts (admin
+            // already saw them in their own UI), but still show in dropdown.
             const item: NotifItem = {
-              id: b.id,
-              customerName: b.customer_name,
-              serviceName: b.service?.name ?? null,
-              startsAt: b.starts_at,
-              createdAt: b.created_at,
+              id: e.id,
+              eventType: e.event_type,
+              source: e.source,
+              customerName: e.customer_name,
+              serviceName: e.service_name,
+              startsAt: e.starts_at,
+              createdAt: e.created_at,
               read: initialLoad.current,
             };
             newItems.push(item);
-            if (!initialLoad.current) {
-              newToasts.push({ id: b.id, customerName: b.customer_name, serviceName: b.service?.name ?? null, startsAt: b.starts_at });
+            if (!initialLoad.current && e.source === "customer") {
+              newToasts.push(item);
             }
           }
         }
@@ -98,7 +134,6 @@ export function AdminNotificationBell() {
     }
   }, []);
 
-  // Initial load from localStorage then poll
   useEffect(() => {
     setItems(loadStored());
     poll();
@@ -106,14 +141,12 @@ export function AdminNotificationBell() {
     return () => clearInterval(interval);
   }, [poll]);
 
-  // Auto-dismiss toasts
   useEffect(() => {
     if (toasts.length === 0) return;
     const t = setTimeout(() => setToasts((prev) => prev.slice(1)), 5000);
     return () => clearTimeout(t);
   }, [toasts]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -127,7 +160,6 @@ export function AdminNotificationBell() {
 
   function openDropdown() {
     setOpen((v) => !v);
-    // Mark all as read when opening
     setItems((prev) => {
       const updated = prev.map((i) => ({ ...i, read: true }));
       saveStored(updated);
@@ -162,10 +194,10 @@ export function AdminNotificationBell() {
               navigateTo(t.startsAt);
             }}
           >
-            <span className="mt-0.5 text-[var(--color-accent)]">🔔</span>
+            <span className="mt-0.5">{ICON[t.eventType]}</span>
             <div>
-              <p className="text-sm font-medium text-zinc-100">Nowa rezerwacja</p>
-              <p className="text-xs text-zinc-400">
+              <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
+              <p className="text-xs text-zinc-300">
                 {t.customerName}
                 {t.serviceName ? ` · ${t.serviceName}` : ""}
               </p>
@@ -229,7 +261,10 @@ export function AdminNotificationBell() {
                       onClick={() => navigateTo(item.startsAt)}
                       className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
                     >
-                      <p className="text-sm font-medium text-zinc-100">{item.customerName}</p>
+                      <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>
+                        {ICON[item.eventType]} {TITLE[item.eventType]}
+                      </p>
+                      <p className="text-sm text-zinc-100">{item.customerName}</p>
                       {item.serviceName && (
                         <p className="text-xs text-zinc-400">{item.serviceName}</p>
                       )}

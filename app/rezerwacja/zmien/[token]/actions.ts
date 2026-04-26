@@ -13,6 +13,7 @@ import { getSettings } from "@/lib/db/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
+import { recordBookingEvent } from "@/lib/db/booking-events";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 
@@ -112,6 +113,15 @@ export async function rescheduleBookingAction(formData: FormData) {
   });
 
   if (!result.ok) throw new Error(result.message);
+
+  await recordBookingEvent({
+    bookingId: result.id,
+    eventType: "rescheduled",
+    source: "customer",
+    customerName: booking.customer_name,
+    serviceName: service.name,
+    startsAtIso: startsAt.toISOString(),
+  });
 
   // Send confirmation for new booking
   if (booking.customer_email) {
