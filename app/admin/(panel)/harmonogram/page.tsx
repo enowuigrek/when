@@ -124,7 +124,7 @@ export default async function HarmonogramPage({
       </div>
 
       {/* Grid: rows = days, columns = staff */}
-      <div className="mt-6 overflow-x-auto rounded-xl border border-zinc-800/60">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-zinc-800/60 bg-zinc-900/60">

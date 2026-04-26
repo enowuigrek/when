@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { href: "/admin/ustawienia", label: "Ustawienia" },
 ];
 
-export function AdminMobileNav() {
+export function AdminMobileNav({ logoutAction }: { logoutAction: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -62,6 +62,15 @@ export function AdminMobileNav() {
               {label}
             </Link>
           ))}
+          <div className="mx-3 my-2 border-t border-zinc-800" />
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="w-full px-4 py-2.5 text-left text-sm text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300"
+            >
+              Wyloguj
+            </button>
+          </form>
         </div>
       )}
     </div>

@@ -43,19 +43,22 @@ export default async function PanelLayout({
 
           {/* Fixed right side — outside overflow nav so dropdowns work */}
           <div className="flex shrink-0 items-center gap-1">
+            {/* Desktop: full label. Mobile: just "+" */}
             <Link
               href="/admin/rezerwacja/nowa"
               className="rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
             >
-              + Rezerwacja
+              <span className="hidden sm:inline">+ Rezerwacja</span>
+              <span className="sm:hidden">+</span>
             </Link>
             <AdminNotificationBell />
-            <AdminMobileNav />
-            <form action={logoutAction}>
-              <button type="submit" className="px-2 py-1 text-zinc-500 hover:text-zinc-300">
+            {/* Desktop: show Wyloguj inline. Mobile: in hamburger */}
+            <form action={logoutAction} className="hidden sm:block">
+              <button type="submit" className="px-2 py-1 text-zinc-500 hover:text-zinc-300 text-sm">
                 Wyloguj
               </button>
             </form>
+            <AdminMobileNav logoutAction={logoutAction} />
           </div>
         </div>
       </header>
