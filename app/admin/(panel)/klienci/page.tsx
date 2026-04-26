@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllCustomersWithStats } from "@/lib/db/customers";
 import { formatWarsawDate } from "@/lib/slots";
+import { NewCustomerDialog } from "./new-customer-dialog";
 
 export const metadata = { title: "Klienci", robots: { index: false } };
 
@@ -27,6 +28,7 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
           <h1 className="text-2xl font-semibold tracking-tight">Klienci</h1>
           <p className="mt-1 text-sm text-zinc-500">{customers.length} klientów</p>
         </div>
+        <NewCustomerDialog />
       </div>
 
       <div className="mb-5 flex flex-wrap gap-3">

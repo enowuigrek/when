@@ -10,9 +10,9 @@ export const metadata = { title: "Nowa rezerwacja", robots: { index: false } };
 export default async function AdminNewBookingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ data?: string; godzina?: string }>;
+  searchParams: Promise<{ data?: string; godzina?: string; phone?: string; name?: string; email?: string }>;
 }) {
-  const { data: dataParam, godzina: godzinaParam } = await searchParams;
+  const { data: dataParam, godzina: godzinaParam, phone, name, email } = await searchParams;
 
   const [services, hours, settings, timeFilters, allStaff] = await Promise.all([
     getServices(),
@@ -66,6 +66,9 @@ export default async function AdminNewBookingPage({
         granularityMin={settings.slot_granularity_min}
         today={today}
         prefilledTime={godzinaParam ?? null}
+        prefilledPhone={phone ?? null}
+        prefilledName={name ?? null}
+        prefilledEmail={email ?? null}
       />
     </section>
   );

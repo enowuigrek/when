@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import { CustomerActions } from "./customer-actions";
 
 export const metadata = { title: "Profil klienta", robots: { index: false } };
 
@@ -37,17 +38,25 @@ export default async function CustomerProfilePage({ params }: { params: Params }
       </Link>
 
       {/* Header */}
-      <div className="mt-4 flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xl font-semibold text-zinc-200">
-          {customer.name.charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
-          <div className="mt-1 flex flex-wrap gap-3 text-sm text-zinc-400">
-            <a href={`tel:${customer.phone}`} className="font-mono hover:text-[var(--color-accent)]">{customer.phone}</a>
-            {customer.email && <a href={`mailto:${customer.email}`} className="hover:text-[var(--color-accent)]">{customer.email}</a>}
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xl font-semibold text-zinc-200">
+            {customer.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
+            <div className="mt-1 flex flex-wrap gap-3 text-sm text-zinc-400">
+              <a href={`tel:${customer.phone}`} className="font-mono hover:text-[var(--color-accent)]">{customer.phone}</a>
+              {customer.email && <a href={`mailto:${customer.email}`} className="hover:text-[var(--color-accent)]">{customer.email}</a>}
+            </div>
           </div>
         </div>
+        <CustomerActions
+          customerId={customer.id}
+          customerName={customer.name}
+          customerPhone={customer.phone}
+          customerEmail={customer.email}
+        />
       </div>
 
       {/* Stats grid */}

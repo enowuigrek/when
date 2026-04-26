@@ -33,6 +33,9 @@ export function AdminBookingForm({
   timeFilters,
   today,
   prefilledTime,
+  prefilledPhone,
+  prefilledName,
+  prefilledEmail,
 }: {
   services: Service[];
   staff: Staff[];
@@ -43,6 +46,9 @@ export function AdminBookingForm({
   granularityMin: number;
   today: string;
   prefilledTime?: string | null;
+  prefilledPhone?: string | null;
+  prefilledName?: string | null;
+  prefilledEmail?: string | null;
 }) {
   const [state, formAction, formPending] = useActionState<AdminBookingState, FormData>(
     createAdminBookingAction,
@@ -50,9 +56,9 @@ export function AdminBookingForm({
   );
 
   // Customer search
-  const [phone, setPhone] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [phone, setPhone] = useState(prefilledPhone ?? "");
+  const [customerName, setCustomerName] = useState(prefilledName ?? "");
+  const [customerEmail, setCustomerEmail] = useState(prefilledEmail ?? "");
   const [suggestions, setSuggestions] = useState<Customer[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
