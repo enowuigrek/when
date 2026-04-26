@@ -34,6 +34,7 @@ export default async function PanelLayout({
             <NavLink href="/admin">Dziś</NavLink>
             <NavLink href="/admin/tydzien">Tydzień</NavLink>
             <NavLink href="/admin/harmonogram">Harmonogram</NavLink>
+            <NavLink href="/admin/grafik">Grafik</NavLink>
             <span className="mx-2 h-4 w-px shrink-0 bg-zinc-700" />
             <NavLink href="/admin/uslugi">Usługi</NavLink>
             <NavLink href="/admin/pracownicy">Pracownicy</NavLink>

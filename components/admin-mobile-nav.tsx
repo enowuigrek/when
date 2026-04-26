@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: "/admin", label: "Dziś" },
   { href: "/admin/tydzien", label: "Tydzień" },
   { href: "/admin/harmonogram", label: "Harmonogram" },
+  { href: "/admin/grafik", label: "Grafik" },
   { href: "/admin/uslugi", label: "Usługi" },
   { href: "/admin/pracownicy", label: "Pracownicy" },
   { href: "/admin/klienci", label: "Klienci" },

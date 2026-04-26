@@ -52,6 +52,31 @@ export async function deleteStaffTimeOff(id: string): Promise<void> {
   await createAdminClient().from("staff_time_off").delete().eq("id", id);
 }
 
+export async function getAllStaffSchedules(): Promise<StaffScheduleRow[]> {
+  const { data } = await createAdminClient().from("staff_schedules").select("*");
+  return (data ?? []) as StaffScheduleRow[];
+}
+
+export async function getTimeOffInRange(startDate: string, endDate: string): Promise<StaffTimeOff[]> {
+  const { data } = await createAdminClient()
+    .from("staff_time_off")
+    .select("*")
+    .lte("start_date", endDate)
+    .gte("end_date", startDate);
+  return (data ?? []) as StaffTimeOff[];
+}
+
+export async function upsertOneDaySchedule(
+  staffId: string,
+  dayOfWeek: number,
+  startTime: string | null,
+  endTime: string | null
+): Promise<void> {
+  await createAdminClient()
+    .from("staff_schedules")
+    .upsert({ staff_id: staffId, day_of_week: dayOfWeek, start_time: startTime, end_time: endTime }, { onConflict: "staff_id,day_of_week" });
+}
+
 /**
  * For a set of staff IDs and a specific date, return whether each is available
  * and what their working hours are (null = use business hours).

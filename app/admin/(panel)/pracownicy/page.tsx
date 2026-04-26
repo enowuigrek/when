@@ -21,7 +21,8 @@ export default async function PracownicyPage() {
           href="/admin/pracownicy/nowy"
           className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
         >
-          + Dodaj
+          <span className="hidden sm:inline">+ Dodaj</span>
+          <span className="sm:hidden">+</span>
         </Link>
       </div>
 
