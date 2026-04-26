@@ -195,7 +195,7 @@ export function AdminNotificationBell() {
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950 shadow-2xl">
+          <div className="absolute right-0 top-full z-[200] mt-2 w-80 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
               <span className="text-sm font-medium text-zinc-200">Powiadomienia</span>
               {items.length > 0 && (

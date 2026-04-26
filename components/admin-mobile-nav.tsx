@@ -53,7 +53,7 @@ export function AdminMobileNav({ logoutAction }: { logoutAction: () => Promise<v
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-52 rounded-xl border border-zinc-800 bg-zinc-950 py-2 shadow-xl">
+        <div className="absolute right-0 top-11 z-[200] w-52 rounded-xl border border-zinc-800 bg-zinc-950 py-2 shadow-xl">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
