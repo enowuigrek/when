@@ -7,23 +7,24 @@ export const metadata = {
 
 const useCases = [
   { title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, własne grafiki i cenniki." },
-  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny zależnie od poziomu specjalisty." },
-  { title: "Przychodnia / fizjo", body: "Wizyty lekarzy i fizjoterapeutów. Czas trwania usług, urlopy, dni wolne." },
-  { title: "Weterynarz / groomer", body: "Wizyty o różnym czasie trwania, historia klienta i notatki." },
-  { title: "I wiele innych", body: "Każdy biznes, w którym klient rezerwuje konkretny termin — od studia jogi po konsultacje i usługi specjalistyczne." },
+  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny per specjalista." },
+  { title: "Studio jogi / fitness", body: "Zajęcia grupowe, limity miejsc, stałe godziny zajęć." },
+  { title: "Przychodnia / fizjo", body: "Wizyty lekarzy i fizjoterapeutów. Urlopy, dni wolne." },
+  { title: "Weterynarz / groomer", body: "Wizyty o różnym czasie trwania, historia klienta, notatki." },
+  { title: "I wiele innych", body: "Każdy biznes, w którym klient rezerwuje konkretny termin." },
 ];
 
 const features = [
-  "Publiczna strona rezerwacji dopasowana do Twojej marki",
-  "Pełny podgląd grafiku — dzień, tydzień lub miesiąc",
-  "Widok wszystkich pracowników w jednym miejscu",
-  "Różne ceny dla grup pracowników i poziomów usług",
-  "Automatyczne powiadomienia email dla klientów",
-  "Link do anulowania lub przeniesienia wizyty",
-  "Baza klientów z historią wizyt i notatkami",
-  "Konfigurowalne godziny otwarcia, urlopy i dni wolne",
-  "Widget rezerwacji do osadzenia na stronie",
-  "Proste wdrożenie — wystarczy jedna linijka HTML",
+  "Strona rezerwacji w Twojej marce",
+  "Grafik: dzień, tydzień, miesiąc",
+  "Wszyscy pracownicy w jednym widoku",
+  "Różne ceny dla grup pracowników",
+  "Powiadomienia email do klientów",
+  "Anulowanie i zmiana terminu jednym klikiem",
+  "Baza klientów z historią i notatkami",
+  "Godziny otwarcia, urlopy, dni wolne",
+  "Widget do osadzenia na stronie",
+  "Wdrożenie: jedna linijka HTML",
 ];
 
 const ownerSteps = [
@@ -75,17 +76,11 @@ const clientSteps = [
 function Steps({ steps }: { steps: typeof ownerSteps }) {
   return (
     <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {steps.map((s, i) => (
+      {steps.map((s) => (
         <div key={s.n} className="relative">
-          {i < steps.length - 1 && (
-            <div
-              aria-hidden
-              className="absolute right-0 top-5 hidden h-px w-full translate-x-1/2 bg-zinc-800 lg:block"
-            />
-          )}
-          <div className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
-            <span className="font-mono text-xs text-[var(--color-accent)]">{s.n}</span>
-            <h3 className="mt-2 font-semibold text-zinc-100">{s.title}</h3>
+          <div className="group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70 hover:shadow-[0_0_24px_-8px_var(--color-accent)]">
+            <span className="font-mono text-3xl font-bold leading-none text-[var(--color-accent)]/80 transition-colors group-hover:text-[var(--color-accent)]">{s.n}</span>
+            <h3 className="mt-3 font-semibold text-zinc-100">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
           </div>
         </div>
@@ -118,7 +113,7 @@ export default function StartPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="when" className="h-10 logo-adaptive" />
+            <img src="/logo.svg" alt="when" className="h-12 logo-adaptive" />
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
