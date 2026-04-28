@@ -1,10 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  /* Global radius scale — change here to affect all cards */
+  --radius-card: 0.75rem;   /* ~rounded-xl (12px) */
+  --radius-sm: 0.5rem;      /* ~rounded-lg  (8px) */
+  --radius-pill: 9999px;    /* rounded-full */
 }
 
 /* ── Dark theme (default) ──────────────────────────────── */

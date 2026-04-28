@@ -6,10 +6,10 @@ export const metadata = {
 };
 
 const useCases = [
-  { emoji: "💈", title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, każdy z własnym grafikiem i cennikiem." },
-  { emoji: "💅", title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny per kosmetolog (junior/senior/master)." },
-  { emoji: "🩺", title: "Przychodnia / fizjo", body: "Wizyty u lekarzy lub fizjoterapeutów. Czas trwania per usługa, urlopy, dni wolne." },
-  { emoji: "🐾", title: "Weterynarz / groomer", body: "Wizyty z różnym czasem trwania, notatki o pacjencie, historia klienta." },
+  { title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, każdy z własnym grafikiem i cennikiem." },
+  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny per kosmetolog (junior/senior/master)." },
+  { title: "Przychodnia / fizjo", body: "Wizyty u lekarzy lub fizjoterapeutów. Czas trwania per usługa, urlopy, dni wolne." },
+  { title: "Weterynarz / groomer", body: "Wizyty z różnym czasem trwania, notatki o pacjencie, historia klienta." },
 ];
 
 const features = [
@@ -80,7 +80,7 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
               className="absolute right-0 top-5 hidden h-px w-full translate-x-1/2 bg-zinc-800 lg:block"
             />
           )}
-          <div className="relative rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-5">
+          <div className="relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
             <span className="font-mono text-xs text-[var(--color-accent)]">{s.n}</span>
             <h3 className="mt-2 font-semibold text-zinc-100">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
@@ -101,11 +101,11 @@ export default function StartPage() {
             WHEN<span className="text-[var(--color-accent)]">?</span>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
-            <a href="#jak-to-dziala" className="hidden text-zinc-400 hover:text-zinc-100 sm:block">Jak to działa?</a>
-            <a href="#features" className="hidden text-zinc-400 hover:text-zinc-100 sm:block">Funkcje</a>
+            <a href="#jak-to-dziala" className="hidden text-zinc-400 hover:text-zinc-100 sm:block transition-colors">Jak to działa?</a>
+            <a href="#features" className="hidden text-zinc-400 hover:text-zinc-100 sm:block transition-colors">Funkcje</a>
             <a
               href="#demo"
-              className="rounded-full bg-zinc-100 px-4 py-2 font-medium text-zinc-950 hover:bg-white transition-colors"
+              className="rounded-lg bg-zinc-100 px-4 py-2 font-medium text-zinc-950 hover:bg-white transition-colors"
             >
               Wypróbuj demo →
             </a>
@@ -133,15 +133,15 @@ export default function StartPage() {
           <div id="demo" className="mt-10 flex flex-wrap gap-3">
             <a
               href="/api/demo/start?wariant=barber"
-              className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
             >
-              💈 Demo — Barber Shop
+              Demo — Barber Shop
             </a>
             <a
               href="/api/demo/start?wariant=kosmetyka"
-              className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
             >
-              💅 Demo — Gabinet Kosmetyczny
+              Demo — Gabinet Kosmetyczny
             </a>
           </div>
           <p className="mt-4 text-xs text-zinc-600">
@@ -154,7 +154,7 @@ export default function StartPage() {
       <section id="jak-to-dziala" className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
               Dla właściciela
             </span>
           </div>
@@ -168,7 +168,7 @@ export default function StartPage() {
       <section className="border-b border-zinc-800/60 bg-zinc-900/20">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
               Co widzi Twój klient
             </span>
           </div>
@@ -186,9 +186,9 @@ export default function StartPage() {
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {useCases.map((u) => (
-              <div key={u.title} className="rounded-2xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-                <div className="text-3xl">{u.emoji}</div>
-                <h3 className="mt-3 text-lg font-semibold text-zinc-100">{u.title}</h3>
+              <div key={u.title} className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
+                <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
+                <h3 className="text-lg font-semibold text-zinc-100">{u.title}</h3>
                 <p className="mt-1.5 text-sm text-zinc-400">{u.body}</p>
               </div>
             ))}
@@ -202,8 +202,8 @@ export default function StartPage() {
           <h2 className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {features.map((f) => (
-              <li key={f} className="flex items-start gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-xs font-bold text-zinc-950">
+              <li key={f} className="flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] text-xs font-bold text-zinc-950">
                   ✓
                 </span>
                 <span className="text-sm text-zinc-300">{f}</span>
@@ -221,15 +221,15 @@ export default function StartPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="/api/demo/start?wariant=barber"
-              className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
             >
-              💈 Demo — Barber
+              Demo — Barber
             </a>
             <a
               href="/api/demo/start?wariant=kosmetyka"
-              className="rounded-full border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
             >
-              💅 Demo — Gabinet
+              Demo — Gabinet
             </a>
           </div>
           <p className="mt-4 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
