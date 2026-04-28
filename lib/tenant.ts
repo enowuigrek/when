@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createAdminClient } from "./supabase/admin";
+import { getSessionTenantId } from "./auth/admin-session";
 
 export const MAIN_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 const DEMO_COOKIE = "when_demo";
@@ -27,10 +28,15 @@ export async function getDemoTenantId(): Promise<string | null> {
   return data.id as string;
 }
 
-/** Tenant for admin panel: demo if a valid demo cookie is present, else main. */
+/**
+ * Tenant for admin panel.
+ * Priority: demo cookie → admin session cookie → main tenant (fallback).
+ */
 export async function getAdminTenantId(): Promise<string> {
   const demo = await getDemoTenantId();
-  return demo ?? MAIN_TENANT_ID;
+  if (demo) return demo;
+  const session = await getSessionTenantId();
+  return session ?? MAIN_TENANT_ID;
 }
 
 /** Resolve a tenant by its public slug (used by public booking pages). */
