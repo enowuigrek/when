@@ -114,7 +114,7 @@ export function buildConfirmationEmail(data: ConfirmationData): {
       <tr>
         <td style="padding:20px 40px;background:#09090b;border-top:1px solid #27272a;border-radius:0 0 12px 12px;">
           <p style="margin:0;font-size:11px;color:#52525b;">
-            Zbudowane na <span style="color:#71717a;">when?</span> — system rezerwacji online
+            Rezerwacje przez <a href="https://whenbooking.pl" style="color:#71717a;text-decoration:none;">when</a> — system rezerwacji online
           </p>
         </td>
       </tr>

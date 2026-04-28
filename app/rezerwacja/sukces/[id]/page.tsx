@@ -2,9 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getBookingById } from "@/lib/db/bookings";
+import { getBookingByIdPublic, getSettingsForTenant } from "@/lib/db/for-tenant";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
-import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 
@@ -19,8 +18,9 @@ export default async function SuccessPage({ params }: { params: Params }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
-  const [booking, s] = await Promise.all([getBookingById(id), getSettings()]);
+  const booking = await getBookingByIdPublic(id);
   if (!booking) notFound();
+  const s = await getSettingsForTenant(booking.tenant_id);
 
   const service = (booking as { service?: { name: string; price_pln: number } }).service;
 

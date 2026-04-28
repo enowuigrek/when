@@ -31,62 +31,67 @@ export default async function WidgetHomePage({ params }: Props) {
 
   return (
     <div
-      className="px-4 py-6 sm:px-6"
+      className="min-h-screen py-8 px-4"
       style={{ "--color-accent": accent, "--color-accent-hover": accent } as React.CSSProperties}
     >
-      {/* Business name */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-zinc-100">{settings.business_name}</h1>
-        {settings.tagline && <p className="mt-0.5 text-sm text-zinc-400">{settings.tagline}</p>}
-      </div>
+      <div className="mx-auto w-full max-w-sm">
 
-      {/* Services */}
-      <div className="space-y-2.5">
-        {services.length === 0 && (
-          <p className="text-sm text-zinc-500">Brak dostępnych usług.</p>
-        )}
-        {services.map((s) => (
-          <Link
-            key={s.id}
-            href={`/widget/${tenantSlug}/${s.slug}`}
-            className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3.5 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
-          >
-            <div className="min-w-0">
-              <p className="font-medium text-zinc-100">{s.name}</p>
-              {s.description && (
-                <p className="mt-0.5 truncate text-xs text-zinc-500">{s.description}</p>
-              )}
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-0.5">
-              <span className="font-mono text-sm font-medium text-[var(--color-accent)]">{s.price_pln} zł</span>
-              <span className="font-mono text-xs text-zinc-500">{s.duration_min} min</span>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Hours */}
-      {openHours.length > 0 && (
-        <div className="mt-6 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-4 py-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Godziny otwarcia</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-zinc-400">
-            {openHours.map((h) => (
-              <div key={h.day_of_week} className="flex justify-between">
-                <span>{DAY_SHORT[h.day_of_week]}</span>
-                <span className="font-mono">{h.open_time?.slice(0, 5)} – {h.close_time?.slice(0, 5)}</span>
-              </div>
-            ))}
-          </div>
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-lg font-semibold text-zinc-100">{settings.business_name}</h1>
+          {settings.tagline && (
+            <p className="mt-0.5 text-sm text-zinc-500">{settings.tagline}</p>
+          )}
         </div>
-      )}
 
-      {/* Powered by */}
-      <p className="mt-5 text-center text-[10px] text-zinc-700">
-        Rezerwacje przez{" "}
-        <a href="https://when-three.vercel.app/start" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-500">
-          WHEN?
-        </a>
-      </p>
+        {/* Services */}
+        <div className="space-y-2">
+          {services.length === 0 && (
+            <p className="text-sm text-zinc-500">Brak dostępnych usług.</p>
+          )}
+          {services.map((s) => (
+            <Link
+              key={s.id}
+              href={`/widget/${tenantSlug}/${s.slug}`}
+              className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3.5 transition-colors hover:border-zinc-600 hover:bg-zinc-800/50 active:scale-[0.99]"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-zinc-100">{s.name}</p>
+                {s.description && (
+                  <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{s.description}</p>
+                )}
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-0.5">
+                <span className="font-mono text-sm font-semibold" style={{ color: accent }}>{s.price_pln} zł</span>
+                <span className="font-mono text-[11px] text-zinc-500">{s.duration_min} min</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Hours */}
+        {openHours.length > 0 && (
+          <div className="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-4 py-3">
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">Godziny otwarcia</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-zinc-400">
+              {openHours.map((h) => (
+                <div key={h.day_of_week} className="flex justify-between">
+                  <span className="text-zinc-500">{DAY_SHORT[h.day_of_week]}</span>
+                  <span className="font-mono">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Powered by */}
+        <p className="mt-5 text-center text-[10px] text-zinc-700">
+          Rezerwacje przez{" "}
+          <a href="https://whenbooking.pl" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-500">
+            when
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

@@ -4,7 +4,14 @@ import { useState, useTransition } from "react";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
-import { getSlotsForReschedule, rescheduleBookingAction } from "./actions";
+import { rescheduleBookingAction } from "./actions";
+
+async function fetchSlots(serviceSlug: string, date: string, staffId?: string | null): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
+  const params = new URLSearchParams({ service: serviceSlug, date });
+  if (staffId) params.set("staff", staffId);
+  const res = await fetch(`/api/slots?${params}`);
+  return res.json();
+}
 
 type Day = { date: string; closed: boolean };
 
@@ -39,7 +46,7 @@ export function RescheduleFlow({
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await getSlotsForReschedule(serviceSlug, date, staffId, token);
+      const res = await fetchSlots(serviceSlug, date, staffId);
       setSlots(res.ok ? res.slots : []);
     });
   }

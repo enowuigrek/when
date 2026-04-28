@@ -47,10 +47,10 @@ export function buildCancellationEmail(data: CancellationData): {
         <td style="padding:32px 40px 8px;">
           <p style="margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#71717a;">Rezerwacja anulowana</p>
           <h1 style="margin:0;font-size:28px;font-weight:600;color:#f4f4f5;line-height:1.25;">
-            Przepraszamy,<br/>${data.customerName.split(" ")[0]}.
+            Cześć, ${data.customerName.split(" ")[0]}.
           </h1>
           <p style="margin:12px 0 0;color:#a1a1aa;font-size:15px;">
-            Twoja rezerwacja została anulowana. Zapraszamy do ponownej rezerwacji.
+            Twoja rezerwacja została anulowana. Zapraszamy ponownie — wybierz nowy termin kiedy będzie Ci wygodnie.
           </p>
         </td>
       </tr>
@@ -90,7 +90,7 @@ export function buildCancellationEmail(data: CancellationData): {
         <td style="padding:20px 40px;background:#09090b;border-top:1px solid #27272a;border-radius:0 0 12px 12px;">
           <p style="margin:0;font-size:11px;color:#52525b;">
             Nr rezerwacji: <span style="font-family:monospace;color:#71717a;">${shortId}</span>
-            &nbsp;·&nbsp; Zbudowane na <span style="color:#71717a;">when?</span>
+            &nbsp;·&nbsp; Rezerwacje przez <a href="https://whenbooking.pl" style="color:#71717a;text-decoration:none;">when</a>
           </p>
         </td>
       </tr>

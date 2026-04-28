@@ -95,14 +95,15 @@ export default function StartPage() {
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/start" className="text-xl font-bold tracking-tight">
-            WHEN<span className="text-[var(--color-accent)]">?</span>
+      <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Link href="/start" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="when" className="h-8 logo-adaptive" />
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
-            <a href="#jak-to-dziala" className="hidden text-zinc-400 hover:text-zinc-100 sm:block transition-colors">Jak to działa?</a>
-            <a href="#features" className="hidden text-zinc-400 hover:text-zinc-100 sm:block transition-colors">Funkcje</a>
+          <nav className="flex items-center gap-6 text-sm">
+            <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
+            <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
             <a
               href="#demo"
               className="rounded-lg bg-zinc-100 px-4 py-2 font-medium text-zinc-950 hover:bg-white transition-colors"
@@ -248,14 +249,45 @@ export default function StartPage() {
         </div>
       </section>
 
+      {/* Contact CTA */}
+      <section className="border-t border-zinc-800/60 bg-zinc-900/20">
+        <div className="mx-auto max-w-6xl px-6 py-16 text-center">
+          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+            Chcesz to uruchomić w swojej firmie?
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-zinc-400">
+            Skonfigurujemy system razem — usługi, pracownicy, godziny, kolory, widget na Twoją stronę.
+            Napisz, żeby ustalić szczegóły.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a
+              href="mailto:enowuigrek@gmail.com?subject=when%20—%20wdrożenie"
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:opacity-90"
+            >
+              Napisz do mnie →
+            </a>
+            <a
+              href="https://lukasznowak.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-zinc-700 px-6 py-3 font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+            >
+              lukasznowak.dev
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-zinc-800/60 bg-zinc-950">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-zinc-500">
-          <p>
-            <span className="font-bold text-zinc-300">WHEN<span className="text-[var(--color-accent)]">?</span></span>
-            {" "}— system rezerwacji online
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6 text-xs text-zinc-600">
+          <p className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="when" className="h-4 logo-adaptive opacity-50" />
+            <span>— system rezerwacji online</span>
           </p>
-          <p>© {new Date().getFullYear()} · Wszelkie prawa zastrzeżone</p>
+          <p>© {new Date().getFullYear()} &nbsp;·&nbsp; <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">lukasznowak.dev</a></p>
         </div>
       </footer>
     </main>

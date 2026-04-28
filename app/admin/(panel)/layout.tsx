@@ -24,11 +24,14 @@ export default async function PanelLayout({
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-6">
           {/* Logo */}
           <Link href="/admin" className="shrink-0 leading-tight">
-            <span className="text-base font-semibold tracking-tight">
-              {s.business_name}<span className="text-[var(--color-accent)]">.</span>
+            <span className="text-base font-semibold tracking-tight text-zinc-100">
+              {s.business_name}
             </span>
-            <span className="block text-[10px] font-normal uppercase tracking-widest text-zinc-500">
+            <span className="flex items-center gap-1.5 text-[10px] font-normal uppercase tracking-widest text-zinc-600">
               panel
+              <span className="h-px w-2 bg-zinc-700" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="when" className="h-2.5 logo-adaptive opacity-30" />
             </span>
           </Link>
 

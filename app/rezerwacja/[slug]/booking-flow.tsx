@@ -4,8 +4,19 @@ import { useActionState, useState, useTransition } from "react";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
-import { getSlotsForDate, submitBooking } from "./actions";
+import { submitBooking } from "./actions";
 import type { BookingFormState } from "./actions";
+
+async function fetchSlots(
+  serviceSlug: string,
+  date: string,
+  staffId: string | null
+): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
+  const params = new URLSearchParams({ service: serviceSlug, date });
+  if (staffId) params.set("staff", staffId);
+  const res = await fetch(`/api/slots?${params}`);
+  return res.json();
+}
 
 type Day = { date: string; closed: boolean };
 type StaffOption = { id: string; name: string; color: string };
@@ -49,7 +60,7 @@ export function BookingFlow({
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await getSlotsForDate(serviceSlug, date, staffId);
+      const res = await fetchSlots(serviceSlug, date, staffId);
       setSlots(res.ok ? res.slots : []);
     });
   }

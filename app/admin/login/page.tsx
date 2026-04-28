@@ -13,6 +13,10 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6">
       <div className="w-full max-w-sm">
+        <div className="mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="when" className="h-7 logo-adaptive" />
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">
           Panel właściciela
         </h1>

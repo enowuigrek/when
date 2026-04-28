@@ -188,6 +188,21 @@ export async function getStaffAvailabilityMapForTenant(
   return result;
 }
 
+/**
+ * Fetch a booking by UUID without tenant scoping.
+ * Safe because booking IDs are UUIDs (unguessable). Used by the public
+ * success/confirm pages where the viewer may be a widget customer of any tenant.
+ */
+export async function getBookingByIdPublic(id: string) {
+  const { data, error } = await createAdminClient()
+    .from("bookings")
+    .select("*, service:services(name, slug, duration_min, price_pln)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to load booking: ${error.message}`);
+  return data as (typeof data & { tenant_id: string }) | null;
+}
+
 export async function getStaffUnavailableDatesMapForTenant(
   staffIds: string[],
   startDate: string,

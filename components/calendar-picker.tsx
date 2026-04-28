@@ -131,12 +131,12 @@ export function CalendarPicker({
           const isAvailable = !!dayInfo && !dayInfo.closed;
           const isClosed = !!dayInfo && dayInfo.closed;
 
-          // Other-month days: clearly non-interactive, darker bg
+          // Other-month days: invisible filler, no interaction
           if (!isCurrentMonth) {
             return (
               <div
                 key={date}
-                className="flex h-9 w-full items-center justify-center rounded-lg bg-zinc-900/80 text-sm text-zinc-800"
+                className="flex h-9 w-full items-center justify-center rounded-lg text-sm text-zinc-800/50"
               >
                 {date.split("-")[2].replace(/^0/, "")}
               </div>
@@ -144,15 +144,16 @@ export function CalendarPicker({
           }
 
           let cls =
-            "relative flex h-9 w-full items-center justify-center rounded-lg text-sm transition-colors ";
+            "relative flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium transition-all ";
           if (isSelected) {
-            cls += "bg-[var(--color-accent)] text-zinc-950 font-semibold cursor-pointer";
+            cls += "bg-[var(--color-accent)] text-zinc-950 shadow-sm cursor-pointer";
           } else if (isAvailable) {
-            cls += "text-zinc-100 hover:bg-zinc-800 cursor-pointer";
+            cls += "cal-day-available cursor-pointer";
           } else if (isClosed) {
-            cls += "text-zinc-600 cursor-not-allowed line-through";
+            cls += "text-zinc-700 cursor-not-allowed opacity-40";
           } else {
-            cls += "text-zinc-700 cursor-default";
+            // past or outside booking horizon
+            cls += "text-zinc-700/50 cursor-default font-normal";
           }
 
           return (

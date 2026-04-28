@@ -288,7 +288,8 @@ function DayView({
               </td>
               {visibleStaff.length > 0 ? visibleStaff.map((s) => {
                 const booking = bookingAtSlot(s.id, slot.min);
-                const isFirstSlot = booking && warsawMinutes(booking.starts_at) === slot.min;
+                // booking starts anywhere in this 30-min bucket
+                const isFirstSlot = booking && warsawMinutes(booking.starts_at) >= slot.min && warsawMinutes(booking.starts_at) < slot.min + 30;
                 return (
                   <td key={s.id} className="px-2 py-1 align-top">
                     {booking && isFirstSlot ? (

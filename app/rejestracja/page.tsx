@@ -62,11 +62,9 @@ export default function RejestrPage() {
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-4 py-16">
       {/* Logo */}
-      <Link
-        href="/start"
-        className="mb-10 text-2xl font-black tracking-tight text-zinc-100 hover:text-white transition-colors"
-      >
-        WHEN<span className="text-[var(--color-accent,#d4a26a)]">?</span>
+      <Link href="/start" className="mb-10 flex items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="when" className="h-8 logo-adaptive" />
       </Link>
 
       <div className="w-full max-w-md">
