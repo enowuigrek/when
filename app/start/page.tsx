@@ -99,7 +99,7 @@ export default function StartPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/start" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="when" className="h-8 logo-adaptive" />
+            <img src="/logo.svg" alt="when" className="h-10 logo-adaptive" />
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
