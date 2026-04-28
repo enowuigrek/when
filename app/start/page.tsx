@@ -143,6 +143,12 @@ export default function StartPage() {
             >
               Demo — Gabinet Kosmetyczny
             </a>
+            <a
+              href="/api/demo/start?wariant=joga"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+            >
+              Demo — Studio Jogi
+            </a>
           </div>
           <p className="mt-4 text-xs text-zinc-600">
             Bez rejestracji, bez karty. Demo znika automatycznie po 24h.
@@ -230,6 +236,12 @@ export default function StartPage() {
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
             >
               Demo — Gabinet
+            </a>
+            <a
+              href="/api/demo/start?wariant=joga"
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+            >
+              Demo — Studio Jogi
             </a>
           </div>
           <p className="mt-4 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>

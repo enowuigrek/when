@@ -1,9 +1,13 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type DemoVariant = "barber" | "kosmetyka";
+export type DemoVariant = "barber" | "kosmetyka" | "joga";
 
-type ServiceSeed = { slug: string; name: string; description: string; duration_min: number; price_pln: number; sort_order: number };
+type ServiceSeed = {
+  slug: string; name: string; description: string;
+  duration_min: number; price_pln: number; sort_order: number;
+  is_group?: boolean; max_participants?: number;
+};
 type StaffSeed = { name: string; bio: string; color: string; sort_order: number };
 type GroupSeed = { name: string; sort_order: number; staffNames: string[]; priceMultiplier: number };
 
@@ -45,6 +49,23 @@ const KOSMETYKA_GROUPS: GroupSeed[] = [
   { name: "Senior", sort_order: 3, staffNames: ["Magda"], priceMultiplier: 1.3 },
 ];
 
+const JOGA_SERVICES: ServiceSeed[] = [
+  { slug: "joga-poczatkujacy", name: "Joga dla początkujących", description: "Podstawy asan, praca z oddechem, relaks. Idealna na start.", duration_min: 75, price_pln: 55, sort_order: 1, is_group: true, max_participants: 12 },
+  { slug: "vinyasa-flow", name: "Vinyasa Flow", description: "Dynamiczne połączenie asan z oddechem. Wymagana podstawowa znajomość jogi.", duration_min: 60, price_pln: 60, sort_order: 2, is_group: true, max_participants: 14 },
+  { slug: "pilates", name: "Pilates", description: "Wzmacnianie głębokiej muskulatury, postawa, core.", duration_min: 60, price_pln: 65, sort_order: 3, is_group: true, max_participants: 10 },
+  { slug: "medytacja", name: "Medytacja i oddech", description: "Techniki oddechowe (pranayama) i prowadzona medytacja. Dla każdego.", duration_min: 45, price_pln: 45, sort_order: 4, is_group: true, max_participants: 20 },
+  { slug: "joga-zaawansowana", name: "Joga zaawansowana", description: "Asany odwrócone, pogłębione pozycje, balanse. Dla doświadczonych.", duration_min: 90, price_pln: 70, sort_order: 5, is_group: true, max_participants: 8 },
+];
+
+const JOGA_STAFF: StaffSeed[] = [
+  { name: "Zofia", bio: "Certyfikowana instruktorka jogi (RYT 500). Specjalizacja: Hatha i Vinyasa.", color: "#7eb89a", sort_order: 1 },
+  { name: "Olga", bio: "Instruktorka Pilates i jogi prenatalnej. Pasjonatka pracy z ciałem.", color: "#b89a7e", sort_order: 2 },
+  { name: "Marta", bio: "Nauczycielka medytacji i technik oddechowych. 10 lat praktyki.", color: "#9a7eb8", sort_order: 3 },
+];
+
+// Joga nie ma grup cenowych — każdy instruktor ta sama stawka
+const JOGA_GROUPS: GroupSeed[] = [];
+
 const SETTINGS = {
   barber: {
     business_name: "Demo Barber",
@@ -74,6 +95,20 @@ const SETTINGS = {
     slot_granularity_min: 15,
     booking_horizon_days: 21,
   },
+  joga: {
+    business_name: "Demo Studio Jogi",
+    tagline: "Ruch. Oddech. Spokój.",
+    description: "Demo konto — wszystkie zmiany znikną po 24h. Sprawdź jak działają zajęcia grupowe.",
+    address_street: "ul. Demo 1",
+    address_city: "Warszawa",
+    address_postal: "00-001",
+    phone: "+48 600 000 000",
+    email: "demo@when.app",
+    color_accent: "#7eb89a",
+    theme: "light" as const,
+    slot_granularity_min: 60,
+    booking_horizon_days: 28,
+  },
 };
 
 const SAMPLE_NAMES = [
@@ -86,24 +121,34 @@ const SAMPLE_NAMES = [
 
 export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Promise<void> {
   const supabase = createAdminClient();
-  const services = variant === "barber" ? BARBER_SERVICES : KOSMETYKA_SERVICES;
-  const staff = variant === "barber" ? BARBER_STAFF : KOSMETYKA_STAFF;
-  const groups = variant === "barber" ? BARBER_GROUPS : KOSMETYKA_GROUPS;
+  const services = variant === "barber" ? BARBER_SERVICES : variant === "kosmetyka" ? KOSMETYKA_SERVICES : JOGA_SERVICES;
+  const staff = variant === "barber" ? BARBER_STAFF : variant === "kosmetyka" ? KOSMETYKA_STAFF : JOGA_STAFF;
+  const groups = variant === "barber" ? BARBER_GROUPS : variant === "kosmetyka" ? KOSMETYKA_GROUPS : JOGA_GROUPS;
   const settings = SETTINGS[variant];
 
   // Settings
   await supabase.from("settings").insert({ tenant_id: tenantId, ...settings });
 
-  // Business hours: Mon–Fri 10–19, Sat 9–15, Sun closed
-  const hours = [
-    { day_of_week: 0, open_time: null, close_time: null, closed: true },
-    { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
-    { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
-    { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
-    { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
-    { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
-    { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
-  ];
+  // Business hours
+  const hours = variant === "joga"
+    ? [
+        { day_of_week: 0, open_time: "08:00", close_time: "20:00", closed: false }, // Niedziela
+        { day_of_week: 1, open_time: "07:00", close_time: "21:00", closed: false },
+        { day_of_week: 2, open_time: "07:00", close_time: "21:00", closed: false },
+        { day_of_week: 3, open_time: "07:00", close_time: "21:00", closed: false },
+        { day_of_week: 4, open_time: "07:00", close_time: "21:00", closed: false },
+        { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
+        { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false }, // Sobota
+      ]
+    : [
+        { day_of_week: 0, open_time: null, close_time: null, closed: true },
+        { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
+        { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
+        { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
+        { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
+        { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
+        { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
+      ];
   await supabase.from("business_hours").insert(hours.map((h) => ({ ...h, tenant_id: tenantId })));
 
   // Time filters
@@ -117,7 +162,13 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   // Services
   const { data: insertedServices } = await supabase
     .from("services")
-    .insert(services.map((s) => ({ ...s, active: true, tenant_id: tenantId })))
+    .insert(services.map((s) => ({
+      ...s,
+      active: true,
+      tenant_id: tenantId,
+      is_group: s.is_group ?? false,
+      max_participants: s.max_participants ?? null,
+    })))
     .select("id, slug");
   const serviceByName = new Map((insertedServices ?? []).map((s) => [s.slug as string, s.id as string]));
 
@@ -194,7 +245,7 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   }));
   await supabase.from("customers").insert(customerRows);
 
-  // Sample bookings: spread a handful across the next 5 working days
+  // Sample bookings
   const staffIds = (insertedStaff ?? []).map((s) => s.id as string);
   const serviceList = (insertedServices ?? []).map((s) => ({
     id: s.id as string,
@@ -204,37 +255,90 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
 
   const bookingRows: Array<Record<string, unknown>> = [];
   const today = new Date();
-  let count = 0;
-  for (let dayOffset = 0; dayOffset < 7 && count < 12; dayOffset++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + dayOffset);
-    const dow = date.getDay();
-    if (dow === 0) continue; // closed Sunday
+
+  if (variant === "joga") {
+    // Group bookings: multiple customers per slot
+    // Typical yoga schedule: 7:00, 9:00, 17:00, 19:00
+    const CLASS_HOURS = [7, 9, 17, 19];
+    // Extended sample names for group classes
+    const GROUP_NAMES = [
+      ["Anna Kowalska",      "+48500100201", "anna@example.com"],
+      ["Marta Nowak",        "+48500100202", "marta@example.com"],
+      ["Katarzyna Wiśniewska","+48500100203", null],
+      ["Ewa Lewandowska",    "+48500100204", "ewa@example.com"],
+      ["Joanna Wójcik",      "+48500100205", null],
+      ["Aleksandra Kamińska","+48500100206", "ola@example.com"],
+      ["Natalia Kowalczyk",  "+48500100207", null],
+      ["Monika Zielińska",   "+48500100208", "monika@example.com"],
+    ] as const;
+
+    let custIdx = 0;
+    for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + dayOffset);
+      for (const hour of CLASS_HOURS) {
+        const sv = serviceList[(dayOffset * CLASS_HOURS.length + CLASS_HOURS.indexOf(hour)) % serviceList.length];
+        const meta = serviceMeta.get(sv.slug)!;
+        const maxSpots = meta.max_participants ?? 12;
+        // Fill 40–75% of spots
+        const spots = Math.max(2, Math.round(maxSpots * (0.4 + Math.random() * 0.35)));
+        const starts = new Date(date);
+        starts.setHours(hour, 0, 0, 0);
+        const ends = new Date(starts.getTime() + meta.duration_min * 60_000);
+        for (let p = 0; p < spots; p++) {
+          const cust = GROUP_NAMES[custIdx % GROUP_NAMES.length];
+          custIdx++;
+          bookingRows.push({
+            tenant_id: tenantId,
+            service_id: sv.id,
+            staff_id: null, // group classes: no staff per booking
+            customer_name: cust[0],
+            customer_phone: cust[1],
+            customer_email: cust[2] ?? null,
+            starts_at: starts.toISOString(),
+            ends_at: ends.toISOString(),
+            status: "confirmed",
+            price_pln_snapshot: meta.price_pln,
+            duration_min_snapshot: meta.duration_min,
+          });
+        }
+      }
+    }
+  } else {
+    // Individual bookings (barber / kosmetyka)
     const slotsThisDay = [10, 12, 14, 16];
-    for (const hour of slotsThisDay) {
-      if (count >= 12) break;
-      const sv = serviceList[count % serviceList.length];
-      const meta = serviceMeta.get(sv.slug)!;
-      const cust = SAMPLE_NAMES[count % SAMPLE_NAMES.length];
-      const staffId = staffIds[count % staffIds.length];
-      const starts = new Date(date);
-      starts.setHours(hour, 0, 0, 0);
-      const ends = new Date(starts.getTime() + meta.duration_min * 60_000);
-      bookingRows.push({
-        tenant_id: tenantId,
-        service_id: sv.id,
-        staff_id: staffId,
-        customer_name: cust[0],
-        customer_phone: cust[1],
-        customer_email: cust[2],
-        starts_at: starts.toISOString(),
-        ends_at: ends.toISOString(),
-        status: "confirmed",
-        price_pln_snapshot: meta.price_pln,
-        duration_min_snapshot: meta.duration_min,
-      });
-      count++;
+    let count = 0;
+    for (let dayOffset = 0; dayOffset < 7 && count < 12; dayOffset++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + dayOffset);
+      const dow = date.getDay();
+      if (dow === 0) continue; // closed Sunday
+      for (const hour of slotsThisDay) {
+        if (count >= 12) break;
+        const sv = serviceList[count % serviceList.length];
+        const meta = serviceMeta.get(sv.slug)!;
+        const cust = SAMPLE_NAMES[count % SAMPLE_NAMES.length];
+        const staffId = staffIds[count % staffIds.length];
+        const starts = new Date(date);
+        starts.setHours(hour, 0, 0, 0);
+        const ends = new Date(starts.getTime() + meta.duration_min * 60_000);
+        bookingRows.push({
+          tenant_id: tenantId,
+          service_id: sv.id,
+          staff_id: staffId,
+          customer_name: cust[0],
+          customer_phone: cust[1],
+          customer_email: cust[2],
+          starts_at: starts.toISOString(),
+          ends_at: ends.toISOString(),
+          status: "confirmed",
+          price_pln_snapshot: meta.price_pln,
+          duration_min_snapshot: meta.duration_min,
+        });
+        count++;
+      }
     }
   }
+
   if (bookingRows.length) await supabase.from("bookings").insert(bookingRows);
 }

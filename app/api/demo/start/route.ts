@@ -9,12 +9,16 @@ const DEMO_TTL_HOURS = 24;
 export async function GET(req: NextRequest) {
   const variantRaw = req.nextUrl.searchParams.get("wariant") ?? "barber";
   const variant: DemoVariant =
-    variantRaw === "kosmetyka" || variantRaw === "barber" ? variantRaw : "barber";
+    variantRaw === "kosmetyka" ? "kosmetyka"
+    : variantRaw === "joga" ? "joga"
+    : "barber";
 
   const supabase = createAdminClient();
   const expiresAt = new Date(Date.now() + DEMO_TTL_HOURS * 3600 * 1000).toISOString();
   const slug = `demo-${variant}-${Math.random().toString(36).slice(2, 8)}`;
-  const name = variant === "kosmetyka" ? "Demo — Gabinet kosmetyczny" : "Demo — Barber Shop";
+  const name = variant === "kosmetyka" ? "Demo — Gabinet kosmetyczny"
+    : variant === "joga" ? "Demo — Studio Jogi"
+    : "Demo — Barber Shop";
 
   const { data: tenant, error } = await supabase
     .from("tenants")
