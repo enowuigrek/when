@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
+import { getBookingsInRange, createBooking, getBusyStaffIds, getGroupBookingCount } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
@@ -47,6 +47,18 @@ export async function getSlotsForDate(
   const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
+
+  // ── Group class: count all bookings for this service (not per-staff) ────────
+  if (service.is_group && service.max_participants) {
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, undefined);
+    // Filter to this service only (getBookingsInRange returns all confirmed bookings)
+    // We need service-scoped count — use all bookings for now (conservative, safe)
+    const slots = computeAvailableSlots(
+      dateStr, service.duration_min, hours, existing,
+      settings.slot_granularity_min, 1, true, service.max_participants
+    );
+    return { ok: true, slots };
+  }
 
   const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
 
@@ -126,6 +138,65 @@ export async function submitBooking(
   }
 
   const startsAt = new Date(parsed.data.startsAtIso);
+
+  // ── Group class: server-side capacity check ──────────────────────────────────
+  if (service.is_group && service.max_participants) {
+    const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
+    const booked = await getGroupBookingCount(service.id, startsAt.toISOString(), endsAt.toISOString());
+    if (booked >= service.max_participants) {
+      return { status: "error", message: "Brak wolnych miejsc w tym terminie. Wybierz inny." };
+    }
+    // Group bookings don't auto-assign staff
+    const result = await createBooking({
+      serviceId: service.id,
+      customerName: parsed.data.customerName,
+      customerPhone: parsed.data.customerPhone,
+      customerEmail: parsed.data.customerEmail ?? null,
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+      notes: parsed.data.notes ?? null,
+      staffId: null,
+      pricePlnSnapshot: service.price_pln,
+      durationMinSnapshot: service.duration_min,
+    });
+    if (!result.ok) return { status: "error", message: result.message };
+    await recordBookingEvent({
+      bookingId: result.id,
+      eventType: "created",
+      source: "customer",
+      customerName: parsed.data.customerName,
+      serviceName: service.name,
+      startsAtIso: startsAt.toISOString(),
+    });
+    if (parsed.data.customerEmail) {
+      const s = await getSettings();
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+      const cancelToken = signBookingToken(result.id, "cancel");
+      const rescheduleToken = signBookingToken(result.id, "reschedule");
+      const { subject, html, text } = buildConfirmationEmail({
+        bookingId: result.id,
+        customerName: parsed.data.customerName,
+        serviceName: service.name,
+        startsAtIso: startsAt.toISOString(),
+        endsAtIso: endsAt.toISOString(),
+        pricePln: service.price_pln,
+        notes: parsed.data.notes ?? null,
+        business: {
+          name: s.business_name,
+          addressStreet: s.address_street,
+          addressPostal: s.address_postal,
+          addressCity: s.address_city,
+          phone: s.phone,
+        },
+        cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
+        rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
+      });
+      sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
+        (err) => console.error("[email] Failed to send confirmation:", err)
+      );
+    }
+    redirect(`/rezerwacja/sukces/${result.id}`);
+  }
 
   // Auto-assign staff when client selected "Dowolny"
   let resolvedStaffId: string | null = parsed.data.staffId ?? null;

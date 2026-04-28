@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ServiceFormState } from "./actions";
 import type { Service } from "@/lib/types";
 
@@ -17,6 +17,7 @@ export function ServiceForm({
     action,
     { status: "idle" }
   );
+  const [isGroup, setIsGroup] = useState(service?.is_group ?? false);
 
   return (
     <form action={formAction} className="space-y-5 max-w-lg">
@@ -99,6 +100,53 @@ export function ServiceForm({
         defaultValue={String(service?.sort_order ?? 0)}
         hint="Niższy numer = wyżej na liście"
       />
+
+      {/* GROUP CLASS TOGGLE */}
+      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
+        <label className="flex cursor-pointer items-center justify-between gap-4">
+          <div>
+            <span className="block text-sm font-medium text-zinc-200">Zajęcia grupowe</span>
+            <span className="block text-xs text-zinc-500 mt-0.5">Wiele osób może zarezerwować ten sam termin</span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isGroup}
+            onClick={() => setIsGroup((v) => !v)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              isGroup ? "bg-[var(--color-accent)]" : "bg-zinc-700"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                isGroup ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+          <input type="hidden" name="is_group" value={isGroup ? "true" : "false"} />
+        </label>
+
+        {isGroup && (
+          <label className="block">
+            <span className="mb-1 block text-sm text-zinc-300">
+              Limit miejsc <span className="text-[var(--color-accent)]">*</span>
+            </span>
+            <input
+              type="number"
+              name="max_participants"
+              required={isGroup}
+              min={1}
+              max={500}
+              defaultValue={service?.max_participants ?? 10}
+              className="w-32 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+            />
+            <span className="ml-2 text-xs text-zinc-500">osób max</span>
+            {state.status === "error" && state.fieldErrors?.max_participants && (
+              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.max_participants}</span>
+            )}
+          </label>
+        )}
+      </div>
 
       {state.status === "error" && !state.fieldErrors && (
         <p className="rounded-md border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">

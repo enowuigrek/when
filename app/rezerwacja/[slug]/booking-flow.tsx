@@ -19,6 +19,8 @@ export function BookingFlow({
   today,
   staff,
   staffUnavailable,
+  isGroup = false,
+  maxParticipants,
 }: {
   serviceSlug: string;
   days: Day[];
@@ -28,6 +30,8 @@ export function BookingFlow({
   today: string;
   staff: StaffOption[];
   staffUnavailable: Record<string, string[]>;
+  isGroup?: boolean;
+  maxParticipants?: number | null;
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
@@ -76,8 +80,8 @@ export function BookingFlow({
 
   return (
     <div className="mt-8 space-y-10">
-      {/* STAFF PICKER — only show when >1 staff */}
-      {staff.length > 1 && (
+      {/* STAFF PICKER — only for individual services with >1 staff */}
+      {!isGroup && staff.length > 1 && (
         <div>
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
             Pracownik
@@ -165,7 +169,7 @@ export function BookingFlow({
               : "Brak terminów w tym przedziale — spróbuj inny filtr."}
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          <div className={`grid gap-2 ${isGroup ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" : "grid-cols-3 sm:grid-cols-4 md:grid-cols-6"}`}>
             {visibleSlots.map((s) => {
               const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;
               const isTaken = s.available === false;
@@ -175,16 +179,31 @@ export function BookingFlow({
                   type="button"
                   disabled={isTaken}
                   onClick={() => !isTaken && setSelectedSlot(s)}
-                  title={isTaken ? "Termin zajęty" : undefined}
-                  className={`rounded-md border py-2 font-mono text-sm transition-colors ${
+                  title={isTaken ? (isGroup ? "Brak wolnych miejsc" : "Termin zajęty") : undefined}
+                  className={`rounded-md border transition-colors ${isGroup ? "px-3 py-2.5" : "py-2"} ${
                     isTaken
-                      ? "cursor-not-allowed border-zinc-800/40 bg-zinc-900/20 text-zinc-600 line-through"
+                      ? "cursor-not-allowed border-zinc-800/40 bg-zinc-900/20 text-zinc-600"
                       : isSelected
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950"
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
                   }`}
                 >
-                  {s.label}
+                  <span className={`block font-mono text-sm ${isTaken && isGroup ? "line-through" : ""}`}>{s.label}</span>
+                  {isGroup && s.maxParticipants != null && (
+                    <span className={`mt-0.5 block text-xs ${
+                      isTaken
+                        ? "text-zinc-700"
+                        : isSelected
+                        ? "text-zinc-800"
+                        : s.spotsLeft != null && s.spotsLeft <= 3
+                        ? "text-amber-400"
+                        : "text-zinc-500"
+                    }`}>
+                      {isTaken
+                        ? "brak miejsc"
+                        : `${s.spotsLeft}/${s.maxParticipants} miejsc`}
+                    </span>
+                  )}
                 </button>
               );
             })}

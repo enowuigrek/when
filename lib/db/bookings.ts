@@ -128,6 +128,24 @@ export async function getBookingsBetween(
   return (data ?? []) as BookingWithService[];
 }
 
+/** Count confirmed bookings for a group service in a given time window (capacity check). */
+export async function getGroupBookingCount(
+  serviceId: string,
+  startsAtIso: string,
+  endsAtIso: string
+): Promise<number> {
+  const tenantId = await getAdminTenantId();
+  const { count } = await createAdminClient()
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("service_id", serviceId)
+    .eq("status", "confirmed")
+    .lt("starts_at", endsAtIso)
+    .gt("ends_at", startsAtIso);
+  return count ?? 0;
+}
+
 export async function getBusyStaffIds(
   startIso: string,
   endIso: string

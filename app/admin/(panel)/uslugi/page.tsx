@@ -59,8 +59,13 @@ function ServiceRow({ service: s }: { service: Service }) {
   return (
     <div className={`flex items-center gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 ${!s.active ? "opacity-50" : ""}`}>
       <div className="flex-1">
-        <div className="flex items-baseline gap-3">
+        <div className="flex flex-wrap items-baseline gap-3">
           <span className="font-medium text-zinc-100">{s.name}</span>
+          {s.is_group && (
+            <span className="rounded border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
+              grupowe · {s.max_participants} os.
+            </span>
+          )}
           <span className="font-mono text-sm text-[var(--color-accent)]">{s.price_pln} zł</span>
           <span className="font-mono text-xs text-zinc-500">{s.duration_min} min</span>
         </div>

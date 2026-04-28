@@ -55,7 +55,7 @@ export default async function BookingServicePage({ params }: { params: Params })
   const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
   const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
-  const staffCount = Math.max(1, activeStaff.length);
+  const staffCount = service.is_group ? 1 : Math.max(1, activeStaff.length);
   const initialSlots = computeAvailableSlots(
     initialDate,
     service.duration_min,
@@ -63,7 +63,8 @@ export default async function BookingServicePage({ params }: { params: Params })
     existing,
     settings.slot_granularity_min,
     staffCount,
-    true
+    true,
+    service.is_group && service.max_participants ? service.max_participants : undefined
   );
 
   return (
@@ -114,6 +115,8 @@ export default async function BookingServicePage({ params }: { params: Params })
             today={today}
             staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
             staffUnavailable={staffUnavailable}
+            isGroup={service.is_group}
+            maxParticipants={service.max_participants}
           />
         </section>
       </main>

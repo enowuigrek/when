@@ -107,17 +107,23 @@ export type Slot = {
   endsAtIso: string;
   label: string; // "HH:MM" in Warsaw
   available?: boolean; // undefined / true = bookable; false = taken
+  /** Group classes only: how many spots are still free */
+  spotsLeft?: number;
+  /** Group classes only: max capacity of this slot */
+  maxParticipants?: number;
 };
 
 /**
  * Compute available slots for a given local date.
  *
- * @param dateStr        YYYY-MM-DD (Warsaw-local)
- * @param durationMin    Service duration
- * @param hours          business_hours rows
- * @param existing       confirmed bookings overlapping the day, [start, end) UTC ISO
- * @param granularityMin slot step in minutes
- * @param staffCount     number of staff that can serve concurrently (default 1)
+ * @param dateStr         YYYY-MM-DD (Warsaw-local)
+ * @param durationMin     Service duration
+ * @param hours           business_hours rows
+ * @param existing        confirmed bookings overlapping the day, [start, end) UTC ISO
+ * @param granularityMin  slot step in minutes
+ * @param staffCount      number of staff that can serve concurrently (default 1); ignored for group
+ * @param includeUnavailable  include full/taken slots in result (shown as strikethrough)
+ * @param maxParticipants if set, treat as group class: slot available when overlapCount < maxParticipants
  */
 export function computeAvailableSlots(
   dateStr: string,
@@ -126,7 +132,8 @@ export function computeAvailableSlots(
   existing: { startsAtIso: string; endsAtIso: string }[],
   granularityMin = 15,
   staffCount = 1,
-  includeUnavailable = false
+  includeUnavailable = false,
+  maxParticipants?: number
 ): Slot[] {
   const dow = warsawDayOfWeek(dateStr);
   const todayHours = hours.find((h) => h.day_of_week === dow);
@@ -156,7 +163,10 @@ export function computeAvailableSlots(
     if (t < now) continue; // skip past slots
     const end = t + durMs;
     const overlapCount = existingRanges.filter((r) => r.s < end && t < r.e).length;
-    const available = overlapCount < staffCount;
+    const isGroup = maxParticipants != null;
+    const available = isGroup
+      ? overlapCount < maxParticipants!
+      : overlapCount < staffCount;
     if (!available && !includeUnavailable) continue;
 
     const dtf = new Intl.DateTimeFormat("pl-PL", {
@@ -165,12 +175,17 @@ export function computeAvailableSlots(
       minute: "2-digit",
       hour12: false,
     });
-    slots.push({
+    const slot: Slot = {
       startsAtIso: new Date(t).toISOString(),
       endsAtIso: new Date(end).toISOString(),
       label: dtf.format(new Date(t)),
       available,
-    });
+    };
+    if (isGroup) {
+      slot.maxParticipants = maxParticipants!;
+      slot.spotsLeft = Math.max(0, maxParticipants! - overlapCount);
+    }
+    slots.push(slot);
   }
 
   return slots;

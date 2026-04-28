@@ -25,19 +25,35 @@ const serviceSchema = z.object({
     .min(0, "Cena nie może być ujemna")
     .max(9999),
   sort_order: z.coerce.number().int().min(0).default(0),
-});
+  is_group: z.string().optional().transform((v) => v === "true"),
+  max_participants: z.coerce
+    .number()
+    .int()
+    .min(1, "Minimum 1 osoba")
+    .max(500)
+    .optional()
+    .nullable(),
+}).refine(
+  (d) => !d.is_group || (d.max_participants != null && d.max_participants >= 1),
+  { message: "Podaj limit miejsc dla zajęć grupowych.", path: ["max_participants"] }
+);
 
 export type ServiceFormState =
   | { status: "idle" }
   | { status: "error"; message: string; fieldErrors?: Record<string, string> };
 
 function parseForm(formData: FormData) {
+  const isGroup = formData.get("is_group")?.toString() === "true";
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     description: formData.get("description")?.toString() ?? "",
     duration_min: formData.get("duration_min")?.toString() ?? "",
     price_pln: formData.get("price_pln")?.toString() ?? "",
     sort_order: formData.get("sort_order")?.toString() ?? "0",
+    is_group: formData.get("is_group")?.toString() ?? "false",
+    max_participants: isGroup
+      ? (formData.get("max_participants")?.toString() ?? "")
+      : null,
   };
   return serviceSchema.safeParse(raw);
 }
@@ -76,6 +92,8 @@ export async function createServiceAction(
     price_pln: parsed.data.price_pln,
     sort_order: parsed.data.sort_order,
     active: true,
+    is_group: parsed.data.is_group,
+    max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
   });
 
   if (error) {
@@ -117,6 +135,8 @@ export async function updateServiceAction(
       duration_min: parsed.data.duration_min,
       price_pln: parsed.data.price_pln,
       sort_order: parsed.data.sort_order,
+      is_group: parsed.data.is_group,
+      max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
     })
     .eq("tenant_id", tenantId)
     .eq("id", id);

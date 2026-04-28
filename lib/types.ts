@@ -7,6 +7,8 @@ export type Service = {
   price_pln: number;
   sort_order: number;
   active: boolean;
+  is_group: boolean;
+  max_participants: number | null;
 };
 
 export type BusinessHours = {
