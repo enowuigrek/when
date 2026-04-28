@@ -73,12 +73,49 @@
 [data-theme="light"] .text-red-300 { color: #991b1b !important; }
 [data-theme="light"] .border-red-700\/50 { border-color: rgba(185,28,28,0.4) !important; }
 
+/* ── Dark theme explicit overrides ────────────────────────
+   These mirror the light overrides so a nested [data-theme="dark"]
+   wrapper (e.g. marketing page rendered while cookie tenant is light)
+   restores dark surface colors. Defined AFTER light rules so they win
+   on equal specificity.                                              */
+[data-theme="dark"] { --accent: #d4a26a; --accent-hover: #c4915a; color-scheme: dark; }
+[data-theme="dark"] .bg-zinc-950 { background-color: #09090b !important; }
+[data-theme="dark"] .bg-zinc-950\/80 { background-color: rgba(9,9,11,0.8) !important; }
+[data-theme="dark"] .bg-zinc-950\/95 { background-color: rgba(9,9,11,0.95) !important; }
+[data-theme="dark"] .bg-zinc-900\/40 { background-color: rgba(24,24,27,0.4) !important; }
+[data-theme="dark"] .bg-zinc-900\/20 { background-color: rgba(24,24,27,0.2) !important; }
+[data-theme="dark"] .bg-zinc-900\/60 { background-color: rgba(24,24,27,0.6) !important; }
+[data-theme="dark"] .bg-zinc-900\/30 { background-color: rgba(24,24,27,0.3) !important; }
+[data-theme="dark"] .bg-zinc-900\/70 { background-color: rgba(24,24,27,0.7) !important; }
+[data-theme="dark"] .bg-zinc-900 { background-color: #18181b !important; }
+[data-theme="dark"] .bg-zinc-800\/60 { background-color: rgba(39,39,42,0.6) !important; }
+[data-theme="dark"] .bg-zinc-800\/30 { background-color: rgba(39,39,42,0.3) !important; }
+[data-theme="dark"] .bg-zinc-800 { background-color: #27272a !important; }
+[data-theme="dark"] .border-zinc-800\/60 { border-color: rgba(39,39,42,0.6) !important; }
+[data-theme="dark"] .border-zinc-800 { border-color: #27272a !important; }
+[data-theme="dark"] .border-zinc-700 { border-color: #3f3f46 !important; }
+[data-theme="dark"] .border-zinc-700\/50 { border-color: rgba(63,63,70,0.5) !important; }
+[data-theme="dark"] .text-zinc-100 { color: #f4f4f5 !important; }
+[data-theme="dark"] .text-zinc-200 { color: #e4e4e7 !important; }
+[data-theme="dark"] .text-zinc-300 { color: #d4d4d8 !important; }
+[data-theme="dark"] .text-zinc-400 { color: #a1a1aa !important; }
+[data-theme="dark"] .text-zinc-500 { color: #71717a !important; }
+[data-theme="dark"] .text-zinc-600 { color: #52525b !important; }
+[data-theme="dark"] .text-zinc-700 { color: #3f3f46 !important; }
+[data-theme="dark"] header { border-color: rgba(39,39,42,0.6) !important; }
+[data-theme="dark"] nav a { color: inherit !important; }
+[data-theme="dark"] .bg-zinc-700 { background-color: #3f3f46 !important; }
+[data-theme="dark"] .bg-zinc-700\/50 { background-color: rgba(63,63,70,0.5) !important; }
+
 /* ── Logo adaptive (white on dark, black on light) ────────────── */
 .logo-adaptive {
   filter: brightness(0) invert(1);
 }
 [data-theme="light"] .logo-adaptive {
   filter: brightness(0);
+}
+[data-theme="dark"] .logo-adaptive {
+  filter: brightness(0) invert(1);
 }
 
 /* ── Calendar available day cell ──────────────────────────────── */
