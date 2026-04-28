@@ -2,47 +2,50 @@ import Link from "next/link";
 
 export const metadata = {
   title: "WHEN — system rezerwacji online",
-  description: "Rezerwacje, grafiki pracowników, ceny per grupa. Postaw demo w 30 sekund.",
+  description: "Zobacz swój salon w działającym demo — bez rejestracji. Postaw demo w 30 sekund.",
 };
 
 const useCases = [
-  { title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, każdy z własnym grafikiem i cennikiem." },
-  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny per kosmetolog (junior/senior/master)." },
-  { title: "Przychodnia / fizjo", body: "Wizyty u lekarzy lub fizjoterapeutów. Czas trwania per usługa, urlopy, dni wolne." },
-  { title: "Weterynarz / groomer", body: "Wizyty z różnym czasem trwania, notatki o pacjencie, historia klienta." },
+  { title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, własne grafiki i cenniki." },
+  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny zależnie od poziomu specjalisty." },
+  { title: "Przychodnia / fizjo", body: "Wizyty lekarzy i fizjoterapeutów. Czas trwania usług, urlopy, dni wolne." },
+  { title: "Weterynarz / groomer", body: "Wizyty o różnym czasie trwania, historia klienta i notatki." },
+  { title: "I wiele innych", body: "Każdy biznes, w którym klient rezerwuje konkretny termin — od studia jogi po konsultacje i usługi specjalistyczne." },
 ];
 
 const features = [
-  "Publiczna strona rezerwacji z Twoim brandingiem",
-  "Grafik dzień/tydzień/miesiąc z podglądem wszystkich pracowników",
-  "Grupy pracowników z osobnymi cenami (junior, senior, premium)",
-  "Powiadomienia email do klienta + link do anulowania/przeniesienia",
+  "Publiczna strona rezerwacji dopasowana do Twojej marki",
+  "Pełny podgląd grafiku — dzień, tydzień lub miesiąc",
+  "Widok wszystkich pracowników w jednym miejscu",
+  "Różne ceny dla grup pracowników i poziomów usług",
+  "Automatyczne powiadomienia email dla klientów",
+  "Link do anulowania lub przeniesienia wizyty",
   "Baza klientów z historią wizyt i notatkami",
-  "Konfigurowalne godziny otwarcia, urlopy, dni wolne",
-  "Widget embed — wklej na swoją stronę jedną linijką HTML",
-  "Cron cleanup — demo tenants kasowane automatycznie po 24h",
+  "Konfigurowalne godziny otwarcia, urlopy i dni wolne",
+  "Widget rezerwacji do osadzenia na stronie",
+  "Proste wdrożenie — wystarczy jedna linijka HTML",
 ];
 
 const ownerSteps = [
   {
     n: "01",
     title: "Kliknij demo poniżej",
-    body: "Wybierasz branżę — barber albo kosmetyka. Wlatujesz prosto do panelu managera z gotowymi danymi. Zero formularzy, zero karty.",
+    body: "Wybierasz branżę — barber, kosmetyka albo studio. Wchodzisz prosto do panelu managera z gotowymi danymi. Bez formularzy, bez podpinania karty.",
   },
   {
     n: "02",
-    title: "Ogarnij panel w 5 minut",
-    body: "Sprawdź harmonogram, edytuj usługi i ceny, zmień kolory. Dane demo są realistyczne — wyglądają jak Twój prawdziwy salon.",
+    title: "Poznaj panel w 5 minut",
+    body: "Sprawdź harmonogram, edytuj usługi i ceny, zmień kolory. Dane demo są realistyczne — wyglądają jak prawdziwy salon.",
   },
   {
     n: "03",
     title: "Wklej widget na swoją stronę",
-    body: "W Ustawienia → Embed widget masz gotowy kod. Jedna linijka HTML i formularz rezerwacji pojawia się na Twojej stronie WordPress / Wix / własne HTML.",
+    body: "W Ustawienia → Embed widget masz gotowy kod. Jedna linijka HTML i formularz rezerwacji pojawia się na Twojej stronie. Działa z WordPress, Wix lub własnym HTML.",
   },
   {
     n: "04",
     title: "Zarządzaj rezerwacjami",
-    body: "Nowe rezerwacje lądują w harmonogramie i w bazie klientów. Możesz przenosić, anulować, dodawać notatki, oznaczać no-show.",
+    body: "Nowe rezerwacje lądują w harmonogramie i bazie klientów. Możesz dodawać wizyty ręcznie — gdy klient zadzwoni lub przyjdzie osobiście, system i tak wyśle potwierdzenie.",
   },
 ];
 
@@ -50,22 +53,22 @@ const clientSteps = [
   {
     n: "01",
     title: "Wchodzi na Twoją stronę",
-    body: "Widzi listę usług z cenami i czasem trwania. Może wybrać konkretnego pracownika albo dowolnego.",
+    body: "Widok usług z cenami i czasem trwania. Klient może wybrać konkretnego pracownika albo dowolnego.",
   },
   {
     n: "02",
     title: "Wybiera datę i godzinę",
-    body: "Kalendarz pokazuje tylko dostępne dni. Sloty aktualizują się na bieżąco — zajęte są wyszarzone.",
+    body: "Kalendarz pokazuje tylko dostępne dni. Sloty aktualizują się na bieżąco.",
   },
   {
     n: "03",
     title: "Podaje dane i potwierdza",
-    body: "Imię, telefon, opcjonalnie email i uwagi. Bez rejestracji, bez logowania.",
+    body: "Imię, telefon, opcjonalnie email i uwagi. Bez rejestracji.",
   },
   {
     n: "04",
     title: "Dostaje potwierdzenie emailem",
-    body: "Link do przeniesienia terminu i link do anulowania — klient ogarnie sam, bez dzwonienia do Ciebie.",
+    body: "Link do przeniesienia terminu i anulowania wizyty. Bez konieczności dzwonienia.",
   },
 ];
 
@@ -87,6 +90,22 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DemoCTAs({ variant = "hero" }: { variant?: "hero" | "compact" }) {
+  const baseLink = "rounded-lg px-6 py-3 text-base font-medium transition-colors";
+  const primary = `${baseLink} bg-[var(--color-accent)] text-zinc-950 hover:opacity-90`;
+  const secondary = `${baseLink} border border-zinc-700 bg-zinc-900 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800`;
+  const labels = variant === "hero"
+    ? { barber: "Demo — Barber Shop", kosmetyka: "Demo — Gabinet Kosmetyczny", joga: "Demo — Studio Jogi" }
+    : { barber: "Demo — Barber", kosmetyka: "Demo — Gabinet", joga: "Demo — Studio Jogi" };
+  return (
+    <div className="flex flex-wrap gap-3">
+      <a href="/api/demo/start?wariant=barber" className={primary}>{labels.barber}</a>
+      <a href="/api/demo/start?wariant=kosmetyka" className={secondary}>{labels.kosmetyka}</a>
+      <a href="/api/demo/start?wariant=joga" className={secondary}>{labels.joga}</a>
     </div>
   );
 }
@@ -123,33 +142,16 @@ export default function StartPage() {
         <div className="relative mx-auto max-w-6xl px-6 py-24 sm:py-32">
           <p className="mb-4 text-sm uppercase tracking-widest text-[var(--color-accent)]">System rezerwacji online</p>
           <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight sm:text-6xl">
-            Rezerwacje, grafiki, ceny.<br />
-            <span className="text-zinc-400">Zero papierologii.</span>
+            Zobacz swój salon w działającym demo —<br />
+            <span className="text-zinc-400">bez rejestracji.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-zinc-400">
             Postaw demo w 30 sekund. Sprawdź jak wygląda panel managera i strona, którą zobaczą Twoi klienci.
-            Demo jest pełnoprawne — z pracownikami, usługami, przykładowymi rezerwacjami.
+            Demo jest pełnoprawne — z pracownikami, usługami i przykładowymi rezerwacjami.
           </p>
 
-          <div id="demo" className="mt-10 flex flex-wrap gap-3">
-            <a
-              href="/api/demo/start?wariant=barber"
-              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
-            >
-              Demo — Barber Shop
-            </a>
-            <a
-              href="/api/demo/start?wariant=kosmetyka"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
-            >
-              Demo — Gabinet Kosmetyczny
-            </a>
-            <a
-              href="/api/demo/start?wariant=joga"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
-            >
-              Demo — Studio Jogi
-            </a>
+          <div id="demo" className="mt-10">
+            <DemoCTAs variant="hero" />
           </div>
           <p className="mt-4 text-xs text-zinc-600">
             Bez rejestracji, bez karty. Demo znika automatycznie po 24h.
@@ -168,6 +170,11 @@ export default function StartPage() {
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">Jak to działa?</h2>
           <p className="mt-2 text-zinc-500">Od kliknięcia demo do działającego formularza na Twojej stronie — bez IT.</p>
           <Steps steps={ownerSteps} />
+
+          <div className="mt-10">
+            <DemoCTAs variant="compact" />
+            <p className="mt-3 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
+          </div>
         </div>
       </section>
 
@@ -189,9 +196,11 @@ export default function StartPage() {
       <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
-          <p className="mt-2 text-zinc-500">Wszędzie tam, gdzie ludzie umawiają się na konkretną godzinę.</p>
+          <p className="mt-2 text-zinc-500">
+            Wszędzie tam, gdzie liczy się kalendarz, dostępność i szybkie umawianie wizyt.
+          </p>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {useCases.map((u) => (
               <div key={u.title} className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
                 <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
@@ -221,48 +230,41 @@ export default function StartPage() {
       </section>
 
       {/* Final CTA */}
-      <section>
+      <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <h2 className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a
-              href="/api/demo/start?wariant=barber"
-              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-colors hover:opacity-90"
-            >
-              Demo — Barber
-            </a>
-            <a
-              href="/api/demo/start?wariant=kosmetyka"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
-            >
-              Demo — Gabinet
-            </a>
-            <a
-              href="/api/demo/start?wariant=joga"
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 text-base font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
-            >
-              Demo — Studio Jogi
-            </a>
+          <div className="mt-8 flex justify-center">
+            <DemoCTAs variant="compact" />
           </div>
           <p className="mt-4 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
         </div>
       </section>
 
-      {/* Contact CTA */}
-      <section className="border-t border-zinc-800/60 bg-zinc-900/20">
-        <div className="mx-auto max-w-6xl px-6 py-16 text-center">
+      {/* Wdrożenie — expanded */}
+      <section className="bg-zinc-900/20">
+        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight">
             Chcesz to uruchomić w swojej firmie?
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-zinc-400">
-            Skonfigurujemy system razem — usługi, pracownicy, godziny, kolory, widget na Twoją stronę.
-            Napisz, żeby ustalić szczegóły.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
+            <p>
+              <span className="text-zinc-200">System można wdrożyć na różne sposoby</span> — jako widget
+              na istniejącej stronie, samodzielny panel do zarządzania rezerwacjami albo pełną stronę rezerwacji.
+            </p>
+            <p>
+              Jeśli masz już stronę, dopasujemy wygląd i sposób działania do Twojej marki.
+              Jeśli jej nie masz — możemy przygotować wszystko od zera.
+            </p>
+            <p>
+              Wdrożenie odbywa się indywidualnie, zależnie od tego, czego potrzebuje Twoja firma.
+              Nie zostajesz z konfiguracją sam — pomagamy uruchomić system od początku do końca.
+            </p>
+          </div>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
             <a
-              href="mailto:enowuigrek@gmail.com?subject=when%20—%20wdrożenie"
+              href="mailto:kontakt@lukasznowak.dev?subject=when%20—%20wdrożenie"
               className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:opacity-90"
             >
               Napisz do mnie →
