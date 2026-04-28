@@ -54,6 +54,17 @@ export async function setDemoCookie(tenantId: string) {
   });
 }
 
+/** Returns the slug of the current admin tenant (used for widget snippet). */
+export async function getAdminTenantSlug(): Promise<string> {
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("slug")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return (data?.slug as string | undefined) ?? "main";
+}
+
 export async function clearDemoCookie() {
   const jar = await cookies();
   jar.delete(DEMO_COOKIE);

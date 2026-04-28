@@ -1,8 +1,10 @@
 import { getSettings, getAllTimeFilters } from "@/lib/db/settings";
 import { getBusinessHours } from "@/lib/db/services";
+import { getAdminTenantSlug } from "@/lib/tenant";
 import { SettingsForm } from "./settings-form";
 import { FiltersSection } from "./filters-section";
 import { HoursSection } from "./hours-section";
+import { EmbedSnippet } from "./embed-snippet";
 
 export const metadata = {
   title: "Ustawienia",
@@ -10,10 +12,11 @@ export const metadata = {
 };
 
 export default async function UstawieniaPage() {
-  const [settings, filters, hours] = await Promise.all([
+  const [settings, filters, hours, tenantSlug] = await Promise.all([
     getSettings(),
     getAllTimeFilters(),
     getBusinessHours(),
+    getAdminTenantSlug(),
   ]);
 
   return (
@@ -47,6 +50,17 @@ export default async function UstawieniaPage() {
 
       <div className="mt-6">
         <HoursSection hours={hours} />
+      </div>
+
+      <hr className="my-10 border-zinc-800/60" />
+
+      <h2 className="text-lg font-semibold tracking-tight">Embed widget</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Wklej ten kod na swojej stronie (WordPress, Wix, własne HTML), żeby formularz rezerwacji pojawił się bezpośrednio u Ciebie.
+      </p>
+
+      <div className="mt-6">
+        <EmbedSnippet tenantSlug={tenantSlug} />
       </div>
     </div>
   );
