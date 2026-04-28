@@ -182,7 +182,7 @@ export default function StartPage() {
       <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
-          <p className="mt-2 text-zinc-500">Wszędzie tam, gdzie ludzie umawiają się na konkretną godzinę u konkretnej osoby.</p>
+          <p className="mt-2 text-zinc-500">Wszędzie tam, gdzie ludzie umawiają się na konkretną godzinę.</p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {useCases.map((u) => (
