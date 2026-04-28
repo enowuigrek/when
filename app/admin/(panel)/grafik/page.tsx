@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getActiveStaff } from "@/lib/db/staff";
-import { getBusinessHours } from "@/lib/db/services";
+import { getBusinessHours, getServices } from "@/lib/db/services";
+import type { ServiceOption } from "@/components/booking-management-modal";
 import { getAllStaffSchedules, getTimeOffInRange } from "@/lib/db/staff-schedule";
 import { warsawToday, addDays, mondayOfWeek } from "@/lib/slots";
 import { dayLabels } from "@/lib/business";
@@ -26,12 +27,16 @@ export default async function GrafikPage({
   const weekStart = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? mondayOfWeek(weekParam) : todayMonday;
   const weekEnd = addDays(weekStart, 6);
 
-  const [staff, hours, allSchedules, timeOffWeek] = await Promise.all([
+  const [staff, hours, allSchedules, timeOffWeek, allServicesRaw] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getAllStaffSchedules(),
     getTimeOffInRange(weekStart, weekEnd),
+    getServices(),
   ]);
+  const allServices: ServiceOption[] = allServicesRaw.map((s) => ({
+    id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln,
+  }));
 
   // Per-staff time-off list for sidebar — runs after staff resolves (needs staffId)
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? staff[0] ?? null;
@@ -116,6 +121,8 @@ export default async function GrafikPage({
                           timeOff={timeOffOn(s.id, date)}
                           businessOpen={biz.open}
                           businessClose={biz.close}
+                          allStaff={staff}
+                          allServices={allServices}
                         />
                       </td>
                     ))}

@@ -17,13 +17,21 @@ export default async function PracownicyPage() {
             Każdy pracownik może obsługiwać klientów równolegle.
           </p>
         </div>
-        <Link
-          href="/admin/pracownicy/nowy"
-          className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
-        >
-          <span className="hidden sm:inline">+ Dodaj</span>
-          <span className="sm:hidden">+</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/pracownicy/grupy"
+            className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
+          >
+            Grupy
+          </Link>
+          <Link
+            href="/admin/pracownicy/nowy"
+            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
+          >
+            <span className="hidden sm:inline">+ Dodaj</span>
+            <span className="sm:hidden">+</span>
+          </Link>
+        </div>
       </div>
 
       {staff.length === 0 ? (

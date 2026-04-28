@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { getAdminTenantId } from "@/lib/tenant";
 
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
@@ -64,8 +65,10 @@ export async function createServiceAction(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { error } = await supabase.from("services").insert({
+    tenant_id: tenantId,
     slug,
     name: parsed.data.name,
     description: parsed.data.description || null,
@@ -104,6 +107,7 @@ export async function updateServiceAction(
     return { status: "error", message: "Sprawdź formularz.", fieldErrors };
   }
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("services")
@@ -114,6 +118,7 @@ export async function updateServiceAction(
       price_pln: parsed.data.price_pln,
       sort_order: parsed.data.sort_order,
     })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) return { status: "error", message: error.message };
@@ -124,14 +129,50 @@ export async function updateServiceAction(
   redirect("/admin/uslugi");
 }
 
+export async function setServicePriceOverrideAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const serviceId = formData.get("service_id")?.toString();
+  const groupId = formData.get("group_id")?.toString();
+  const priceRaw = formData.get("price_pln")?.toString();
+  const durationRaw = formData.get("duration_min")?.toString().trim();
+  if (!serviceId || !groupId) return;
+
+  const tenantId = await getAdminTenantId();
+  const supabase = createAdminClient();
+
+  // Verify service belongs to current tenant before mutating overrides
+  const { data: svc } = await supabase
+    .from("services")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", serviceId)
+    .maybeSingle();
+  if (!svc) return;
+
+  // Empty price → delete override
+  if (!priceRaw || priceRaw.trim() === "") {
+    await supabase.from("service_group_prices").delete().eq("service_id", serviceId).eq("group_id", groupId);
+  } else {
+    const price = parseInt(priceRaw, 10);
+    if (Number.isNaN(price) || price < 0) return;
+    const duration = durationRaw && durationRaw !== "" ? parseInt(durationRaw, 10) : null;
+    await supabase
+      .from("service_group_prices")
+      .upsert({ service_id: serviceId, group_id: groupId, price_pln: price, duration_min: duration }, { onConflict: "service_id,group_id" });
+  }
+
+  revalidatePath(`/admin/uslugi/${serviceId}`);
+}
+
 export async function toggleServiceActiveAction(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id")?.toString();
   const active = formData.get("active") === "true";
   if (!id) return;
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
-  await supabase.from("services").update({ active: !active }).eq("id", id);
+  await supabase.from("services").update({ active: !active }).eq("tenant_id", tenantId).eq("id", id);
 
   revalidatePath("/admin/uslugi");
   revalidatePath("/");

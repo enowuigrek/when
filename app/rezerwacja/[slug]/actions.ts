@@ -14,6 +14,7 @@ import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
+import { resolveEffectivePricing } from "@/lib/db/staff-groups";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
@@ -125,18 +126,23 @@ export async function submitBooking(
   }
 
   const startsAt = new Date(parsed.data.startsAtIso);
-  const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
   // Auto-assign staff when client selected "Dowolny"
   let resolvedStaffId: string | null = parsed.data.staffId ?? null;
   if (!resolvedStaffId) {
+    const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
     const [busyIds, allStaff] = await Promise.all([
-      getBusyStaffIds(startsAt.toISOString(), endsAt.toISOString()),
+      getBusyStaffIds(startsAt.toISOString(), fallbackEnd.toISOString()),
       getActiveStaff(),
     ]);
     const free = allStaff.filter((s) => !busyIds.includes(s.id));
     resolvedStaffId = free[0]?.id ?? null;
   }
+
+  const pricing = await resolveEffectivePricing(service.id, resolvedStaffId);
+  const effectiveDuration = pricing?.duration_min ?? service.duration_min;
+  const effectivePrice = pricing?.price_pln ?? service.price_pln;
+  const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
   const result = await createBooking({
     serviceId: service.id,
@@ -147,6 +153,8 @@ export async function submitBooking(
     endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
     staffId: resolvedStaffId,
+    pricePlnSnapshot: effectivePrice,
+    durationMinSnapshot: effectiveDuration,
   });
 
   if (!result.ok) {
@@ -174,7 +182,7 @@ export async function submitBooking(
       serviceName: service.name,
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
-      pricePln: service.price_pln,
+      pricePln: effectivePrice,
       notes: parsed.data.notes ?? null,
       business: {
         name: s.business_name,

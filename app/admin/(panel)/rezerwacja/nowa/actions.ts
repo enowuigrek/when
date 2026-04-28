@@ -12,6 +12,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
 import { recordBookingEvent } from "@/lib/db/booking-events";
+import { resolveEffectivePricing } from "@/lib/db/staff-groups";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 
@@ -122,17 +123,22 @@ export async function createAdminBookingAction(
   if (!service) return { status: "error", message: "Usługa nie istnieje." };
 
   const startsAt = new Date(parsed.data.startsAtIso);
-  const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
   let resolvedStaffId: string | null = parsed.data.staffId ?? null;
   if (!resolvedStaffId) {
+    const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
     const [busyIds, allStaff] = await Promise.all([
-      getBusyStaffIds(startsAt.toISOString(), endsAt.toISOString()),
+      getBusyStaffIds(startsAt.toISOString(), fallbackEnd.toISOString()),
       getActiveStaff(),
     ]);
     const free = allStaff.filter((s) => !busyIds.includes(s.id));
     resolvedStaffId = free[0]?.id ?? null;
   }
+
+  const pricing = await resolveEffectivePricing(service.id, resolvedStaffId);
+  const effectiveDuration = pricing?.duration_min ?? service.duration_min;
+  const effectivePrice = pricing?.price_pln ?? service.price_pln;
+  const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
   const result = await createBooking({
     serviceId: service.id,
@@ -143,6 +149,8 @@ export async function createAdminBookingAction(
     endsAtIso: endsAt.toISOString(),
     notes: parsed.data.notes ?? null,
     staffId: resolvedStaffId,
+    pricePlnSnapshot: effectivePrice,
+    durationMinSnapshot: effectiveDuration,
   });
 
   if (!result.ok) return { status: "error", message: result.message };

@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
-import { updateDayScheduleAction, addTimeOffFromGrafikAction, deleteTimeOffFromGrafikAction } from "./grafik-actions";
+import { useState, useTransition, useRef, useEffect, useActionState } from "react";
+import { updateDayScheduleAction, addTimeOffFromGrafikAction, deleteTimeOffFromGrafikAction, type AddTimeOffState } from "./grafik-actions";
 import type { StaffScheduleRow, StaffTimeOff } from "@/lib/db/staff-schedule";
+import { BookingManagementButton, type ServiceOption } from "@/components/booking-management-modal";
+import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+
+type Staff = { id: string; name: string; color: string };
 
 type Props = {
   staffId: string;
@@ -13,6 +17,8 @@ type Props = {
   timeOff: StaffTimeOff | undefined; // any active time-off on this date
   businessOpen: string | null; // "HH:MM" fallback
   businessClose: string | null;
+  allStaff: Staff[];
+  allServices: ServiceOption[];
 };
 
 function fmt(t: string | null | undefined) {
@@ -29,13 +35,25 @@ const TYPE_COLORS: Record<string, string> = {
 
 type Tab = "schedule" | "timeoff";
 
-export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRow, timeOff, businessOpen, businessClose }: Props) {
+export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRow, timeOff, businessOpen, businessClose, allStaff, allServices }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("schedule");
   const [pending, start] = useTransition();
   const [popupStyle, setPopupStyle] = useState<{ top: number; left: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const [timeOffState, timeOffAction, timeOffPending] = useActionState<AddTimeOffState, FormData>(
+    addTimeOffFromGrafikAction,
+    { status: "idle" }
+  );
+  const [showConflicts, setShowConflicts] = useState(false);
+
+  useEffect(() => {
+    if (timeOffState.status === "ok") {
+      setOpen(false);
+      if (timeOffState.conflicts.length > 0) setShowConflicts(true);
+    }
+  }, [timeOffState]);
 
   useEffect(() => {
     if (!open) return;
@@ -169,7 +187,7 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
 
           {tab === "timeoff" && (
             <form
-              action={(fd) => start(async () => { await addTimeOffFromGrafikAction(fd); setOpen(false); })}
+              action={timeOffAction}
               className="space-y-3"
             >
               <input type="hidden" name="staffId" value={staffId} />
@@ -189,8 +207,8 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
+              <div className="space-y-2">
+                <div>
                   <label className="mb-1 block text-xs text-zinc-500">Od</label>
                   <input
                     type="date"
@@ -199,8 +217,8 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                     className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-sm text-zinc-400"
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-zinc-500">Do (opcj.)</label>
+                <div>
+                  <label className="mb-1 block text-xs text-zinc-500">Do (opcjonalnie)</label>
                   <input
                     type="date"
                     name="end_date"
@@ -224,10 +242,10 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                 <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-600 hover:text-zinc-400">Anuluj</button>
                 <button
                   type="submit"
-                  disabled={pending}
+                  disabled={timeOffPending}
                   className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
                 >
-                  {pending ? "…" : "Dodaj"}
+                  {timeOffPending ? "…" : "Dodaj"}
                 </button>
               </div>
             </form>
@@ -256,6 +274,57 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                 {pending ? "…" : "Usuń"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showConflicts && timeOffState.status === "ok" && timeOffState.conflicts.length > 0 && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowConflicts(false)}>
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-zinc-800 px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-amber-400">Konflikt z rezerwacjami</p>
+                  <h2 className="mt-0.5 text-lg font-semibold text-zinc-100">
+                    {timeOffState.conflicts.length} {timeOffState.conflicts.length === 1 ? "rezerwacja wymaga" : "rezerwacje wymagają"} przełożenia
+                  </h2>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Nieobecność została dodana. Te rezerwacje wciąż istnieją — kliknij każdą, aby przełożyć lub przepisać na innego pracownika.
+                  </p>
+                </div>
+                <button onClick={() => setShowConflicts(false)} className="shrink-0 text-2xl leading-none text-zinc-600 hover:text-zinc-300">×</button>
+              </div>
+            </div>
+            <ul className="max-h-[60vh] divide-y divide-zinc-800 overflow-y-auto">
+              {timeOffState.conflicts.map((b) => (
+                <li key={b.id}>
+                  <BookingManagementButton
+                    booking={b}
+                    allStaff={allStaff}
+                    allServices={allServices}
+                    className="flex w-full items-start gap-3 px-5 py-3 text-left transition-colors hover:bg-zinc-900/60"
+                  >
+                    <div className="shrink-0 text-right">
+                      <p className="font-mono text-sm text-zinc-300">{formatWarsawTime(b.startsAt)}</p>
+                      <p className="font-mono text-xs text-zinc-600">{formatWarsawDate(b.startsAt)}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-200">{b.customerName}</p>
+                      <p className="font-mono text-xs text-zinc-500">{b.customerPhone}</p>
+                      {b.serviceName && <p className="text-xs text-zinc-500">{b.serviceName}</p>}
+                    </div>
+                  </BookingManagementButton>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-end border-t border-zinc-800 px-5 py-3">
+              <button onClick={() => setShowConflicts(false)} className="rounded-full border border-zinc-700 px-4 py-1 text-xs text-zinc-300 hover:border-zinc-500">
+                Zamknij
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,17 +1,18 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 export type StaffScheduleRow = {
   staff_id: string;
-  day_of_week: number; // 0=Sun … 6=Sat
-  start_time: string | null; // "HH:MM:SS" or null = not working
+  day_of_week: number;
+  start_time: string | null;
   end_time: string | null;
 };
 
 export type StaffTimeOff = {
   id: string;
   staff_id: string;
-  start_date: string; // YYYY-MM-DD
+  start_date: string;
   end_date: string;
   type: "sick" | "vacation" | "personal" | "other";
   note: string | null;
@@ -19,9 +20,11 @@ export type StaffTimeOff = {
 };
 
 export async function getStaffSchedule(staffId: string): Promise<StaffScheduleRow[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("staff_schedules")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("staff_id", staffId)
     .order("day_of_week");
   return (data ?? []) as StaffScheduleRow[];
@@ -31,42 +34,49 @@ export async function upsertStaffSchedule(
   staffId: string,
   rows: { day_of_week: number; start_time: string | null; end_time: string | null }[]
 ): Promise<void> {
-  const payload = rows.map((r) => ({ ...r, staff_id: staffId }));
-  await createAdminClient().from("staff_schedules").upsert(payload, { onConflict: "staff_id,day_of_week" });
+  const tenantId = await getAdminTenantId();
+  const payload = rows.map((r) => ({ ...r, staff_id: staffId, tenant_id: tenantId }));
+  await createAdminClient().from("staff_schedules").upsert(payload, { onConflict: "tenant_id,staff_id,day_of_week" });
 }
 
 export async function getStaffTimeOff(staffId: string): Promise<StaffTimeOff[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("staff_time_off")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("staff_id", staffId)
     .order("start_date", { ascending: false });
   return (data ?? []) as StaffTimeOff[];
 }
 
 export async function addStaffTimeOff(input: Omit<StaffTimeOff, "id" | "created_at">): Promise<void> {
-  await createAdminClient().from("staff_time_off").insert(input);
+  const tenantId = await getAdminTenantId();
+  await createAdminClient().from("staff_time_off").insert({ ...input, tenant_id: tenantId });
 }
 
 export async function deleteStaffTimeOff(id: string): Promise<void> {
-  await createAdminClient().from("staff_time_off").delete().eq("id", id);
+  const tenantId = await getAdminTenantId();
+  await createAdminClient().from("staff_time_off").delete().eq("tenant_id", tenantId).eq("id", id);
 }
 
 export async function getAllStaffSchedules(): Promise<StaffScheduleRow[]> {
-  const { data } = await createAdminClient().from("staff_schedules").select("*");
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient().from("staff_schedules").select("*").eq("tenant_id", tenantId);
   return (data ?? []) as StaffScheduleRow[];
 }
 
 export async function getTimeOffInRange(startDate: string, endDate: string): Promise<StaffTimeOff[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("staff_time_off")
     .select("*")
+    .eq("tenant_id", tenantId)
     .lte("start_date", endDate)
     .gte("end_date", startDate);
   return (data ?? []) as StaffTimeOff[];
 }
 
-/** For each staff id, return Set of YYYY-MM-DD dates they're unavailable in [startDate, endDate]. */
 export async function getStaffUnavailableDatesMap(
   staffIds: string[],
   startDate: string,
@@ -74,11 +84,13 @@ export async function getStaffUnavailableDatesMap(
 ): Promise<Map<string, Set<string>>> {
   const result = new Map<string, Set<string>>(staffIds.map((id) => [id, new Set<string>()]));
   if (staffIds.length === 0) return result;
+  const tenantId = await getAdminTenantId();
+  const supabase = createAdminClient();
 
-  // 1) Time off
-  const { data: timeOff } = await createAdminClient()
+  const { data: timeOff } = await supabase
     .from("staff_time_off")
     .select("staff_id, start_date, end_date")
+    .eq("tenant_id", tenantId)
     .in("staff_id", staffIds)
     .lte("start_date", endDate)
     .gte("end_date", startDate);
@@ -98,10 +110,10 @@ export async function getStaffUnavailableDatesMap(
     }
   }
 
-  // 2) Days off via schedule (start_time/end_time NULL means explicitly not working)
-  const { data: schedules } = await createAdminClient()
+  const { data: schedules } = await supabase
     .from("staff_schedules")
     .select("staff_id, day_of_week, start_time, end_time")
+    .eq("tenant_id", tenantId)
     .in("staff_id", staffIds);
 
   const offDays = new Map<string, Set<number>>(staffIds.map((id) => [id, new Set<number>()]));
@@ -111,7 +123,6 @@ export async function getStaffUnavailableDatesMap(
     }
   }
 
-  // Walk every date in range, mark offDays per staff
   let cur = new Date(rangeStart);
   while (cur <= rangeEnd) {
     const iso = cur.toISOString().slice(0, 10);
@@ -131,36 +142,38 @@ export async function upsertOneDaySchedule(
   startTime: string | null,
   endTime: string | null
 ): Promise<void> {
+  const tenantId = await getAdminTenantId();
   await createAdminClient()
     .from("staff_schedules")
-    .upsert({ staff_id: staffId, day_of_week: dayOfWeek, start_time: startTime, end_time: endTime }, { onConflict: "staff_id,day_of_week" });
+    .upsert(
+      { tenant_id: tenantId, staff_id: staffId, day_of_week: dayOfWeek, start_time: startTime, end_time: endTime },
+      { onConflict: "tenant_id,staff_id,day_of_week" }
+    );
 }
 
-/**
- * For a set of staff IDs and a specific date, return whether each is available
- * and what their working hours are (null = use business hours).
- * Checks both staff_schedules and staff_time_off.
- */
 export async function getStaffAvailabilityMap(
   staffIds: string[],
-  dateStr: string // YYYY-MM-DD
+  dateStr: string
 ): Promise<Map<string, { available: boolean; startTime: string | null; endTime: string | null }>> {
   if (staffIds.length === 0) return new Map();
+  const tenantId = await getAdminTenantId();
 
-  // Day of week in Warsaw — use UTC date at noon to avoid DST issues
   const [y, m, d] = dateStr.split("-").map(Number);
   const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
 
+  const supabase = createAdminClient();
   const [timeOffRes, scheduleRes] = await Promise.all([
-    createAdminClient()
+    supabase
       .from("staff_time_off")
       .select("staff_id")
+      .eq("tenant_id", tenantId)
       .in("staff_id", staffIds)
       .lte("start_date", dateStr)
       .gte("end_date", dateStr),
-    createAdminClient()
+    supabase
       .from("staff_schedules")
       .select("staff_id, start_time, end_time")
+      .eq("tenant_id", tenantId)
       .in("staff_id", staffIds)
       .eq("day_of_week", dayOfWeek),
   ]);
@@ -182,19 +195,16 @@ export async function getStaffAvailabilityMap(
     }
     const sched = scheduleMap.get(id);
     if (sched) {
-      // Has an explicit schedule for this day
       if (!sched.start_time || !sched.end_time) {
-        // Explicitly not working
         result.set(id, { available: false, startTime: null, endTime: null });
       } else {
         result.set(id, {
           available: true,
-          startTime: sched.start_time.slice(0, 5), // "HH:MM"
+          startTime: sched.start_time.slice(0, 5),
           endTime: sched.end_time.slice(0, 5),
         });
       }
     } else {
-      // No schedule row → falls back to business hours
       result.set(id, { available: true, startTime: null, endTime: null });
     }
   }

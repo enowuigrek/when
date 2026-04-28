@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
@@ -62,10 +63,11 @@ export async function updateSettingsAction(
     return { status: "error", message: "Sprawdź dane w formularzu.", fieldErrors };
   }
 
+  const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient()
     .from("settings")
     .update({ ...parsed.data, updated_at: new Date().toISOString() })
-    .eq("id", 1);
+    .eq("tenant_id", tenantId);
 
   if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
 
@@ -86,6 +88,7 @@ export async function updateBusinessHoursAction(
 ): Promise<HoursFormState> {
   await requireAdmin();
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
 
   for (const dow of [0, 1, 2, 3, 4, 5, 6]) {
@@ -94,11 +97,12 @@ export async function updateBusinessHoursAction(
     const close_time = formData.get(`close_${dow}`)?.toString() || null;
 
     const { error } = await supabase.from("business_hours").upsert({
+      tenant_id: tenantId,
       day_of_week: dow,
       closed,
       open_time: closed ? null : open_time,
       close_time: closed ? null : close_time,
-    });
+    }, { onConflict: "tenant_id,day_of_week" });
 
     if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
   }
@@ -149,7 +153,8 @@ export async function createFilterAction(
     return { status: "error", message: "Godzina końcowa musi być późniejsza niż startowa.", fieldErrors: { to_hour: "Musi być późniejsza niż od" } };
   }
 
-  const { error } = await createAdminClient().from("time_filters").insert(parsed.data);
+  const tenantId = await getAdminTenantId();
+  const { error } = await createAdminClient().from("time_filters").insert({ ...parsed.data, tenant_id: tenantId });
   if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
 
   revalidatePath("/admin/ustawienia");
@@ -172,7 +177,8 @@ export async function updateFilterAction(formData: FormData) {
   const parsed = filterSchema.safeParse(raw);
   if (!parsed.success) return;
 
-  await createAdminClient().from("time_filters").update(parsed.data).eq("id", id);
+  const tenantId = await getAdminTenantId();
+  await createAdminClient().from("time_filters").update(parsed.data).eq("tenant_id", tenantId).eq("id", id);
   revalidatePath("/admin/ustawienia");
 }
 
@@ -183,7 +189,8 @@ export async function toggleFilterActiveAction(formData: FormData) {
   const active = formData.get("active") === "true";
   if (!id) throw new Error("Missing filter id");
 
-  await createAdminClient().from("time_filters").update({ active: !active }).eq("id", id);
+  const tenantId = await getAdminTenantId();
+  await createAdminClient().from("time_filters").update({ active: !active }).eq("tenant_id", tenantId).eq("id", id);
   revalidatePath("/admin/ustawienia");
 }
 
@@ -193,6 +200,7 @@ export async function deleteFilterAction(formData: FormData) {
   const id = formData.get("id")?.toString();
   if (!id) throw new Error("Missing filter id");
 
-  await createAdminClient().from("time_filters").delete().eq("id", id);
+  const tenantId = await getAdminTenantId();
+  await createAdminClient().from("time_filters").delete().eq("tenant_id", tenantId).eq("id", id);
   revalidatePath("/admin/ustawienia");
 }

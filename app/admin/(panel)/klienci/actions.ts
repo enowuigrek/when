@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
@@ -44,12 +45,14 @@ export async function createCustomerAction(
     return { status: "error", message: "Sprawdź dane.", fieldErrors };
   }
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
 
-  // Phone is unique — fail-friendly check
+  // Phone is unique within tenant — fail-friendly check
   const { data: existing } = await supabase
     .from("customers")
     .select("id")
+    .eq("tenant_id", tenantId)
     .eq("phone", parsed.data.phone)
     .maybeSingle();
   if (existing) {
@@ -63,6 +66,7 @@ export async function createCustomerAction(
   const { data, error } = await supabase
     .from("customers")
     .insert({
+      tenant_id: tenantId,
       name: parsed.data.name,
       phone: parsed.data.phone,
       email: parsed.data.email ?? null,
@@ -82,10 +86,11 @@ export async function deleteCustomerAction(formData: FormData): Promise<void> {
   const id = formData.get("id")?.toString();
   if (!id) return;
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   // Detach historical bookings — set customer_phone unchanged but customers row removed.
   // Bookings reference customer_phone (text), not customers.id, so deleting the customer is safe.
-  const { error } = await supabase.from("customers").delete().eq("id", id);
+  const { error } = await supabase.from("customers").delete().eq("tenant_id", tenantId).eq("id", id);
   if (error) throw new Error(`Nie udało się usunąć: ${error.message}`);
 
   revalidatePath("/admin/klienci");
@@ -110,12 +115,14 @@ export async function updateCustomerContactAction(
 
   if (phone.length < 6) return { status: "error", message: "Numer telefonu za krótki" };
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
 
-  // Check uniqueness only if phone changed
+  // Check uniqueness within tenant
   const { data: existing } = await supabase
     .from("customers")
     .select("id")
+    .eq("tenant_id", tenantId)
     .eq("phone", phone)
     .neq("id", id)
     .maybeSingle();
@@ -128,6 +135,7 @@ export async function updateCustomerContactAction(
       email: email || null,
       updated_at: new Date().toISOString(),
     })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) return { status: "error", message: `Błąd: ${error.message}` };
@@ -141,9 +149,11 @@ export async function updateCustomerNotesAction(formData: FormData): Promise<voi
   const id = formData.get("id")?.toString();
   const notes = formData.get("notes")?.toString() ?? "";
   if (!id) return;
+  const tenantId = await getAdminTenantId();
   await createAdminClient()
     .from("customers")
     .update({ notes: notes || null, updated_at: new Date().toISOString() })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
   revalidatePath(`/admin/klienci/${id}`);
 }

@@ -1,6 +1,6 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 export type Settings = {
   id: number;
@@ -32,7 +32,6 @@ export type TimeFilter = {
   active: boolean;
 };
 
-// Fallback used only if DB not yet seeded.
 const FALLBACK: Settings = {
   id: 1,
   business_name: "when?",
@@ -55,29 +54,32 @@ const FALLBACK: Settings = {
 };
 
 export async function getSettings(): Promise<Settings> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
     .from("settings")
     .select("*")
-    .eq("id", 1)
+    .eq("tenant_id", tenantId)
     .maybeSingle();
   return (data as Settings | null) ?? FALLBACK;
 }
 
 export async function getTimeFilters(): Promise<TimeFilter[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
     .from("time_filters")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("active", true)
     .order("sort_order");
   return (data ?? []) as TimeFilter[];
 }
 
 export async function getAllTimeFilters(): Promise<TimeFilter[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("time_filters")
     .select("*")
+    .eq("tenant_id", tenantId)
     .order("sort_order");
   return (data ?? []) as TimeFilter[];
 }

@@ -1,8 +1,27 @@
 import Link from "next/link";
 import { getBookingsBetween } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
-import { getBusinessHours } from "@/lib/db/services";
+import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
+import { BookingManagementButton, type BookingForModal, type ServiceOption } from "@/components/booking-management-modal";
+import type { BookingWithService } from "@/lib/db/bookings";
+
+function toModalBooking(b: BookingWithService): BookingForModal {
+  return {
+    id: b.id,
+    startsAt: b.starts_at,
+    endsAt: b.ends_at,
+    customerName: b.customer_name,
+    customerPhone: b.customer_phone,
+    serviceId: b.service_id,
+    serviceName: b.service?.name ?? null,
+    staffId: b.staff_id,
+    staffName: b.staff?.name ?? null,
+    staffColor: b.staff?.color ?? null,
+    notes: b.notes,
+    status: b.status,
+  };
+}
 import {
   warsawToday,
   addDays,
@@ -71,11 +90,13 @@ export default async function HarmonogramPage({
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
   // Fetch all in parallel
-  const [allStaff, hours, all] = await Promise.all([
+  const [allStaff, hours, all, allServicesRaw] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getBookingsBetween(startIso, endIso),
+    getServices(),
   ]);
+  const allServices = allServicesRaw.map((s) => ({ id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln }));
 
   const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
   const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
@@ -109,11 +130,12 @@ export default async function HarmonogramPage({
     ? new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(new Date(baseDate + "T12:00:00Z"))
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
-  // ── Staff stats (always over allStaff so filter chips show counts) ────────
-  const staffStats = allStaff.map((s) => {
-    const bookings = activeAll.filter((b) => b.staff_id === s.id);
-    return { ...s, count: bookings.length, revenue: bookings.reduce((sum, b) => sum + (b.service?.price_pln ?? 0), 0) };
-  });
+  // ── Staff stats (always over allStaff so filter tiles show counts) ────────
+  const staffStats = allStaff.map((s) => ({
+    ...s,
+    count: activeAll.filter((b) => b.staff_id === s.id).length,
+  }));
+  const totalCount = activeAll.length;
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -149,19 +171,20 @@ export default async function HarmonogramPage({
         </div>
       </div>
 
-      {/* Staff filter chips */}
+      {/* Staff filter tiles (merged with period summary) */}
       {allStaff.length > 1 && (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wider text-zinc-600">Pracownik:</span>
+        <div className="mt-5 flex flex-wrap items-center gap-2.5">
           <Link
             href={navUrl(view, baseDate, null)}
-            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            aria-pressed={!selectedStaffId}
+            className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-colors ${
               !selectedStaffId
-                ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                ? "border-zinc-600 bg-zinc-800/60 text-zinc-100"
+                : "border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
             }`}
           >
-            Wszyscy
+            <span className="text-sm font-medium">Wszyscy</span>
+            <span className="font-mono text-xs text-zinc-500">{totalCount}</span>
           </Link>
           {staffStats.map((s) => {
             const isActive = selectedStaffId === s.id;
@@ -169,39 +192,25 @@ export default async function HarmonogramPage({
               <Link
                 key={s.id}
                 href={navUrl(view, baseDate, s.id)}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+                aria-pressed={isActive}
+                className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-colors ${
                   isActive
-                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                    ? "border-zinc-600 bg-zinc-800/60 text-zinc-100"
+                    : "border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                 }`}
               >
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                {s.name}
-                {s.count > 0 && <span className="ml-0.5 font-mono text-[10px] text-zinc-500">{s.count}</span>}
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                <span className="text-sm font-medium">{s.name}</span>
+                <span className="font-mono text-xs text-zinc-500">{s.count}</span>
               </Link>
             );
           })}
         </div>
       )}
 
-      {/* Period summary */}
-      {staffStats.some((s) => s.count > 0) && (
-        <div className="mt-4 flex flex-wrap gap-3">
-          {staffStats.filter((s) => s.count > 0 && (!selectedStaffId || s.id === selectedStaffId)).map((s) => (
-            <div key={s.id} className="flex items-center gap-2.5 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-2.5">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-              <div>
-                <p className="text-sm font-medium text-zinc-200">{s.name}</p>
-                <p className="font-mono text-xs text-zinc-500">{s.count} rez · {s.revenue} zł</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="mt-6">
-        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} hours={hours} today={today} />}
-        {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} today={today} navUrl={navUrl} />}
+        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} allServices={allServices} hours={hours} today={today} />}
+        {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} allServices={allServices} today={today} navUrl={navUrl} />}
         {view === "miesiac" && <MonthView baseDate={baseDate} active={active} today={today} navUrl={navUrl} />}
       </div>
     </section>
@@ -213,12 +222,16 @@ function DayView({
   date,
   active,
   visibleStaff,
+  allStaff,
+  allServices,
   hours,
   today,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
   visibleStaff: { id: string; name: string; color: string }[];
+  allStaff: { id: string; name: string; color: string }[];
+  allServices: ServiceOption[];
   hours: Awaited<ReturnType<typeof getBusinessHours>>;
   today: string;
 }) {
@@ -254,10 +267,10 @@ function DayView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="w-full border-collapse text-sm" style={{ minWidth: visibleStaff.length <= 1 ? 320 : 480 }}>
+      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 64 + visibleStaff.length * 180 : undefined }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-            <th className="w-16 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Godz.</th>
+            <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 64 }}>Godz.</th>
             {visibleStaff.length > 0 ? visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>
                 {s.name}
@@ -280,11 +293,9 @@ function DayView({
                   <td key={s.id} className="px-2 py-1 align-top">
                     {booking && isFirstSlot ? (
                       <DayBookingCard
-                        id={booking.id}
-                        startsAtIso={booking.starts_at}
-                        endsAtIso={booking.ends_at}
-                        customerName={booking.customer_name}
-                        serviceName={booking.service?.name ?? null}
+                        booking={toModalBooking(booking)}
+                        allStaff={allStaff}
+                        allServices={allServices}
                         timeLabel={formatWarsawTime(booking.starts_at)}
                         color={s.color}
                       />
@@ -328,12 +339,16 @@ function WeekView({
   startDate,
   active,
   visibleStaff,
+  allStaff,
+  allServices,
   today,
   navUrl,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
   visibleStaff: { id: string; name: string; color: string }[];
+  allStaff: { id: string; name: string; color: string }[];
+  allServices: ServiceOption[];
   today: string;
   navUrl: (v: View, d: string) => string;
 }) {
@@ -350,10 +365,10 @@ function WeekView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="w-full border-collapse text-sm" style={{ minWidth: visibleStaff.length <= 1 ? 320 : 640 }}>
+      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 112 + visibleStaff.length * 200 : undefined }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-            <th className="w-28 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 112 }}>Dzień</th>
             {visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
@@ -385,10 +400,19 @@ function WeekView({
                       ) : (
                         <ul className="space-y-1.5">
                           {bookings.map((b) => (
-                            <li key={b.id} className="rounded-lg px-2 py-1.5" style={{ backgroundColor: `${s.color}18`, borderLeft: `2px solid ${s.color}` }}>
-                              <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
-                              <p className="text-xs font-medium text-zinc-200">{b.customer_name}</p>
-                              {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
+                            <li key={b.id}>
+                              <BookingManagementButton
+                                booking={toModalBooking(b)}
+                                allStaff={allStaff}
+                                allServices={allServices}
+                                className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
+                              >
+                                <div style={{ backgroundColor: `${s.color}18`, borderLeft: `2px solid ${s.color}`, padding: "2px 6px", borderRadius: 4 }}>
+                                  <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
+                                  <p className="text-xs font-medium text-zinc-200">{b.customer_name}</p>
+                                  {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
+                                </div>
+                              </BookingManagementButton>
                             </li>
                           ))}
                         </ul>

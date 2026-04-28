@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 export type BookingEventType = "created" | "rescheduled" | "cancelled";
 export type BookingEventSource = "customer" | "admin";
@@ -23,7 +24,9 @@ export async function recordBookingEvent(input: {
   serviceName: string | null;
   startsAtIso: string;
 }): Promise<void> {
+  const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient().from("booking_events").insert({
+    tenant_id: tenantId,
     booking_id: input.bookingId,
     event_type: input.eventType,
     source: input.source,
@@ -32,16 +35,17 @@ export async function recordBookingEvent(input: {
     starts_at: input.startsAtIso,
   });
   if (error) {
-    // Non-fatal: log but don't throw — the booking mutation already succeeded.
     console.error("[booking-events] insert failed:", error.message);
   }
 }
 
 export async function getRecentBookingEvents(limit = 30, sinceHours = 48): Promise<BookingEvent[]> {
+  const tenantId = await getAdminTenantId();
   const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const { data, error } = await createAdminClient()
     .from("booking_events")
     .select("*")
+    .eq("tenant_id", tenantId)
     .gt("created_at", since)
     .order("created_at", { ascending: false })
     .limit(limit);

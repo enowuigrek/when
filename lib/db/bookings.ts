@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 
 /**
  * Fetch confirmed bookings overlapping a UTC instant range.
@@ -11,10 +12,12 @@ export async function getBookingsInRange(
   staffId?: string,
   excludeBookingId?: string
 ): Promise<{ startsAtIso: string; endsAtIso: string }[]> {
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   let query = supabase
     .from("bookings")
     .select("starts_at, ends_at")
+    .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);
@@ -44,6 +47,8 @@ export type CreateBookingInput = {
   endsAtIso: string;
   notes: string | null;
   staffId?: string | null;
+  pricePlnSnapshot?: number | null;
+  durationMinSnapshot?: number | null;
 };
 
 export type CreateBookingResult =
@@ -53,10 +58,12 @@ export type CreateBookingResult =
 export async function createBooking(
   input: CreateBookingInput
 ): Promise<CreateBookingResult> {
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("bookings")
     .insert({
+      tenant_id: tenantId,
       service_id: input.serviceId,
       customer_name: input.customerName,
       customer_phone: input.customerPhone,
@@ -66,12 +73,13 @@ export async function createBooking(
       notes: input.notes,
       status: "confirmed",
       staff_id: input.staffId ?? null,
+      price_pln_snapshot: input.pricePlnSnapshot ?? null,
+      duration_min_snapshot: input.durationMinSnapshot ?? null,
     })
     .select("id")
     .single();
 
   if (error) {
-    // 23P01 = exclusion_violation (overlap constraint)
     if (error.code === "23P01") {
       return {
         ok: false,
@@ -97,6 +105,8 @@ export type BookingWithService = {
   notes: string | null;
   created_at: string;
   staff_id: string | null;
+  price_pln_snapshot: number | null;
+  duration_min_snapshot: number | null;
   service: { name: string; duration_min: number; price_pln: number } | null;
   staff: { name: string; color: string } | null;
 };
@@ -105,10 +115,11 @@ export async function getBookingsBetween(
   startIso: string,
   endIso: string
 ): Promise<BookingWithService[]> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
     .from("bookings")
     .select("*, service:services(name, duration_min, price_pln), staff:staff(name, color)")
+    .eq("tenant_id", tenantId)
     .gte("starts_at", startIso)
     .lt("starts_at", endIso)
     .order("starts_at", { ascending: true });
@@ -121,9 +132,11 @@ export async function getBusyStaffIds(
   startIso: string,
   endIso: string
 ): Promise<string[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
     .select("staff_id")
+    .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
     .not("staff_id", "is", null)
     .lt("starts_at", endIso)
@@ -132,10 +145,11 @@ export async function getBusyStaffIds(
 }
 
 export async function getBookingById(id: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
     .from("bookings")
     .select("*, service:services(name, slug, duration_min, price_pln)")
+    .eq("tenant_id", tenantId)
     .eq("id", id)
     .maybeSingle();
 

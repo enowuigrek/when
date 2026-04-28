@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
 import type { Service } from "@/lib/types";
 
 export const metadata = { title: "Usługi", robots: { index: false } };
 
 async function getAllServices(): Promise<Service[]> {
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("services")
     .select("*")
+    .eq("tenant_id", tenantId)
     .order("sort_order")
     .order("name");
   return (data ?? []) as Service[];

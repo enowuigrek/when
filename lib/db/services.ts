@@ -1,12 +1,14 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 import type { Service, BusinessHours } from "@/lib/types";
 
 export async function getServices(): Promise<Service[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
     .from("services")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
@@ -15,10 +17,11 @@ export async function getServices(): Promise<Service[]> {
 }
 
 export async function getServiceBySlug(slug: string): Promise<Service | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
     .from("services")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("slug", slug)
     .eq("active", true)
     .maybeSingle();
@@ -28,20 +31,22 @@ export async function getServiceBySlug(slug: string): Promise<Service | null> {
 }
 
 export async function getServiceById(id: string): Promise<Service | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
     .from("services")
     .select("*")
+    .eq("tenant_id", tenantId)
     .eq("id", id)
     .maybeSingle();
   return data;
 }
 
 export async function getBusinessHours(): Promise<BusinessHours[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
     .from("business_hours")
     .select("*")
+    .eq("tenant_id", tenantId)
     .order("day_of_week", { ascending: true });
 
   if (error) throw new Error(`Failed to load hours: ${error.message}`);
