@@ -7,6 +7,7 @@ import { getAdminTenantId } from "@/lib/tenant";
 import { AdminNotificationBell } from "@/components/admin-notification-bell";
 import { AdminMobileNav } from "@/components/admin-mobile-nav";
 import { AdminNavLink } from "@/components/admin-nav-link";
+import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
 
 export default async function PanelLayout({
   children,
@@ -19,7 +20,8 @@ export default async function PanelLayout({
   const [s, tenantId] = await Promise.all([getSettings(), getAdminTenantId()]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
+    <TenantThemeWrapper>
+      <div className="flex min-h-screen flex-col bg-zinc-950">
       <header className="border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-6">
           {/* Logo */}
@@ -68,7 +70,8 @@ export default async function PanelLayout({
         </div>
       </header>
       <main className="flex-1">{children}</main>
-    </div>
+      </div>
+    </TenantThemeWrapper>
   );
 }
 

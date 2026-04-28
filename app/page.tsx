@@ -107,7 +107,7 @@ function DemoCTAs({ variant = "hero" }: { variant?: "hero" | "compact" }) {
 
 export default function StartPage() {
   return (
-    <main data-theme="dark" className="min-h-screen bg-zinc-950 text-zinc-100">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -119,10 +119,10 @@ export default function StartPage() {
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
             <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
             <a
-              href="#demo"
-              className="rounded-lg bg-zinc-100 px-4 py-2 font-medium text-zinc-950 hover:bg-white transition-colors"
+              href="#wdrozenie"
+              className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 hover:opacity-90 transition-opacity"
             >
-              Wypróbuj demo →
+              Wdróż u siebie →
             </a>
           </nav>
         </div>
@@ -237,7 +237,7 @@ export default function StartPage() {
       </section>
 
       {/* Wdrożenie — expanded */}
-      <section className="bg-zinc-900/20">
+      <section id="wdrozenie" className="bg-zinc-900/20">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
