@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { logoutAction } from "./actions";
 import { getSettings } from "@/lib/db/settings";
+import { getAdminTenantId } from "@/lib/tenant";
 import { AdminNotificationBell } from "@/components/admin-notification-bell";
 import { AdminMobileNav } from "@/components/admin-mobile-nav";
 import { AdminNavLink } from "@/components/admin-nav-link";
@@ -15,7 +16,7 @@ export default async function PanelLayout({
   if (!(await isAdminAuthenticated())) {
     redirect("/admin/login");
   }
-  const s = await getSettings();
+  const [s, tenantId] = await Promise.all([getSettings(), getAdminTenantId()]);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950">
@@ -52,7 +53,7 @@ export default async function PanelLayout({
               <span className="hidden sm:inline">+ Rezerwacja</span>
               <span className="sm:hidden text-base font-medium leading-none">+</span>
             </Link>
-            <AdminNotificationBell />
+            <AdminNotificationBell tenantId={tenantId} />
             {/* Desktop: show Wyloguj inline. Mobile: in hamburger */}
             <form action={logoutAction} className="hidden sm:block">
               <button type="submit" className="px-2 py-1 text-zinc-500 hover:text-zinc-300 text-sm">

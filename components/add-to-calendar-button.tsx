@@ -37,10 +37,15 @@ export function AddToCalendarButton({ googleCalUrl, icalUrl }: Props) {
     );
   }
 
-  // iOS, macOS, Windows, Linux → .ics (Apple Calendar / Outlook opens it natively)
+  // iOS → webcal:// protocol so Calendar app intercepts it directly
+  // Other → .ics download (Apple Calendar / Outlook opens it natively)
+  const calUrl = platform === "ios"
+    ? icalUrl.replace(/^https?:\/\//, "webcal://")
+    : icalUrl;
+
   return (
     <a
-      href={icalUrl}
+      href={calUrl}
       className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
     >
       <CalendarIcon /> Dodaj do kalendarza

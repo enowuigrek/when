@@ -26,7 +26,44 @@ export default async function ReschedulePage({ params }: { params: Params }) {
   if (!bookingId) notFound();
 
   const booking = await getBookingById(bookingId);
-  if (!booking || booking.status !== "confirmed") notFound();
+  if (!booking) notFound();
+
+  if (booking.status !== "confirmed") {
+    const service = (
+      booking as { service?: { name: string; slug: string; duration_min: number; price_pln: number } }
+    ).service;
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex-1">
+          <section className="mx-auto max-w-lg px-6 py-16 text-center">
+            <div className="mb-4 text-4xl">
+              {booking.status === "cancelled" ? "✗" : "✓"}
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {booking.status === "cancelled" ? "Rezerwacja anulowana" : "Rezerwacja zakończona"}
+            </h1>
+            <p className="mt-3 text-sm text-zinc-400">
+              {service?.name && <><span className="text-zinc-200">{service.name}</span> · </>}
+              {formatWarsawDate(booking.starts_at)}, godz. {formatWarsawTime(booking.starts_at)}
+            </p>
+            <p className="mt-4 text-sm text-zinc-500">
+              {booking.status === "cancelled"
+                ? "Nie można zmienić terminu anulowanej rezerwacji."
+                : "Ta wizyta już się odbyła."}
+            </p>
+            <a
+              href="/rezerwacja"
+              className="mt-8 inline-block rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:opacity-90"
+            >
+              Zarezerwuj ponownie
+            </a>
+          </section>
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
 
   const service = (
     booking as { service?: { name: string; slug: string; duration_min: number; price_pln: number } }

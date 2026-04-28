@@ -61,7 +61,9 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
+      // inline (not attachment) so iOS Safari opens it directly in Calendar app
+      "Content-Disposition": `inline; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
+      "Cache-Control": "no-store",
     },
   });
 }

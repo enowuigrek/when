@@ -16,7 +16,41 @@ export default async function CustomerCancelPage({ params }: { params: Params })
   if (!bookingId) notFound();
 
   const booking = await getBookingById(bookingId);
-  if (!booking || booking.status !== "confirmed") notFound();
+  if (!booking) notFound();
+
+  // Already cancelled / completed — show friendly message
+  if (booking.status !== "confirmed") {
+    const service = (booking as { service?: { name: string } }).service;
+    return (
+      <>
+        <SiteHeader />
+        <main className="flex-1">
+          <section className="mx-auto max-w-lg px-6 py-16 text-center">
+            <div className="mb-4 text-4xl">✓</div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {booking.status === "cancelled" ? "Rezerwacja już anulowana" : "Rezerwacja zakończona"}
+            </h1>
+            <p className="mt-3 text-sm text-zinc-400">
+              {service?.name && <><span className="text-zinc-200">{service.name}</span> · </>}
+              {formatWarsawDate(booking.starts_at)}, godz. {formatWarsawTime(booking.starts_at)}
+            </p>
+            <p className="mt-4 text-sm text-zinc-500">
+              {booking.status === "cancelled"
+                ? "Ta rezerwacja została już wcześniej anulowana."
+                : "Ta wizyta już się odbyła."}
+            </p>
+            <a
+              href="/rezerwacja"
+              className="mt-8 inline-block rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:opacity-90"
+            >
+              Zarezerwuj ponownie
+            </a>
+          </section>
+        </main>
+        <SiteFooter />
+      </>
+    );
+  }
 
   const isPast = new Date(booking.starts_at) <= new Date();
   const service = (booking as { service?: { name: string } }).service;

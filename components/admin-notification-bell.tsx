@@ -31,20 +31,23 @@ type NotifItem = {
 
 type Toast = NotifItem;
 
-const STORAGE_KEY = "when_admin_notifs_v2"; // bumped: v1 was bookings-only
 const POLL_MS = 30_000;
 
-function loadStored(): NotifItem[] {
+function storageKey(tenantId: string) {
+  return `when_admin_notifs_v3_${tenantId}`;
+}
+
+function loadStored(tenantId: string): NotifItem[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return JSON.parse(localStorage.getItem(storageKey(tenantId)) ?? "[]");
   } catch {
     return [];
   }
 }
 
-function saveStored(items: NotifItem[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, 50)));
+function saveStored(items: NotifItem[], tenantId: string) {
+  localStorage.setItem(storageKey(tenantId), JSON.stringify(items.slice(0, 50)));
 }
 
 function warsawDateStr(iso: string) {
@@ -74,7 +77,7 @@ const ACCENT: Record<EventType, string> = {
   cancelled: "text-red-400",
 };
 
-export function AdminNotificationBell() {
+export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   const router = useRouter();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -122,7 +125,7 @@ export function AdminNotificationBell() {
         const merged = [...newItems, ...prev].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        saveStored(merged);
+        saveStored(merged, tenantId);
 
         if (newToasts.length > 0) {
           setToasts((t) => [...t, ...newToasts]);
@@ -135,7 +138,7 @@ export function AdminNotificationBell() {
   }, []);
 
   useEffect(() => {
-    setItems(loadStored());
+    setItems(loadStored(tenantId));
     poll();
     const interval = setInterval(poll, POLL_MS);
     return () => clearInterval(interval);
@@ -162,7 +165,7 @@ export function AdminNotificationBell() {
     setOpen((v) => !v);
     setItems((prev) => {
       const updated = prev.map((i) => ({ ...i, read: true }));
-      saveStored(updated);
+      saveStored(updated, tenantId);
       return updated;
     });
   }
@@ -170,7 +173,7 @@ export function AdminNotificationBell() {
   function deleteNotif(id: string) {
     setItems((prev) => {
       const updated = prev.filter((i) => i.id !== id);
-      saveStored(updated);
+      saveStored(updated, tenantId);
       return updated;
     });
   }
@@ -235,7 +238,7 @@ export function AdminNotificationBell() {
                   type="button"
                   onClick={() => {
                     setItems([]);
-                    saveStored([]);
+                    saveStored([], tenantId);
                   }}
                   className="text-xs text-zinc-500 hover:text-zinc-300"
                 >
