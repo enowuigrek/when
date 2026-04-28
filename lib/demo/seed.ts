@@ -106,7 +106,7 @@ const SETTINGS = {
     email: "demo@when.app",
     color_accent: "#7eb89a",
     theme: "light" as const,
-    slot_granularity_min: 60,
+    slot_granularity_min: 30,
     booking_horizon_days: 28,
   },
 };
