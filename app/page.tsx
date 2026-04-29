@@ -85,7 +85,7 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
           data-reveal="left"
           style={{ "--reveal-delay": `${i * 110}ms` } as React.CSSProperties}
         >
-          <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70">
+          <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-800">
             <span className="font-mono text-3xl font-bold leading-none text-[var(--color-accent)]/80 transition-colors group-hover:text-[var(--color-accent)]">{s.n}</span>
             <h3 className="mt-3 font-semibold text-zinc-100">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
@@ -165,7 +165,7 @@ export default function StartPage() {
       <section id="jak-to-dziala" className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
-            <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
               Dla właściciela
             </span>
           </div>
@@ -184,7 +184,7 @@ export default function StartPage() {
       <section className="border-b border-zinc-800/60 bg-zinc-900">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
-            <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
               Co widzi Twój klient
             </span>
           </div>
@@ -208,7 +208,7 @@ export default function StartPage() {
                 key={u.title}
                 data-reveal="left"
                 style={{ "--reveal-delay": `${(i % 3) * 90}ms` } as React.CSSProperties}
-                className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6 transition-colors hover:border-[var(--color-accent)]/40"
+                className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900 p-6 transition-colors hover:border-[var(--color-accent)]/40"
               >
                 <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
                 <h3 className="text-lg font-semibold text-zinc-100">{u.title}</h3>
@@ -229,7 +229,7 @@ export default function StartPage() {
                 key={f}
                 data-reveal="left"
                 style={{ "--reveal-delay": `${(i % 2) * 80 + Math.floor(i / 2) * 60}ms` } as React.CSSProperties}
-                className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4"
+                className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900 p-4"
               >
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] text-xs font-bold text-zinc-950">
                   ✓
@@ -241,8 +241,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* Final CTA — opaque */}
-      <section className="border-b border-zinc-800/60 bg-zinc-950">
+      {/* Final CTA — transparent, shows grid */}
+      <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
@@ -256,7 +256,7 @@ export default function StartPage() {
       {/* Wdrożenie — opaque */}
       <section id="wdrozenie" className="bg-zinc-900">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-zinc-200">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
             Chcesz uruchomić WHEN w swojej firmie?
           </h2>
@@ -295,13 +295,18 @@ export default function StartPage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/60 bg-zinc-950">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6 text-xs text-zinc-600">
-          <p className="flex items-center gap-2">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-7 text-xs text-zinc-500">
+          <p className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="when" className="h-4 logo-adaptive opacity-50" />
-            <span>— system rezerwacji online</span>
+            <img src="/logo.svg" alt="when" className="h-6 logo-adaptive" />
+            <span className="text-zinc-600">— system rezerwacji online</span>
           </p>
-          <p>© {new Date().getFullYear()} &nbsp;·&nbsp; <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">lukasznowak.dev</a></p>
+          <p>
+            © {new Date().getFullYear()} &nbsp;·&nbsp;{" "}
+            <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">
+              lukasznowak<span style={{ color: "var(--color-accent)" }}>.dev</span>
+            </a>
+          </p>
         </div>
       </footer>
 
