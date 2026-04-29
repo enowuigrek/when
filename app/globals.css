@@ -195,7 +195,7 @@ html {
    the top-centre and fades to nothing. Children sit above it.        */
 .section-glow {
   position: relative;
-  overflow: hidden;
+  /* No overflow:hidden — it breaks background-attachment:fixed on section-grid */
 }
 .section-glow::before {
   content: "";
@@ -242,11 +242,11 @@ html {
   position: absolute;
   inset: -1px;
   background: radial-gradient(
-    400px circle at var(--glow-x, 50%) var(--glow-y, 0%),
+    380px circle at var(--glow-x, 88%) var(--glow-y, 30%),
     color-mix(in srgb, var(--color-accent) 22%, transparent),
     transparent 50%
   );
-  opacity: 0;
+  opacity: 0.5;
   transition: opacity 400ms ease;
   pointer-events: none;
   z-index: 0;
