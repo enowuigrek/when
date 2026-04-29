@@ -50,26 +50,47 @@ body {
 }
 
 /* Light theme overrides for admin panel surfaces */
+[data-theme="light"] .bg-black { background-color: #ffffff !important; }
 [data-theme="light"] .bg-zinc-950 { background-color: #f4f4f5 !important; }
 [data-theme="light"] .bg-zinc-950\/80 { background-color: rgba(244,244,245,0.9) !important; }
-[data-theme="light"] .bg-zinc-900\/40 { background-color: rgba(228,228,231,0.5) !important; }
-[data-theme="light"] .bg-zinc-900\/20 { background-color: rgba(228,228,231,0.3) !important; }
+[data-theme="light"] .bg-zinc-950\/95 { background-color: rgba(244,244,245,0.95) !important; }
+[data-theme="light"] .bg-zinc-900\/95 { background-color: rgba(244,244,245,0.95) !important; }
+[data-theme="light"] .bg-zinc-900\/80 { background-color: rgba(228,228,231,0.85) !important; }
+[data-theme="light"] .bg-zinc-900\/70 { background-color: rgba(228,228,231,0.75) !important; }
 [data-theme="light"] .bg-zinc-900\/60 { background-color: rgba(228,228,231,0.7) !important; }
+[data-theme="light"] .bg-zinc-900\/40 { background-color: rgba(228,228,231,0.5) !important; }
 [data-theme="light"] .bg-zinc-900\/30 { background-color: rgba(228,228,231,0.4) !important; }
+[data-theme="light"] .bg-zinc-900\/20 { background-color: rgba(228,228,231,0.3) !important; }
 [data-theme="light"] .bg-zinc-900 { background-color: #e4e4e7 !important; }
 [data-theme="light"] .bg-zinc-800\/60 { background-color: rgba(212,212,216,0.6) !important; }
+[data-theme="light"] .bg-zinc-800\/50 { background-color: rgba(212,212,216,0.5) !important; }
 [data-theme="light"] .bg-zinc-800\/30 { background-color: rgba(212,212,216,0.3) !important; }
 [data-theme="light"] .bg-zinc-800 { background-color: #d4d4d8 !important; }
 [data-theme="light"] .border-zinc-800\/60 { border-color: rgba(161,161,170,0.5) !important; }
+[data-theme="light"] .border-zinc-800\/40 { border-color: rgba(161,161,170,0.35) !important; }
 [data-theme="light"] .border-zinc-800 { border-color: #a1a1aa !important; }
 [data-theme="light"] .border-zinc-700 { border-color: #71717a !important; }
 [data-theme="light"] .border-zinc-700\/50 { border-color: rgba(113,113,122,0.5) !important; }
+[data-theme="light"] .border-zinc-600 { border-color: #52525b !important; }
 [data-theme="light"] .text-zinc-100 { color: #18181b !important; }
 [data-theme="light"] .text-zinc-200 { color: #27272a !important; }
 [data-theme="light"] .text-zinc-300 { color: #3f3f46 !important; }
 [data-theme="light"] .text-zinc-400 { color: #52525b !important; }
 [data-theme="light"] .text-zinc-500 { color: #71717a !important; }
 [data-theme="light"] .text-zinc-600 { color: #a1a1aa !important; }
+[data-theme="light"] .text-zinc-700 { color: #d4d4d8 !important; }
+[data-theme="light"] .text-zinc-800 { color: #e4e4e7 !important; }
+/* Hover variants commonly used */
+[data-theme="light"] .hover\:bg-zinc-800:hover { background-color: #d4d4d8 !important; }
+[data-theme="light"] .hover\:bg-zinc-800\/50:hover { background-color: rgba(212,212,216,0.5) !important; }
+[data-theme="light"] .hover\:bg-zinc-900\/60:hover { background-color: rgba(228,228,231,0.7) !important; }
+[data-theme="light"] .hover\:bg-zinc-900\/70:hover { background-color: rgba(228,228,231,0.75) !important; }
+[data-theme="light"] .hover\:border-zinc-500:hover { border-color: #71717a !important; }
+[data-theme="light"] .hover\:border-zinc-600:hover { border-color: #52525b !important; }
+[data-theme="light"] .hover\:border-zinc-700:hover { border-color: #71717a !important; }
+[data-theme="light"] .hover\:text-zinc-100:hover { color: #18181b !important; }
+[data-theme="light"] .hover\:text-zinc-200:hover { color: #27272a !important; }
+[data-theme="light"] .hover\:text-zinc-300:hover { color: #3f3f46 !important; }
 
 /* Navbar in light theme */
 [data-theme="light"] header { border-color: rgba(161,161,170,0.4) !important; }
@@ -89,8 +110,16 @@ body {
 
 /* Error banner in light theme */
 [data-theme="light"] .bg-red-900\/30 { background-color: rgba(127,29,29,0.1) !important; }
+[data-theme="light"] .bg-red-950\/30 { background-color: rgba(127,29,29,0.08) !important; }
 [data-theme="light"] .text-red-300 { color: #991b1b !important; }
+[data-theme="light"] .text-red-400 { color: #b91c1c !important; }
 [data-theme="light"] .border-red-700\/50 { border-color: rgba(185,28,28,0.4) !important; }
+[data-theme="light"] .border-red-900\/50 { border-color: rgba(127,29,29,0.4) !important; }
+
+/* Status colors in light theme — slightly darker for legibility on white */
+[data-theme="light"] .text-emerald-400 { color: #047857 !important; }
+[data-theme="light"] .text-amber-400 { color: #b45309 !important; }
+[data-theme="light"] .text-amber-500 { color: #92400e !important; }
 
 /* ── Dark theme explicit overrides ────────────────────────
    These mirror the light overrides so a nested [data-theme="dark"]
