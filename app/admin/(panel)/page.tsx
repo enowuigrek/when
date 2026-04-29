@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getDashboardStats } from "@/lib/db/stats";
 import { formatWarsawTime, formatWarsawDate } from "@/lib/slots";
+import { getActiveStaff } from "@/lib/db/staff";
+import { getServices } from "@/lib/db/services";
+import { BookingManagementButton, type ServiceOption } from "@/components/booking-management-modal";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
 
@@ -29,7 +32,17 @@ function shortDate(iso: string) {
 }
 
 export default async function DashboardPage() {
-  const s = await getDashboardStats();
+  const [s, allStaff, allServicesRaw] = await Promise.all([
+    getDashboardStats(),
+    getActiveStaff(),
+    getServices(),
+  ]);
+  const allServices: ServiceOption[] = allServicesRaw.map((sv) => ({
+    id: sv.id,
+    name: sv.name,
+    duration_min: sv.duration_min,
+    price_pln: sv.price_pln,
+  }));
 
   const maxChart = Math.max(...s.chartData.map((d) => d.count), 1);
 
@@ -221,16 +234,33 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-2">
             {s.recentBookings.map((b) => {
-              // ISO date YYYY-MM-DD for harmonogram day-view link.
-              // Slice the UTC ISO; for normal daytime bookings this matches
-              // the Warsaw date. Edge cases (midnight bookings) might be off
-              // by a day — acceptable for navigation.
-              const dayIso = b.startsAt.slice(0, 10);
+              // Coerce status to the modal's narrower union (RecentBooking.status
+              // is `string` in the DB but only these four are valid).
+              const status: "confirmed" | "cancelled" | "completed" | "no_show" =
+                b.status === "confirmed" || b.status === "cancelled" ||
+                b.status === "completed" || b.status === "no_show"
+                  ? b.status
+                  : "confirmed";
               return (
-                <Link
+                <BookingManagementButton
                   key={b.id}
-                  href={`/admin/harmonogram?widok=dzien&od=${dayIso}`}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800/40 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
+                  booking={{
+                    id: b.id,
+                    startsAt: b.startsAt,
+                    endsAt: b.endsAt,
+                    customerName: b.customerName,
+                    customerPhone: b.customerPhone,
+                    serviceId: b.serviceId,
+                    serviceName: b.serviceName,
+                    staffId: b.staffId,
+                    staffName: b.staffName,
+                    staffColor: b.staffColor,
+                    notes: b.notes,
+                    status,
+                  }}
+                  allStaff={allStaff.map((st) => ({ id: st.id, name: st.name, color: st.color }))}
+                  allServices={allServices}
+                  className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800/40 bg-zinc-900/30 px-4 py-3 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
                 >
                   <span className="min-w-0 flex-1 font-medium text-zinc-200 truncate">
                     {b.customerName}
@@ -248,7 +278,7 @@ export default async function DashboardPage() {
                   {b.pricePln != null && (
                     <span className="font-mono text-xs text-zinc-500">{b.pricePln} zł</span>
                   )}
-                </Link>
+                </BookingManagementButton>
               );
             })}
           </div>

@@ -30,11 +30,17 @@ export type TopStaff = { name: string; count: number };
 export type RecentBooking = {
   id: string;
   customerName: string;
+  customerPhone: string;
+  serviceId: string | null;
   serviceName: string;
+  staffId: string | null;
   staffName: string | null;
+  staffColor: string | null;
   startsAt: string;
+  endsAt: string;
   status: string;
   pricePln: number | null;
+  notes: string | null;
 };
 
 export type DashboardStats = {
@@ -100,10 +106,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId),
 
-    // Recent 6 bookings (newest first)
+    // Recent 6 bookings (newest first) — includes fields needed by the
+    // booking-management modal (customer_phone, service_id, staff_id…).
     supabase
       .from("bookings")
-      .select("id, customer_name, starts_at, status, price_pln_snapshot, service:services(name), staff:staff(name)")
+      .select("id, customer_name, customer_phone, starts_at, ends_at, status, price_pln_snapshot, notes, service_id, staff_id, service:services(name), staff:staff(name, color)")
       .eq("tenant_id", tenantId)
       .in("status", ["confirmed", "completed", "cancelled", "no_show"])
       .order("starts_at", { ascending: false })
@@ -170,20 +177,31 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   type RawRecent = {
     id: string;
     customer_name: string;
+    customer_phone: string;
     starts_at: string;
+    ends_at: string;
     status: string;
     price_pln_snapshot: number | null;
+    notes: string | null;
+    service_id: string | null;
+    staff_id: string | null;
     service: { name: string } | null;
-    staff: { name: string } | null;
+    staff: { name: string; color: string } | null;
   };
   const recentBookings: RecentBooking[] = ((recentRes.data ?? []) as unknown as RawRecent[]).map((r) => ({
     id: r.id,
     customerName: r.customer_name,
+    customerPhone: r.customer_phone,
+    serviceId: r.service_id,
     serviceName: (r.service as { name: string } | null)?.name ?? "—",
+    staffId: r.staff_id,
     staffName: (r.staff as { name: string } | null)?.name ?? null,
+    staffColor: (r.staff as { color: string } | null)?.color ?? null,
     startsAt: r.starts_at,
+    endsAt: r.ends_at,
     status: r.status,
     pricePln: r.price_pln_snapshot,
+    notes: r.notes,
   }));
 
   return {
