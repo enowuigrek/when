@@ -9,6 +9,8 @@ import {
   getTimeFiltersForTenant,
   getStaffUnavailableDatesMapForTenant,
 } from "@/lib/db/for-tenant";
+import { WidgetHeader } from "@/components/widget-header";
+import { SiteFooter } from "@/components/site-footer";
 import { WidgetBookingFlow } from "./widget-booking-flow";
 import { getWidgetSlots } from "./actions";
 import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
@@ -67,52 +69,65 @@ export default async function WidgetServicePage({ params }: Props) {
 
   return (
     <div
-      className="min-h-screen py-8 px-4"
+      className="flex min-h-screen flex-col"
       style={{ "--color-accent": accent, "--color-accent-hover": accent } as React.CSSProperties}
     >
-      <div className="mx-auto w-full max-w-sm">
+      <WidgetHeader settings={settings} tenantSlug={tenantSlug} />
 
-        {/* Back + service header */}
-        <div className="mb-5">
-          <Link
-            href={`/widget/${tenantSlug}`}
-            className="mb-4 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            ← {settings.business_name}
-          </Link>
-
-          <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3.5">
-            <h1 className="font-semibold text-zinc-100">{service.name}</h1>
-            <div className="mt-1.5 flex items-center gap-3 text-sm">
-              <span className="font-mono font-semibold" style={{ color: accent }}>{service.price_pln} zł</span>
-              <span className="text-zinc-600">·</span>
-              <span className="text-zinc-400">{service.duration_min} min</span>
-            </div>
-            {service.description && (
-              <p className="mt-1.5 text-xs text-zinc-500">{service.description}</p>
-            )}
+      <main className="flex-1">
+        <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+          {/* Stepper — same UX as /rezerwacja flow */}
+          <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
+            <Link href={`/widget/${tenantSlug}`} className="hover:text-zinc-300">
+              <span className="font-mono">01</span> Usługa
+            </Link>
+            <span className="text-zinc-700">→</span>
+            <span className="text-zinc-200">
+              <span className="font-mono text-[var(--color-accent)]">02</span> Termin
+            </span>
+            <span className="text-zinc-700">→</span>
+            <span>Dane</span>
           </div>
-        </div>
 
-        <WidgetBookingFlow
-          tenantSlug={tenantSlug}
-          serviceSlug={serviceSlug}
-          days={days}
-          initialDate={initialDate}
-          initialSlots={initialSlots}
-          timeFilters={timeFilters}
-          today={today}
-          staff={staffOptions}
-          staffUnavailable={staffUnavailable}
-        />
+          {/* Service summary card */}
+          <div className="mt-6 flex items-start justify-between gap-6 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">{service.name}</h1>
+              {service.description && (
+                <p className="mt-1 text-sm text-zinc-400">{service.description}</p>
+              )}
+              <p className="mt-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
+                {service.duration_min} min
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="font-mono text-xl font-semibold" style={{ color: accent }}>
+                {service.price_pln} zł
+              </div>
+              <Link
+                href={`/widget/${tenantSlug}`}
+                className="mt-1 inline-block text-xs text-zinc-500 hover:text-zinc-300"
+              >
+                Zmień
+              </Link>
+            </div>
+          </div>
 
-        <p className="mt-6 text-center text-[10px] text-zinc-700">
-          Rezerwacje przez{" "}
-          <a href="https://whenbooking.pl" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-500">
-            when
-          </a>
-        </p>
-      </div>
+          <WidgetBookingFlow
+            tenantSlug={tenantSlug}
+            serviceSlug={serviceSlug}
+            days={days}
+            initialDate={initialDate}
+            initialSlots={initialSlots}
+            timeFilters={timeFilters}
+            today={today}
+            staff={staffOptions}
+            staffUnavailable={staffUnavailable}
+          />
+        </section>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 }
