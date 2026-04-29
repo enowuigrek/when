@@ -13,9 +13,65 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.whenbooking.pl";
+
 export const metadata: Metadata = {
-  title: "WHEN — system rezerwacji online",
-  description: "Zobacz swój salon w działającym demo — bez rejestracji.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "WHEN — system rezerwacji online",
+    template: "%s | WHEN",
+  },
+  description:
+    "System rezerwacji online dla salonów, gabinetów i studiów. Postaw demo w 30 sekund — bez rejestracji, bez karty. Widget na stronę, panel managera, baza klientów.",
+  applicationName: "WHEN",
+  keywords: [
+    "system rezerwacji online",
+    "rezerwacje online",
+    "rezerwacje dla salonu",
+    "rezerwacje dla barbera",
+    "rezerwacje dla gabinetu",
+    "rezerwacje dla fryzjera",
+    "kalendarz rezerwacji",
+    "widget rezerwacji",
+    "booking system",
+    "umawianie wizyt online",
+  ],
+  authors: [{ name: "Łukasz Nowak", url: "https://lukasznowak.dev" }],
+  creator: "Łukasz Nowak",
+  publisher: "WHEN",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "pl_PL",
+    url: SITE_URL,
+    siteName: "WHEN",
+    title: "WHEN — system rezerwacji online",
+    description:
+      "Postaw demo w 30 sekund — bez rejestracji. Widget na stronę, panel managera, baza klientów. Dla barberów, gabinetów, studiów.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WHEN — system rezerwacji online",
+    description:
+      "Postaw demo w 30 sekund — bez rejestracji. Dla salonów, gabinetów i studiów.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 /**

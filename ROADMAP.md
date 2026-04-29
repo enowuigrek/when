@@ -146,6 +146,37 @@ Każda z tych rzeczy to studnia bez dna, łatwo się wciągnąć.
 
 ---
 
+## SEO — co zostało po stronie użytkownika
+
+Techniczne SEO już jest zrobione w kodzie:
+- `app/robots.ts` — pozwala indeksować `/`, blokuje admin/widget/rezerwacja/api
+- `app/sitemap.ts` — sitemap.xml z landingiem
+- `app/layout.tsx` — bogate metadane (OG, Twitter, keywords, canonical)
+- `app/page.tsx` — JSON-LD `SoftwareApplication` schema
+- OG images dla landingu i widgetów (już istniały)
+
+**Co musisz zrobić ręcznie po deployu:**
+
+1. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console))
+   - Dodaj `whenbooking.pl` jako domain property (DNS verification)
+   - LUB jako URL prefix property: `https://www.whenbooking.pl` (HTML tag w `<head>` lub plik HTML)
+   - Po weryfikacji wyślij sitemap: `https://www.whenbooking.pl/sitemap.xml`
+   - Sprawdź "Coverage" po kilku dniach
+
+2. **Google Analytics 4** lub **Plausible** (lżejsze, prywatne, bez cookie banner)
+   - Plausible kosztuje od $9/mies, ale nie wymaga RODO consent
+   - GA4 jest darmowy, ale wymaga cookie consent banner
+   - **Sugestia:** Plausible na start (mało ruchu, czyste dane)
+   - Snippet wstawić do `app/layout.tsx` (przed `</body>`)
+
+3. **Bing Webmaster Tools** — opcjonalnie, importuje z Google Search Console
+
+4. **Lighthouse audit** — zrób raz na produkcji, popraw co czerwone (np. obrazy bez alt, tap targets na mobile)
+
+5. **Performance** — Core Web Vitals
+   - LCP (Largest Contentful Paint) — landing ma duży hero, sprawdzić
+   - CLS (Cumulative Layout Shift) — fonty z `next/font` już to ograniczają
+
 ## Bugi / TODO do następnej sesji
 
 Rzeczy zauważone podczas testowania, czekają na osobną iterację:

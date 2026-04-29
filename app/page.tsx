@@ -6,6 +6,35 @@ import { GlowCursor } from "@/components/glow-cursor";
 export const metadata = {
   title: "WHEN — system rezerwacji online",
   description: "Zobacz swój salon w działającym demo — bez rejestracji. Postaw demo w 30 sekund.",
+  alternates: { canonical: "/" },
+};
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.whenbooking.pl";
+
+/** Structured data for Google: lets the SERP show name, logo, ratings.
+ *  We use SoftwareApplication because WHEN is a SaaS booking tool. */
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "WHEN",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description:
+    "System rezerwacji online dla salonów, gabinetów i studiów. Widget na stronę, panel managera, baza klientów.",
+  url: SITE_URL,
+  inLanguage: "pl",
+  author: {
+    "@type": "Person",
+    name: "Łukasz Nowak",
+    url: "https://lukasznowak.dev",
+  },
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "PLN",
+    availability: "https://schema.org/InStock",
+    description: "Demo bez rejestracji",
+  },
 };
 
 /**
@@ -129,6 +158,11 @@ function DemoCTAs() {
 export default function StartPage() {
   return (
     <main className="min-h-screen text-zinc-100">
+      {/* JSON-LD structured data for search engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Fixed calendar grid — landing only */}
       <div aria-hidden className="landing-grid-bg" />
       {/* Top bar — opaque to cover grid */}
