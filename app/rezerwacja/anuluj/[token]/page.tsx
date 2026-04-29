@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { verifyBookingToken } from "@/lib/booking-token";
-import { getBookingById } from "@/lib/db/bookings";
+import { getBookingByIdPublic } from "@/lib/db/for-tenant";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { customerCancelAction } from "./actions";
 
@@ -15,7 +15,7 @@ export default async function CustomerCancelPage({ params }: { params: Params })
   const bookingId = verifyBookingToken(token, "cancel");
   if (!bookingId) notFound();
 
-  const booking = await getBookingById(bookingId);
+  const booking = await getBookingByIdPublic(bookingId);
   if (!booking) notFound();
 
   // Already cancelled / completed — show friendly message

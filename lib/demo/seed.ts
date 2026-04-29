@@ -55,12 +55,16 @@ const JOGA_SERVICES: ServiceSeed[] = [
   { slug: "pilates", name: "Pilates", description: "Wzmacnianie głębokiej muskulatury, postawa, core.", duration_min: 60, price_pln: 65, sort_order: 3, is_group: true, max_participants: 10 },
   { slug: "medytacja", name: "Medytacja i oddech", description: "Techniki oddechowe (pranayama) i prowadzona medytacja. Dla każdego.", duration_min: 45, price_pln: 45, sort_order: 4, is_group: true, max_participants: 20 },
   { slug: "joga-zaawansowana", name: "Joga zaawansowana", description: "Asany odwrócone, pogłębione pozycje, balanse. Dla doświadczonych.", duration_min: 90, price_pln: 70, sort_order: 5, is_group: true, max_participants: 8 },
+  { slug: "masaz-tajski", name: "Masaż tajski tradycyjny", description: "Połączenie akupresury i biernego stretchingu. Praca na matę, w wygodnym ubraniu.", duration_min: 90, price_pln: 220, sort_order: 6, is_group: false },
+  { slug: "masaz-shiatsu", name: "Masaż Shiatsu", description: "Japońska technika ucisku punktów meridianów. Głęboki relaks i odblokowanie energii.", duration_min: 60, price_pln: 180, sort_order: 7, is_group: false },
+  { slug: "spa-balijskie", name: "Rytuał balijski", description: "Masaż z gorącymi olejkami, peeling i okład. 120 minut totalnego odprężenia.", duration_min: 120, price_pln: 320, sort_order: 8, is_group: false },
 ];
 
 const JOGA_STAFF: StaffSeed[] = [
   { name: "Zofia", bio: "Certyfikowana instruktorka jogi (RYT 500). Specjalizacja: Hatha i Vinyasa.", color: "#7eb89a", sort_order: 1 },
   { name: "Olga", bio: "Instruktorka Pilates i jogi prenatalnej. Pasjonatka pracy z ciałem.", color: "#b89a7e", sort_order: 2 },
   { name: "Marta", bio: "Nauczycielka medytacji i technik oddechowych. 10 lat praktyki.", color: "#9a7eb8", sort_order: 3 },
+  { name: "Mei Lin", bio: "Specjalistka masażu tajskiego i shiatsu. 8 lat doświadczenia w spa Bangkok i Tokio.", color: "#d4a26a", sort_order: 4 },
 ];
 
 // Joga nie ma grup cenowych — każdy instruktor ta sama stawka

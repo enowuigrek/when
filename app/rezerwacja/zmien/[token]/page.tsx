@@ -2,10 +2,15 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { verifyBookingToken } from "@/lib/booking-token";
-import { getBookingById } from "@/lib/db/bookings";
-import { getBusinessHours } from "@/lib/db/services";
-import { getActiveStaff } from "@/lib/db/staff";
-import { getSettings, getTimeFilters } from "@/lib/db/settings";
+import {
+  getBookingByIdPublic,
+  getBusinessHoursForTenant,
+  getActiveStaffForTenant,
+  getSettingsForTenant,
+  getTimeFiltersForTenant,
+  getBookingsInRangeForTenant,
+  getStaffAvailabilityMapForTenant,
+} from "@/lib/db/for-tenant";
 import {
   computeAvailableSlots,
   warsawToday,
@@ -25,7 +30,7 @@ export default async function ReschedulePage({ params }: { params: Params }) {
   const bookingId = verifyBookingToken(token, "reschedule");
   if (!bookingId) notFound();
 
-  const booking = await getBookingById(bookingId);
+  const booking = await getBookingByIdPublic(bookingId);
   if (!booking) notFound();
 
   if (booking.status !== "confirmed") {
@@ -70,11 +75,12 @@ export default async function ReschedulePage({ params }: { params: Params }) {
   ).service;
   if (!service) notFound();
 
+  const tid = booking.tenant_id;
   const [hours, settings, timeFilters, activeStaff] = await Promise.all([
-    getBusinessHours(),
-    getSettings(),
-    getTimeFilters(),
-    getActiveStaff(),
+    getBusinessHoursForTenant(tid),
+    getSettingsForTenant(tid),
+    getTimeFiltersForTenant(tid),
+    getActiveStaffForTenant(tid),
   ]);
 
   const staffId = booking.staff_id ?? null;
@@ -91,9 +97,7 @@ export default async function ReschedulePage({ params }: { params: Params }) {
   const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
 
-  const { getBookingsInRange } = await import("@/lib/db/bookings");
-  const { getStaffAvailabilityMap } = await import("@/lib/db/staff-schedule");
-  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), initialDate);
+  const availMap = await getStaffAvailabilityMapForTenant(activeStaff.map((s) => s.id), initialDate, tid);
 
   let initialSlots;
   if (staffId) {
@@ -106,11 +110,11 @@ export default async function ReschedulePage({ params }: { params: Params }) {
             : h;
         })
       : hours;
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId, booking.id);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, tid, staffId, booking.id);
     initialSlots = computeAvailableSlots(initialDate, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
   } else {
     const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, booking.id);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, tid, undefined, booking.id);
     initialSlots = computeAvailableSlots(initialDate, service.duration_min, hours, existing, settings.slot_granularity_min, Math.max(1, availableStaff.length), true);
   }
 

@@ -39,7 +39,10 @@ export default async function SuccessPage({ params }: { params: Params }) {
   const gcEnd = booking.ends_at.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const gcDetails = encodeURIComponent(`Zarządzaj rezerwacją: ${siteUrl}/rezerwacja/sukces/${id}`);
   const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${gcTitle}&dates=${gcStart}/${gcEnd}&location=${gcLocation}&details=${gcDetails}`;
-  const icalUrl = `/api/rezerwacja/${id}/ical`;
+  // Absolute URL ending in .ics — required for iOS Safari to recognise
+  // the file type and offer "Open in Calendar". Relative URLs without
+  // the .ics extension get rendered as plain text on iPhone.
+  const icalUrl = `${siteUrl || ""}/api/rezerwacja/${id}/event.ics`;
 
   return (
     <>

@@ -3,13 +3,17 @@
 import { redirect } from "next/navigation";
 import { verifyBookingToken } from "@/lib/booking-token";
 import { signBookingToken } from "@/lib/booking-token";
-import { getBookingById, createBooking } from "@/lib/db/bookings";
-import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange, } from "@/lib/db/bookings";
+import {
+  getBookingByIdPublic,
+  getServiceBySlugForTenant,
+  getBusinessHoursForTenant,
+  getBookingsInRangeForTenant,
+  getActiveStaffForTenant,
+  getStaffAvailabilityMapForTenant,
+  getSettingsForTenant,
+  createBookingForTenant,
+} from "@/lib/db/for-tenant";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
-import { getActiveStaff } from "@/lib/db/staff";
-import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
-import { getSettings } from "@/lib/db/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
@@ -38,36 +42,40 @@ export async function getSlotsForReschedule(
   staffId?: string | null,
   rescheduleToken?: string
 ): Promise<{ ok: true; slots: Slot[] } | { ok: false; message: string }> {
-  const service = await getServiceBySlug(serviceSlug);
+  // Token is required to know which tenant we're operating on.
+  if (!rescheduleToken) return { ok: false, message: "Brak tokena." };
+  const excludeId = verifyBookingToken(rescheduleToken, "reschedule");
+  if (!excludeId) return { ok: false, message: "Nieprawidłowy token." };
+
+  const booking = await getBookingByIdPublic(excludeId);
+  if (!booking) return { ok: false, message: "Rezerwacja nie istnieje." };
+  const tid = booking.tenant_id;
+
+  const service = await getServiceBySlugForTenant(serviceSlug, tid);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
-  // If we have a token, derive the booking id so we can exclude it from busy-slot calc.
-  const excludeId = rescheduleToken
-    ? verifyBookingToken(rescheduleToken, "reschedule") ?? undefined
-    : undefined;
-
   const [hours, settings, activeStaff] = await Promise.all([
-    getBusinessHours(),
-    getSettings(),
-    getActiveStaff(),
+    getBusinessHoursForTenant(tid),
+    getSettingsForTenant(tid),
+    getActiveStaffForTenant(tid),
   ]);
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
 
-  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
+  const availMap = await getStaffAvailabilityMapForTenant(activeStaff.map((s) => s.id), dateStr, tid);
 
   if (staffId) {
     const avail = availMap.get(staffId);
     if (avail && !avail.available) return { ok: true, slots: [] };
     const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId, excludeId);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, tid, staffId, excludeId);
     const slots = computeAvailableSlots(dateStr, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
     return { ok: true, slots };
   }
 
   const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
   const staffCount = Math.max(1, availableStaff.length);
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, excludeId);
+  const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, tid, undefined, excludeId);
   const slots = computeAvailableSlots(dateStr, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount, true);
   return { ok: true, slots };
 }
@@ -80,7 +88,7 @@ export async function rescheduleBookingAction(formData: FormData) {
   const startsAtIso = formData.get("startsAtIso")?.toString();
   if (!startsAtIso) throw new Error("Brak wybranego terminu.");
 
-  const booking = await getBookingById(bookingId);
+  const booking = await getBookingByIdPublic(bookingId);
   if (!booking || booking.status !== "confirmed") {
     redirect("/rezerwacja/anuluj/blad");
   }
@@ -100,8 +108,8 @@ export async function rescheduleBookingAction(formData: FormData) {
     .update({ status: "cancelled" })
     .eq("id", bookingId);
 
-  // Create new booking
-  const result = await createBooking({
+  // Create new booking — for the same tenant as the original
+  const result = await createBookingForTenant({
     serviceId: booking.service_id,
     customerName: booking.customer_name,
     customerPhone: booking.customer_phone,
@@ -110,7 +118,7 @@ export async function rescheduleBookingAction(formData: FormData) {
     endsAtIso: endsAt.toISOString(),
     notes: booking.notes,
     staffId: booking.staff_id,
-  });
+  }, booking.tenant_id);
 
   if (!result.ok) throw new Error(result.message);
 
@@ -125,7 +133,7 @@ export async function rescheduleBookingAction(formData: FormData) {
 
   // Send confirmation for new booking
   if (booking.customer_email) {
-    const s = await getSettings();
+    const s = await getSettingsForTenant(booking.tenant_id);
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     const newCancelToken = signBookingToken(result.id, "cancel");
     const newRescheduleToken = signBookingToken(result.id, "reschedule");

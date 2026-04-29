@@ -45,11 +45,13 @@ export default async function DashboardPage() {
           label="Rezerwacje — ten miesiąc"
           value={String(s.thisMonthBookings)}
           sub="potwierdzonych i zakończonych"
+          href="/admin/harmonogram?widok=miesiac"
         />
         <KpiCard
           label="Przychód — ten miesiąc"
           value={formatPln(s.thisMonthRevenue)}
           sub="suma z rezerwacji"
+          href="/admin/harmonogram?widok=miesiac"
         />
         <KpiCard
           label="Klienci łącznie"
@@ -218,29 +220,37 @@ export default async function DashboardPage() {
           <p className="text-sm text-zinc-600">Brak rezerwacji.</p>
         ) : (
           <div className="space-y-2">
-            {s.recentBookings.map((b) => (
-              <div
-                key={b.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800/40 bg-zinc-900/30 px-4 py-3"
-              >
-                <span className="min-w-0 flex-1 font-medium text-zinc-200 truncate">
-                  {b.customerName}
-                </span>
-                <span className="text-sm text-zinc-400 truncate">{b.serviceName}</span>
-                {b.staffName && (
-                  <span className="text-xs text-zinc-600">· {b.staffName}</span>
-                )}
-                <span className="font-mono text-xs text-zinc-500 ml-auto">
-                  {formatWarsawDate(b.startsAt)}, {formatWarsawTime(b.startsAt)}
-                </span>
-                <span className={`text-xs font-medium ${STATUS_COLOR[b.status] ?? "text-zinc-500"}`}>
-                  {STATUS_LABEL[b.status] ?? b.status}
-                </span>
-                {b.pricePln != null && (
-                  <span className="font-mono text-xs text-zinc-500">{b.pricePln} zł</span>
-                )}
-              </div>
-            ))}
+            {s.recentBookings.map((b) => {
+              // ISO date YYYY-MM-DD for harmonogram day-view link.
+              // Slice the UTC ISO; for normal daytime bookings this matches
+              // the Warsaw date. Edge cases (midnight bookings) might be off
+              // by a day — acceptable for navigation.
+              const dayIso = b.startsAt.slice(0, 10);
+              return (
+                <Link
+                  key={b.id}
+                  href={`/admin/harmonogram?widok=dzien&od=${dayIso}`}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-zinc-800/40 bg-zinc-900/30 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900/60"
+                >
+                  <span className="min-w-0 flex-1 font-medium text-zinc-200 truncate">
+                    {b.customerName}
+                  </span>
+                  <span className="text-sm text-zinc-400 truncate">{b.serviceName}</span>
+                  {b.staffName && (
+                    <span className="text-xs text-zinc-600">· {b.staffName}</span>
+                  )}
+                  <span className="font-mono text-xs text-zinc-500 ml-auto">
+                    {formatWarsawDate(b.startsAt)}, {formatWarsawTime(b.startsAt)}
+                  </span>
+                  <span className={`text-xs font-medium ${STATUS_COLOR[b.status] ?? "text-zinc-500"}`}>
+                    {STATUS_LABEL[b.status] ?? b.status}
+                  </span>
+                  {b.pricePln != null && (
+                    <span className="font-mono text-xs text-zinc-500">{b.pricePln} zł</span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

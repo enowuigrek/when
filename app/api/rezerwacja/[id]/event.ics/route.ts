@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBookingById } from "@/lib/db/bookings";
-import { getSettings } from "@/lib/db/settings";
+import { getBookingByIdPublic } from "@/lib/db/for-tenant";
+import { getSettingsForTenant } from "@/lib/db/for-tenant";
 
 type Params = Promise<{ id: string }>;
 
@@ -18,10 +18,11 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const [booking, s] = await Promise.all([getBookingById(id), getSettings()]);
+  const booking = await getBookingByIdPublic(id);
   if (!booking || booking.status !== "confirmed") {
     return new NextResponse("Not found", { status: 404 });
   }
+  const s = await getSettingsForTenant(booking.tenant_id);
 
   const service = (booking as { service?: { name: string } }).service;
   const title = service ? `${service.name} — ${s.business_name}` : s.business_name;
@@ -61,8 +62,10 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      // inline (not attachment) so iOS Safari opens it directly in Calendar app
-      "Content-Disposition": `inline; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
+      // attachment + .ics URL extension makes iOS Safari show a banner
+      // prompting "Open in Calendar". Inline + relative URL gets shown
+      // as plain text on iOS — broken UX.
+      "Content-Disposition": `attachment; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
       "Cache-Control": "no-store",
     },
   });

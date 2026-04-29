@@ -174,3 +174,4 @@ export async function getBookingById(id: string) {
   if (error) throw new Error(`Failed to load booking: ${error.message}`);
   return data;
 }
+

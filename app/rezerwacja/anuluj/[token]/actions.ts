@@ -2,9 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { verifyBookingToken } from "@/lib/booking-token";
-import { getBookingById } from "@/lib/db/bookings";
+import { getBookingByIdPublic, getSettingsForTenant } from "@/lib/db/for-tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSettings } from "@/lib/db/settings";
 import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
 import { recordBookingEvent } from "@/lib/db/booking-events";
@@ -14,7 +13,7 @@ export async function customerCancelAction(formData: FormData) {
   const bookingId = verifyBookingToken(token, "cancel");
   if (!bookingId) throw new Error("Nieprawidłowy link.");
 
-  const booking = await getBookingById(bookingId);
+  const booking = await getBookingByIdPublic(bookingId);
   if (!booking || booking.status !== "confirmed") {
     redirect("/rezerwacja/anuluj/blad");
   }
@@ -39,7 +38,7 @@ export async function customerCancelAction(formData: FormData) {
   });
 
   if (booking.customer_email) {
-    const s = await getSettings();
+    const s = await getSettingsForTenant(booking.tenant_id);
     const service = (booking as { service?: { name: string } }).service;
     const { subject, html, text } = buildCancellationEmail({
       bookingId,
