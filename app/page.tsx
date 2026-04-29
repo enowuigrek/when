@@ -82,8 +82,8 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
         <div
           key={s.n}
           className="relative"
-          data-reveal
-          style={{ "--reveal-delay": `${i * 90}ms` } as React.CSSProperties}
+          data-reveal={i % 2 === 0 ? "left" : "right"}
+          style={{ "--reveal-delay": `${i * 110}ms` } as React.CSSProperties}
         >
           <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70">
             <span className="font-mono text-3xl font-bold leading-none text-[var(--color-accent)]/80 transition-colors group-hover:text-[var(--color-accent)]">{s.n}</span>
@@ -206,8 +206,8 @@ export default function StartPage() {
             {useCases.map((u, i) => (
               <div
                 key={u.title}
-                data-reveal
-                style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}
+                data-reveal={i % 3 === 0 ? "left" : i % 3 === 2 ? "right" : ""}
+                style={{ "--reveal-delay": `${(i % 3) * 90}ms` } as React.CSSProperties}
                 className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6 transition-colors hover:border-[var(--color-accent)]/40"
               >
                 <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
@@ -227,8 +227,8 @@ export default function StartPage() {
             {features.map((f, i) => (
               <li
                 key={f}
-                data-reveal
-                style={{ "--reveal-delay": `${i * 40}ms` } as React.CSSProperties}
+                data-reveal={i % 2 === 0 ? "left" : "right"}
+                style={{ "--reveal-delay": `${(i % 2) * 80 + Math.floor(i / 2) * 60}ms` } as React.CSSProperties}
                 className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4"
               >
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] text-xs font-bold text-zinc-950">

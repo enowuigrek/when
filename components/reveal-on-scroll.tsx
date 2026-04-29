@@ -29,7 +29,11 @@ export function RevealOnScroll() {
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+      // Trigger when the element is well inside the viewport — not
+      // when it just peeks from the bottom edge. Bottom margin shrinks
+      // the observed area so the element must be ~25% above the
+      // viewport bottom before firing.
+      { threshold: 0.25, rootMargin: "0px 0px -22% 0px" }
     );
 
     document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
