@@ -12,9 +12,10 @@ import { useEffect } from "react";
 export function RevealOnScroll() {
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const SELECTOR = "[data-reveal], [data-section-reveal]";
     if (!("IntersectionObserver" in window)) {
       // Old browsers — just show everything
-      document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
+      document.querySelectorAll<HTMLElement>(SELECTOR).forEach((el) => {
         el.classList.add("is-in-view");
       });
       return;
@@ -33,10 +34,10 @@ export function RevealOnScroll() {
       // when it just peeks from the bottom edge. Bottom margin shrinks
       // the observed area so the element must be ~25% above the
       // viewport bottom before firing.
-      { threshold: 0.25, rootMargin: "0px 0px -22% 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -15% 0px" }
     );
 
-    document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
+    document.querySelectorAll<HTMLElement>(SELECTOR).forEach((el) => {
       observer.observe(el);
     });
 

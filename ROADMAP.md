@@ -146,6 +146,27 @@ Każda z tych rzeczy to studnia bez dna, łatwo się wciągnąć.
 
 ---
 
+## Bugi / TODO do następnej sesji
+
+Rzeczy zauważone podczas testowania, czekają na osobną iterację:
+
+- **Light theme — pełny audit.** Theme switcher zmienia teraz natychmiast,
+  ale w wielu miejscach light mode wygląda źle / niespójnie. Przejść po
+  każdej stronie w light theme i poprawić kontrasty.
+- **Widget — całkowity redesign.** Obecny `/widget/[tenantSlug]/[serviceSlug]`
+  wygląda gorzej niż `/rezerwacja/[slug]` (z `SiteHeader` + `SiteFooter`
+  i ładnym stepperem). Widget powinien dostać ten sam UX co `/rezerwacja`
+  (z dostosowaniem do ramki iframe). Duże zadanie.
+- **iPhone — "Dodaj do kalendarza"** nie działa. Plik `.ics` powinien być
+  generowany i serwowany z poprawnym MIME type `text/calendar`. Sprawdzić
+  `app/api/rezerwacja/[id]/ical/route.ts`.
+- **iPhone Safari — input zoom** już naprawiony (font-size 16px na mobile).
+- **`when-three.vercel.app` w environment variables.** Po podpięciu domeny
+  trzeba w Vercel Settings → Environment Variables ustawić
+  `NEXT_PUBLIC_SITE_URL` na `https://www.whenbooking.pl` (lub bez `www`,
+  zależnie od preferencji). Inaczej maile, OG i ical będą wskazywać na
+  stary URL `*.vercel.app`.
+
 ## Otwarte pytania
 
 Rzeczy do przemyślenia zanim się je zacznie kodować:

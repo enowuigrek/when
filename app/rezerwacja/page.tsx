@@ -38,7 +38,7 @@ export default async function ServicePickPage({
           </div>
 
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-            Co potrzebujesz?
+            Czego potrzebujesz?
           </h1>
           <p className="mt-3 text-zinc-400">
             Wybierz usługę, potem złapiemy wolny termin.

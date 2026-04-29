@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://when-three.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.whenbooking.pl";
 
 export function EmbedSnippet({ tenantSlug }: { tenantSlug: string }) {
   const widgetUrl = `${BASE_URL}/widget/${tenantSlug}`;

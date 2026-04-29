@@ -115,6 +115,8 @@ function DemoCTAs({ variant = "hero" }: { variant?: "hero" | "compact" }) {
 export default function StartPage() {
   return (
     <main className="min-h-screen text-zinc-100">
+      {/* Fixed calendar grid — landing only */}
+      <div aria-hidden className="landing-grid-bg" />
       {/* Top bar — opaque to cover grid */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -162,7 +164,7 @@ export default function StartPage() {
       </section>
 
       {/* HOW IT WORKS — owner */}
-      <section id="jak-to-dziala" className="section-glow border-b border-zinc-800/60">
+      <section id="jak-to-dziala" data-section-reveal className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
@@ -180,8 +182,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — client — opaque, covers grid */}
-      <section className="border-b border-zinc-800/60 bg-zinc-900">
+      {/* HOW IT WORKS — client — black, covers grid */}
+      <section data-section-reveal className="border-b border-zinc-800/60 bg-black">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
@@ -195,7 +197,7 @@ export default function StartPage() {
       </section>
 
       {/* Use cases */}
-      <section className="section-glow border-b border-zinc-800/60">
+      <section data-section-reveal className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo jest WHEN?</h2>
           <p className="mt-2 text-zinc-500">
@@ -220,7 +222,7 @@ export default function StartPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="section-glow border-b border-zinc-800/60 bg-zinc-950">
+      <section id="features" data-section-reveal className="section-glow border-b border-zinc-800/60 bg-zinc-950">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -242,7 +244,7 @@ export default function StartPage() {
       </section>
 
       {/* Final CTA — transparent, shows grid */}
-      <section className="border-b border-zinc-800/60">
+      <section data-section-reveal className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
@@ -253,8 +255,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* Wdrożenie — opaque */}
-      <section id="wdrozenie" className="bg-zinc-900">
+      {/* Wdrożenie — black */}
+      <section id="wdrozenie" data-section-reveal className="bg-black">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-200">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
@@ -295,15 +297,15 @@ export default function StartPage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-800/60 bg-zinc-950">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-7 text-xs text-zinc-500">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-7 text-xs text-zinc-100">
           <p className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="when" className="h-6 logo-adaptive" />
-            <span className="text-zinc-600">— system rezerwacji online</span>
+            <span className="text-zinc-300">— system rezerwacji online</span>
           </p>
           <p>
             © {new Date().getFullYear()} &nbsp;·&nbsp;{" "}
-            <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">
+            <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="text-zinc-100 hover:opacity-80 transition-opacity">
               lukasznowak<span style={{ color: "var(--color-accent)" }}>.dev</span>
             </a>
           </p>

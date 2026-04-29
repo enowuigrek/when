@@ -32,6 +32,24 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     if (state.status === "ok") router.refresh();
   }, [state.status, router]);
 
+  // Live preview: when user changes theme/accent in form, update the
+  // closest [data-theme] wrapper's attribute and CSS vars so the change
+  // is visible immediately without saving.
+  useEffect(() => {
+    const wrapper = document.querySelector<HTMLElement>("[data-theme]");
+    if (!wrapper) return;
+    wrapper.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const wrapper = document.querySelector<HTMLElement>("[data-theme]");
+    if (!wrapper) return;
+    wrapper.style.setProperty("--accent", accentColor);
+    wrapper.style.setProperty("--accent-hover", accentColor);
+    wrapper.style.setProperty("--color-accent", accentColor);
+    wrapper.style.setProperty("--color-accent-hover", accentColor);
+  }, [accentColor]);
+
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 
   return (
