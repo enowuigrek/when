@@ -8,9 +8,18 @@ type Props = { params: Promise<{ tenantSlug: string }> };
 export async function generateMetadata({ params }: Props) {
   const { tenantSlug } = await params;
   const tenantId = await getTenantIdBySlug(tenantSlug);
-  if (!tenantId) return { title: "Rezerwacje" };
+  if (!tenantId) return { title: "Rezerwacje", robots: { index: false } };
   const s = await getSettingsForTenant(tenantId);
-  return { title: `Zarezerwuj — ${s.business_name}`, robots: { index: false } };
+  return {
+    title: `Zarezerwuj — ${s.business_name}`,
+    description: "Zarezerwuj wizytę online — szybko, bez logowania.",
+    robots: { index: false },
+    openGraph: {
+      title: `Zarezerwuj — ${s.business_name}`,
+      description: "Zarezerwuj wizytę online — szybko, bez logowania.",
+      type: "website",
+    },
+  };
 }
 
 const DAY_SHORT = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"];

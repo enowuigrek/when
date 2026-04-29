@@ -258,7 +258,7 @@ export default function StartPage() {
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-            Chcesz to uruchomić w swojej firmie?
+            Chcesz uruchomić WHEN w swojej firmie?
           </h2>
           <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
             <p>
