@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
 
@@ -7,71 +8,84 @@ export const metadata = {
   description: "Zobacz swój salon w działającym demo — bez rejestracji. Postaw demo w 30 sekund.",
 };
 
-const useCases = [
-  { title: "Barber shop", body: "Strzyżenie, broda, combo. Wielu fryzjerów, własne grafiki i cenniki." },
-  { title: "Gabinet kosmetyczny", body: "Manicure, mezoterapia, henna. Różne ceny per specjalista." },
-  { title: "Studio jogi / fitness", body: "Zajęcia grupowe, limity miejsc, stałe godziny zajęć." },
-  { title: "Przychodnia / fizjo", body: "Wizyty lekarzy i fizjoterapeutów. Urlopy, dni wolne." },
-  { title: "Weterynarz / groomer", body: "Wizyty o różnym czasie trwania, historia klienta, notatki." },
-  { title: "I wiele innych", body: "Każdy biznes, w którym klient rezerwuje konkretny termin." },
+/**
+ * Highlight: bold + accent color. Used inline to make the eye stop on
+ * key phrases when scrolling through long descriptions.
+ */
+function Hi({ children }: { children: ReactNode }) {
+  return (
+    <span className="font-semibold text-[var(--color-accent)]">{children}</span>
+  );
+}
+
+type Step = { n: string; title: string; body: ReactNode };
+type UseCase = { title: string; body: ReactNode };
+
+const useCases: UseCase[] = [
+  { title: "Barber shop", body: <>Strzyżenie, broda, combo. <Hi>Wielu fryzjerów</Hi>, własne grafiki i cenniki.</> },
+  { title: "Gabinet kosmetyczny", body: <>Manicure, mezoterapia, henna. <Hi>Różne ceny per specjalista</Hi>.</> },
+  { title: "Studio jogi / fitness", body: <><Hi>Zajęcia grupowe</Hi>, limity miejsc, stałe godziny zajęć.</> },
+  { title: "Przychodnia / fizjo", body: <>Wizyty lekarzy i fizjoterapeutów. <Hi>Urlopy, dni wolne</Hi>.</> },
+  { title: "Weterynarz / groomer", body: <>Wizyty o różnym czasie trwania, <Hi>historia klienta</Hi>, notatki.</> },
+  { title: "I wiele innych", body: <>Każdy biznes, w którym <Hi>klient rezerwuje konkretny termin</Hi>.</> },
 ];
 
-const features = [
-  "Strona rezerwacji w Twojej marce",
-  "Grafik: dzień, tydzień, miesiąc",
-  "Wszyscy pracownicy w jednym widoku",
-  "Różne ceny dla grup pracowników",
-  "Powiadomienia email do klientów",
-  "Anulowanie i zmiana terminu jednym klikiem",
-  "Baza klientów z historią i notatkami",
-  "Godziny otwarcia, urlopy, dni wolne",
-  "Widget do osadzenia na stronie",
-  "Wdrożenie: jedna linijka HTML",
+const features: ReactNode[] = [
+  <>Strona rezerwacji w <Hi>Twojej marce</Hi></>,
+  <>Grafik: <Hi>dzień, tydzień, miesiąc</Hi></>,
+  <>Wszyscy pracownicy w <Hi>jednym widoku</Hi></>,
+  <><Hi>Różne ceny</Hi> dla grup pracowników</>,
+  <><Hi>Powiadomienia email</Hi> do klientów</>,
+  <>Anulowanie i zmiana terminu <Hi>jednym klikiem</Hi></>,
+  <>Baza klientów z <Hi>historią i notatkami</Hi></>,
+  <>Godziny otwarcia, <Hi>urlopy, dni wolne</Hi></>,
+  <>Widget do <Hi>osadzenia na stronie</Hi></>,
+  <>Wdrożenie: <Hi>jedna linijka HTML</Hi></>,
 ];
 
-const ownerSteps = [
+const ownerSteps: Step[] = [
   {
     n: "01",
     title: "Kliknij demo poniżej",
-    body: "Wybierasz branżę — barber, kosmetyka albo studio. Wchodzisz prosto do panelu managera z gotowymi danymi. Bez formularzy, bez podpinania karty.",
+    body: <>Wybierasz branżę — barber, kosmetyka albo studio. Wchodzisz prosto do <Hi>panelu managera</Hi> z gotowymi danymi. <Hi>Bez formularzy, bez podpinania karty.</Hi></>,
   },
   {
     n: "02",
     title: "Poznaj panel w 5 minut",
-    body: "Sprawdź harmonogram, edytuj usługi i ceny, zmień kolory. Dane demo są realistyczne — wyglądają jak prawdziwy salon.",
+    body: <>Sprawdź harmonogram, edytuj usługi i ceny, zmień kolory. <Hi>Dane demo są realistyczne</Hi> — wyglądają jak prawdziwy salon.</>,
   },
   {
     n: "03",
     title: "Wklej widget na swoją stronę",
-    body: "W Ustawienia → Embed widget masz gotowy kod. Jedna linijka HTML i formularz rezerwacji pojawia się na Twojej stronie. Działa z WordPress, Wix lub własnym HTML.",
+    body: <>W Ustawienia → Embed widget masz gotowy kod. <Hi>Jedna linijka HTML</Hi> i formularz rezerwacji pojawia się na Twojej stronie. Działa z <Hi>WordPress, Wix lub własnym HTML</Hi>.</>,
   },
   {
     n: "04",
     title: "Zarządzaj rezerwacjami",
-    body: "Nowe rezerwacje lądują w harmonogramie i bazie klientów. Możesz dodawać wizyty ręcznie — gdy klient zadzwoni lub przyjdzie osobiście, system i tak wyśle potwierdzenie.",
+    body: <>Nowe rezerwacje lądują w harmonogramie i bazie klientów. Możesz dodawać wizyty ręcznie — gdy klient zadzwoni lub przyjdzie osobiście, <Hi>system i tak wyśle potwierdzenie</Hi>.</>,
   },
 ];
 
-const clientSteps = [
+const clientSteps: Step[] = [
   {
     n: "01",
     title: "Wchodzi na Twoją stronę",
-    body: "Widok usług z cenami i czasem trwania. Klient może wybrać konkretnego pracownika albo dowolnego.",
+    body: <>Widok usług z cenami i czasem trwania. Klient może wybrać <Hi>konkretnego pracownika</Hi> albo <Hi>dowolnego</Hi>.</>,
   },
   {
     n: "02",
     title: "Wybiera datę i godzinę",
-    body: "Kalendarz pokazuje tylko dostępne dni. Sloty aktualizują się na bieżąco.",
+    body: <>Kalendarz pokazuje <Hi>tylko dostępne dni</Hi>. Sloty aktualizują się <Hi>na bieżąco</Hi>.</>,
   },
   {
     n: "03",
     title: "Podaje dane i potwierdza",
-    body: "Imię, telefon, opcjonalnie email i uwagi. Bez rejestracji.",
+    body: <>Imię, telefon, opcjonalnie email i uwagi. <Hi>Bez rejestracji.</Hi></>,
   },
   {
     n: "04",
     title: "Dostaje potwierdzenie emailem",
-    body: "Link do przeniesienia terminu i anulowania wizyty. Bez konieczności dzwonienia.",
+    body: <>Link do <Hi>przeniesienia terminu</Hi> i <Hi>anulowania wizyty</Hi>. Bez konieczności dzwonienia.</>,
   },
 ];
 
@@ -96,18 +110,18 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
   );
 }
 
-function DemoCTAs({ variant = "hero" }: { variant?: "hero" | "compact" }) {
-  const baseLink = "rounded-lg px-6 py-3 text-base font-medium transition-colors";
+function DemoCTAs() {
+  const baseLink = "rounded-lg px-6 py-3 text-base font-medium transition-colors text-center";
   const primary = `${baseLink} bg-[var(--color-accent)] text-zinc-950 hover:opacity-90`;
   const secondary = `${baseLink} border border-zinc-700 bg-zinc-900 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800`;
-  const labels = variant === "hero"
-    ? { barber: "Demo — Barber Shop", kosmetyka: "Demo — Gabinet Kosmetyczny", joga: "Demo — Studio Jogi" }
-    : { barber: "Demo — Barber", kosmetyka: "Demo — Gabinet", joga: "Demo — Studio Jogi" };
+  // Same labels for both variants — keeps the three buttons visually equal.
+  const labels = { barber: "Barber Shop", kosmetyka: "Gabinet Kosmetyczny", joga: "Studio Jogi" };
+  // Grid: stacked on mobile, three equal columns from sm up.
   return (
-    <div className="flex flex-wrap gap-3">
-      <a href="/api/demo/start?wariant=barber" className={primary}>{labels.barber}</a>
-      <a href="/api/demo/start?wariant=kosmetyka" className={secondary}>{labels.kosmetyka}</a>
-      <a href="/api/demo/start?wariant=joga" className={secondary}>{labels.joga}</a>
+    <div className="grid gap-3 sm:grid-cols-3">
+      <a href="/api/demo/start?wariant=barber" className={primary}>Demo — {labels.barber}</a>
+      <a href="/api/demo/start?wariant=kosmetyka" className={secondary}>Demo — {labels.kosmetyka}</a>
+      <a href="/api/demo/start?wariant=joga" className={secondary}>Demo — {labels.joga}</a>
     </div>
   );
 }
@@ -150,12 +164,12 @@ export default function StartPage() {
             <span className="text-zinc-400">bez rejestracji.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-zinc-400">
-            Postaw demo w 30 sekund. Sprawdź jak wygląda panel managera i strona, którą zobaczą Twoi klienci.
-            Demo jest pełnoprawne — z pracownikami, usługami i przykładowymi rezerwacjami.
+            Postaw demo w <Hi>30 sekund</Hi>. Sprawdź jak wygląda <Hi>panel managera</Hi> i strona, którą zobaczą Twoi klienci.
+            Demo jest <Hi>pełnoprawne</Hi> — z pracownikami, usługami i przykładowymi rezerwacjami.
           </p>
 
           <div id="demo" className="mt-10">
-            <DemoCTAs variant="hero" />
+            <DemoCTAs />
           </div>
           <p className="mt-4 text-xs text-zinc-600">
             Bez rejestracji, bez karty. Demo znika automatycznie po 24h.
@@ -176,7 +190,7 @@ export default function StartPage() {
           <Steps steps={ownerSteps} />
 
           <div className="mt-10">
-            <DemoCTAs variant="compact" />
+            <DemoCTAs />
             <p className="mt-3 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
           </div>
         </div>
@@ -228,7 +242,7 @@ export default function StartPage() {
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {features.map((f, i) => (
               <li
-                key={f}
+                key={i}
                 data-reveal="left"
                 style={{ "--reveal-delay": `${(i % 2) * 80 + Math.floor(i / 2) * 60}ms` } as React.CSSProperties}
                 className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900 p-4"
@@ -249,7 +263,7 @@ export default function StartPage() {
           <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
           <div className="mt-8 flex justify-center">
-            <DemoCTAs variant="compact" />
+            <DemoCTAs />
           </div>
           <p className="mt-4 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
         </div>
@@ -264,16 +278,16 @@ export default function StartPage() {
           </h2>
           <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
             <p>
-              <span className="text-zinc-200">System można wdrożyć na różne sposoby</span> — jako widget
+              System można wdrożyć <Hi>na różne sposoby</Hi> — jako widget
               na istniejącej stronie, samodzielny panel do zarządzania rezerwacjami albo pełną stronę rezerwacji.
             </p>
             <p>
-              Jeśli masz już stronę, dopasujemy wygląd i sposób działania do Twojej marki.
-              Jeśli jej nie masz — możemy przygotować wszystko od zera.
+              Jeśli masz już stronę, <Hi>dopasujemy wygląd</Hi> do Twojej marki.
+              Jeśli jej nie masz — <Hi>możemy przygotować wszystko od zera</Hi>.
             </p>
             <p>
               Wdrożenie odbywa się indywidualnie, zależnie od tego, czego potrzebuje Twoja firma.
-              Nie zostajesz z konfiguracją sam — pomagamy uruchomić system od początku do końca.
+              <Hi> Nie zostajesz z konfiguracją sam</Hi> — pomagamy uruchomić system od początku do końca.
             </p>
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
