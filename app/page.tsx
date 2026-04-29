@@ -114,8 +114,8 @@ function DemoCTAs({ variant = "hero" }: { variant?: "hero" | "compact" }) {
 
 export default function StartPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Top bar */}
+    <main className="min-h-screen text-zinc-100">
+      {/* Top bar — opaque to cover grid */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/" className="flex items-center">
@@ -135,8 +135,8 @@ export default function StartPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-zinc-800/60">
+      {/* Hero — opaque, covers grid */}
+      <section className="relative overflow-hidden border-b border-zinc-800/60 bg-zinc-950">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,162,106,0.18),transparent_55%)]"
@@ -162,7 +162,7 @@ export default function StartPage() {
       </section>
 
       {/* HOW IT WORKS — owner */}
-      <section id="jak-to-dziala" className="section-glow section-grid border-b border-zinc-800/60">
+      <section id="jak-to-dziala" className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
@@ -180,8 +180,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — client */}
-      <section className="border-b border-zinc-800/60 bg-zinc-900/20">
+      {/* HOW IT WORKS — client — opaque, covers grid */}
+      <section className="border-b border-zinc-800/60 bg-zinc-900">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
@@ -195,9 +195,9 @@ export default function StartPage() {
       </section>
 
       {/* Use cases */}
-      <section className="section-glow section-grid border-b border-zinc-800/60">
+      <section className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
+          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo jest WHEN?</h2>
           <p className="mt-2 text-zinc-500">
             Wszędzie tam, gdzie liczy się kalendarz, dostępność i szybkie umawianie wizyt.
           </p>
@@ -220,7 +220,7 @@ export default function StartPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="section-glow border-b border-zinc-800/60">
+      <section id="features" className="section-glow border-b border-zinc-800/60 bg-zinc-950">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -241,8 +241,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="border-b border-zinc-800/60">
+      {/* Final CTA — opaque */}
+      <section className="border-b border-zinc-800/60 bg-zinc-950">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
@@ -253,8 +253,8 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* Wdrożenie — expanded */}
-      <section id="wdrozenie" className="bg-zinc-900/20">
+      {/* Wdrożenie — opaque */}
+      <section id="wdrozenie" className="bg-zinc-900">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">

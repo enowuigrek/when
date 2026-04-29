@@ -18,6 +18,28 @@
   color-scheme: dark;
 }
 
+/* Base body colour — sections control their own bg, body is the canvas */
+body {
+  background-color: #09090b; /* zinc-950 */
+}
+
+/* ── Fixed calendar grid — always behind everything ────────
+   White semi-transparent lines. Sections that don't want
+   the grid cover it with an opaque/near-opaque background.
+   position:fixed is the only reliable cross-browser way
+   to make a background truly stay in place while scrolling. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
 /* ── Light theme ───────────────────────────────────────── */
 [data-theme="light"] {
   --accent: #b07d45;
@@ -214,21 +236,6 @@ html {
   z-index: 1;
 }
 
-/* ── Calendar grid texture + fixed parallax ───────────────────────
-   Add `section-grid` alongside `section-glow`.
-   The grid is fixed to the viewport, so as the user scrolls the
-   section content moves but the grid pattern appears to stay in
-   place. The next solid section scrolls over it naturally.           */
-.section-grid {
-  background-image:
-    linear-gradient(rgba(212, 162, 106, 0.042) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(212, 162, 106, 0.042) 1px, transparent 1px);
-  background-size: 44px 44px;
-  background-attachment: fixed;
-}
-@media (prefers-reduced-motion: reduce) {
-  .section-grid { background-attachment: scroll; }
-}
 
 /* ── Glow card — radial gradient like the hero, tied to mouse ─
    Add `glow-card` class. Children sit above the glow layer.       */
