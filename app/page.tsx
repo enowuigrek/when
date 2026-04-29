@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { RevealOnScroll } from "@/components/reveal-on-scroll";
+import { GlowCursor } from "@/components/glow-cursor";
 
 export const metadata = {
   title: "WHEN — system rezerwacji online",
@@ -76,9 +78,14 @@ const clientSteps = [
 function Steps({ steps }: { steps: typeof ownerSteps }) {
   return (
     <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {steps.map((s) => (
-        <div key={s.n} className="relative">
-          <div className="group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70 hover:shadow-[0_0_24px_-8px_var(--color-accent)]">
+      {steps.map((s, i) => (
+        <div
+          key={s.n}
+          className="relative"
+          data-reveal
+          style={{ "--reveal-delay": `${i * 90}ms` } as React.CSSProperties}
+        >
+          <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70">
             <span className="font-mono text-3xl font-bold leading-none text-[var(--color-accent)]/80 transition-colors group-hover:text-[var(--color-accent)]">{s.n}</span>
             <h3 className="mt-3 font-semibold text-zinc-100">{s.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
@@ -162,7 +169,7 @@ export default function StartPage() {
               Dla właściciela
             </span>
           </div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">Jak to działa?</h2>
+          <h2 data-reveal className="mt-3 text-3xl font-semibold tracking-tight">Jak to działa?</h2>
           <p className="mt-2 text-zinc-500">Od kliknięcia demo do działającego formularza na Twojej stronie — bez IT.</p>
           <Steps steps={ownerSteps} />
 
@@ -181,7 +188,7 @@ export default function StartPage() {
               Co widzi Twój klient
             </span>
           </div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">Rezerwacja w 60 sekund.</h2>
+          <h2 data-reveal className="mt-3 text-3xl font-semibold tracking-tight">Rezerwacja w 60 sekund.</h2>
           <p className="mt-2 text-zinc-500">Zero logowania, zero instalowania aplikacji. Działa na telefonie.</p>
           <Steps steps={clientSteps} />
         </div>
@@ -190,14 +197,19 @@ export default function StartPage() {
       {/* Use cases */}
       <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
+          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
           <p className="mt-2 text-zinc-500">
             Wszędzie tam, gdzie liczy się kalendarz, dostępność i szybkie umawianie wizyt.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {useCases.map((u) => (
-              <div key={u.title} className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
+            {useCases.map((u, i) => (
+              <div
+                key={u.title}
+                data-reveal
+                style={{ "--reveal-delay": `${i * 70}ms` } as React.CSSProperties}
+                className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6 transition-colors hover:border-[var(--color-accent)]/40"
+              >
                 <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
                 <h3 className="text-lg font-semibold text-zinc-100">{u.title}</h3>
                 <p className="mt-1.5 text-sm text-zinc-400">{u.body}</p>
@@ -210,10 +222,15 @@ export default function StartPage() {
       {/* Features */}
       <section id="features" className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
+          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-            {features.map((f) => (
-              <li key={f} className="flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4">
+            {features.map((f, i) => (
+              <li
+                key={f}
+                data-reveal
+                style={{ "--reveal-delay": `${i * 40}ms` } as React.CSSProperties}
+                className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4"
+              >
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] text-xs font-bold text-zinc-950">
                   ✓
                 </span>
@@ -227,7 +244,7 @@ export default function StartPage() {
       {/* Final CTA */}
       <section className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <h2 className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
+          <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
           <div className="mt-8 flex justify-center">
             <DemoCTAs variant="compact" />
@@ -287,6 +304,9 @@ export default function StartPage() {
           <p>© {new Date().getFullYear()} &nbsp;·&nbsp; <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">lukasznowak.dev</a></p>
         </div>
       </footer>
+
+      <RevealOnScroll />
+      <GlowCursor />
     </main>
   );
 }

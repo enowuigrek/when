@@ -9,6 +9,10 @@ import { AdminMobileNav } from "@/components/admin-mobile-nav";
 import { AdminNavLink } from "@/components/admin-nav-link";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
 
+// Always re-fetch settings (theme, accent, business_name) on every render
+// so changes from the Settings form are reflected immediately.
+export const dynamic = "force-dynamic";
+
 export default async function PanelLayout({
   children,
 }: {

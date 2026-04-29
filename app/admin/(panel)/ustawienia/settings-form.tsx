@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
 
@@ -23,6 +24,13 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     (settings.theme === "dark" || settings.theme === "light") ? settings.theme : "dark"
   );
   const [activeTab, setActiveTab] = useState<Tab>("firma");
+  const router = useRouter();
+
+  // After successful save, force the layout to re-fetch settings so the
+  // accent color / theme actually applies without a manual page reload.
+  useEffect(() => {
+    if (state.status === "ok") router.refresh();
+  }, [state.status, router]);
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 

@@ -14,7 +14,12 @@ export async function TenantThemeWrapper({ children }: { children: React.ReactNo
     <div
       data-theme={theme}
       className="flex min-h-screen flex-col"
-      style={{ "--accent": accent, "--accent-hover": accent } as React.CSSProperties}
+      style={{
+        "--accent": accent,
+        "--accent-hover": accent,
+        "--color-accent": accent,
+        "--color-accent-hover": accent,
+      } as React.CSSProperties}
     >
       {children}
     </div>
