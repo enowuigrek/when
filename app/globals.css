@@ -190,6 +190,46 @@ html {
   [data-reveal] { opacity: 1; transform: none; transition: none; }
 }
 
+/* ── Section ambient warm glow (like hero radial, but per-section) ──
+   Add `section-glow` to any section. The radial gradient sits at
+   the top-centre and fades to nothing. Children sit above it.        */
+.section-glow {
+  position: relative;
+  overflow: hidden;
+}
+.section-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 55% at 50% 0%,
+    rgba(212, 162, 106, 0.10) 0%,
+    transparent 68%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+.section-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Calendar grid texture + fixed parallax ───────────────────────
+   Add `section-grid` alongside `section-glow`.
+   The grid is fixed to the viewport, so as the user scrolls the
+   section content moves but the grid pattern appears to stay in
+   place. The next solid section scrolls over it naturally.           */
+.section-grid {
+  background-image:
+    linear-gradient(rgba(212, 162, 106, 0.042) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 162, 106, 0.042) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-attachment: fixed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-grid { background-attachment: scroll; }
+}
+
 /* ── Glow card — radial gradient like the hero, tied to mouse ─
    Add `glow-card` class. Children sit above the glow layer.       */
 .glow-card {

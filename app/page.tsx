@@ -82,7 +82,7 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
         <div
           key={s.n}
           className="relative"
-          data-reveal={i % 2 === 0 ? "left" : "right"}
+          data-reveal="left"
           style={{ "--reveal-delay": `${i * 110}ms` } as React.CSSProperties}
         >
           <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70">
@@ -162,7 +162,7 @@ export default function StartPage() {
       </section>
 
       {/* HOW IT WORKS — owner */}
-      <section id="jak-to-dziala" className="border-b border-zinc-800/60">
+      <section id="jak-to-dziala" className="section-glow section-grid border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center gap-3">
             <span className="rounded-md border border-zinc-700 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
@@ -195,7 +195,7 @@ export default function StartPage() {
       </section>
 
       {/* Use cases */}
-      <section className="border-b border-zinc-800/60">
+      <section className="section-glow section-grid border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo to jest?</h2>
           <p className="mt-2 text-zinc-500">
@@ -206,7 +206,7 @@ export default function StartPage() {
             {useCases.map((u, i) => (
               <div
                 key={u.title}
-                data-reveal={i % 3 === 0 ? "left" : i % 3 === 2 ? "right" : ""}
+                data-reveal="left"
                 style={{ "--reveal-delay": `${(i % 3) * 90}ms` } as React.CSSProperties}
                 className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6 transition-colors hover:border-[var(--color-accent)]/40"
               >
@@ -220,14 +220,14 @@ export default function StartPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="border-b border-zinc-800/60">
+      <section id="features" className="section-glow border-b border-zinc-800/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {features.map((f, i) => (
               <li
                 key={f}
-                data-reveal={i % 2 === 0 ? "left" : "right"}
+                data-reveal="left"
                 style={{ "--reveal-delay": `${(i % 2) * 80 + Math.floor(i / 2) * 60}ms` } as React.CSSProperties}
                 className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4"
               >
