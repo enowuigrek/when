@@ -5,6 +5,7 @@ import { getTenantIdBySlug } from "@/lib/tenant";
 import { getServicesForTenant, getSettingsForTenant, getBusinessHoursForTenant } from "@/lib/db/for-tenant";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
+import { WidgetPoweredBy } from "@/components/widget-powered-by";
 
 type Props = {
   params: Promise<{ tenantSlug: string }>;
@@ -57,10 +58,10 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
       className="flex min-h-screen flex-col"
       style={{ "--color-accent": accent, "--color-accent-hover": accent } as React.CSSProperties}
     >
-      <WidgetHeader settings={settings} tenantSlug={tenantSlug} />
+      {!isEmbed && <WidgetHeader settings={settings} tenantSlug={tenantSlug} />}
 
       <main className="flex-1">
-        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-8" : "py-12 md:py-16"}`}>
+        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-4" : "py-12 md:py-16"}`}>
           {/* Stepper — first step active */}
           <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
             <span className="text-zinc-200">
@@ -127,7 +128,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
         </section>
       </main>
 
-      {!isEmbed && <SiteFooter />}
+      {isEmbed ? <WidgetPoweredBy /> : <SiteFooter />}
     </div>
   );
 }

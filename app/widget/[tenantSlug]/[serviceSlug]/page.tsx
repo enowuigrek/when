@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/for-tenant";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
+import { WidgetPoweredBy } from "@/components/widget-powered-by";
 import { WidgetBookingFlow } from "./widget-booking-flow";
 import { getWidgetSlots } from "./actions";
 import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
@@ -81,10 +82,10 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
       className="flex min-h-screen flex-col"
       style={{ "--color-accent": accent, "--color-accent-hover": accent } as React.CSSProperties}
     >
-      <WidgetHeader settings={settings} tenantSlug={tenantSlug} />
+      {!isEmbed && <WidgetHeader settings={settings} tenantSlug={tenantSlug} />}
 
       <main className="flex-1">
-        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-8" : "py-12 md:py-16"}`}>
+        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-4" : "py-12 md:py-16"}`}>
           {/* Stepper — same UX as /rezerwacja flow */}
           <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
             <Link href={`${basePath || "/"}${isEmbed ? "?embed=1" : ""}`} className="hover:text-zinc-300">
@@ -137,7 +138,7 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
         </section>
       </main>
 
-      {!isEmbed && <SiteFooter />}
+      {isEmbed ? <WidgetPoweredBy /> : <SiteFooter />}
     </div>
   );
 }

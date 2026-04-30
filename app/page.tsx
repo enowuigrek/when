@@ -166,15 +166,26 @@ function DemoCTAs() {
  */
 async function getOwnerWidgetSrc(): Promise<string> {
   const fallback = "/widget/when/demo-30-min";
-  const ownerEmail = process.env.OWNER_EMAIL;
-  if (!ownerEmail) return fallback;
+  const ownerEmail = process.env.OWNER_EMAIL ?? CONTACT_EMAIL;
 
   const supabase = createAdminClient();
-  const { data: tenant } = await supabase
+  let { data: tenant } = await supabase
     .from("tenants")
     .select("id, slug")
     .eq("email", ownerEmail)
     .maybeSingle();
+
+  if (!tenant) {
+    const { data: firstTenant } = await supabase
+      .from("tenants")
+      .select("id, slug")
+      .neq("kind", "demo")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    tenant = firstTenant;
+  }
+
   if (!tenant) return fallback;
 
   const { data: svc } = await supabase
