@@ -205,6 +205,24 @@ export async function setServicePriceOverrideAction(formData: FormData): Promise
   revalidatePath(`/admin/uslugi/${serviceId}`);
 }
 
+export async function deleteServiceAction(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id")?.toString();
+  if (!id) return;
+
+  const tenantId = await getAdminTenantId();
+  const supabase = createAdminClient();
+
+  // Verify ownership before deleting
+  const { data: svc } = await supabase
+    .from("services").select("id").eq("tenant_id", tenantId).eq("id", id).maybeSingle();
+  if (!svc) return;
+
+  await supabase.from("services").delete().eq("id", id).eq("tenant_id", tenantId);
+
+  revalidatePath("/admin/uslugi");
+}
+
 export async function toggleServiceActiveAction(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id")?.toString();

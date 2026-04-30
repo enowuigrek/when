@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
+import { DeleteServiceButton } from "./delete-service-button";
 import type { Service } from "@/lib/types";
 
 export const metadata = { title: "Usługi", robots: { index: false } };
@@ -91,6 +92,7 @@ function ServiceRow({ service: s }: { service: Service }) {
             {s.active ? "Ukryj" : "Pokaż"}
           </button>
         </form>
+        <DeleteServiceButton id={s.id} name={s.name} />
       </div>
     </div>
   );
