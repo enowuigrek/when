@@ -12,6 +12,7 @@ function Field({
   placeholder,
   hint,
   error,
+  required = true,
 }: {
   label: string;
   name: string;
@@ -20,16 +21,20 @@ function Field({
   placeholder?: string;
   hint?: string;
   error?: string;
+  required?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-zinc-300">{label}</span>
+      <span className="mb-1 block text-sm text-zinc-300">
+        {label}
+        {!required && <span className="ml-1 text-zinc-600">(opcjonalnie)</span>}
+      </span>
       <input
         type={type}
         name={name}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        required
+        required={required}
         className={`w-full rounded-md border px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 bg-zinc-900/60 focus:outline-none focus:ring-2 focus:ring-zinc-700/50 transition-colors ${
           error
             ? "border-red-700 focus:border-red-600"
@@ -52,8 +57,7 @@ export default function RejestrPage() {
     { status: "idle" }
   );
 
-  const fieldErrors =
-    state.status === "error" ? (state.fieldErrors ?? {}) : {};
+  const fieldErrors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
   const globalError =
     state.status === "error" && !Object.keys(fieldErrors).length
       ? state.message
@@ -61,7 +65,6 @@ export default function RejestrPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-4 py-16">
-      {/* Logo */}
       <Link href="/" className="mb-10 flex items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="when" className="h-8 logo-adaptive" />
@@ -69,9 +72,7 @@ export default function RejestrPage() {
 
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-xl backdrop-blur-sm">
-          <h1 className="mb-1 text-xl font-semibold text-zinc-100">
-            Utwórz konto
-          </h1>
+          <h1 className="mb-1 text-xl font-semibold text-zinc-100">Utwórz konto</h1>
           <p className="mb-6 text-sm text-zinc-500">
             Bezpłatny dostęp. Bez karty kredytowej.
           </p>
@@ -92,26 +93,38 @@ export default function RejestrPage() {
               type="email"
               autoComplete="email"
               placeholder="twoj@email.pl"
-              hint="Służy do logowania — nie wysyłamy spamu"
+              hint="Służy do logowania i powiadomień"
               error={fieldErrors.email}
             />
 
             <Field
-              label="Hasło"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              hint="Minimum 8 znaków"
-              error={fieldErrors.password}
+              label="Telefon"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+48 500 000 000"
+              hint="Widoczny na stronie rezerwacji"
+              error={fieldErrors.phone}
+              required={false}
             />
 
-            <Field
-              label="Powtórz hasło"
-              name="password2"
-              type="password"
-              autoComplete="new-password"
-              error={fieldErrors.password2}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Hasło"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                hint="Min. 8 znaków"
+                error={fieldErrors.password}
+              />
+              <Field
+                label="Powtórz hasło"
+                name="password2"
+                type="password"
+                autoComplete="new-password"
+                error={fieldErrors.password2}
+              />
+            </div>
 
             {globalError && (
               <p className="rounded-md border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">
@@ -124,7 +137,7 @@ export default function RejestrPage() {
               disabled={pending}
               className="mt-2 w-full rounded-full bg-[var(--color-accent,#d4a26a)] px-4 py-2.5 font-semibold text-zinc-950 transition-colors hover:opacity-90 disabled:opacity-60"
             >
-              {pending ? "Tworzenie konta…" : "Załóż konto"}
+              {pending ? "Tworzenie konta…" : "Załóż konto →"}
             </button>
           </form>
         </div>
