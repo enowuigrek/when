@@ -41,7 +41,7 @@ export async function WidgetHeader({ settings, tenantSlug }: Props) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="when" className="h-3 logo-adaptive mr-1.5 opacity-50" />
-          Powered by when
+          Powered by WHEN
         </a>
       </div>
     </header>

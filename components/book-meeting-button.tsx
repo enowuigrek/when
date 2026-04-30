@@ -32,11 +32,11 @@ export function BookMeetingButton({ src }: { src?: string }) {
 
       {open && (
         <div
-          className="fixed inset-0 z-[500] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[500] flex items-stretch justify-center bg-zinc-950 p-0 sm:items-center sm:bg-black/80 sm:p-4 sm:backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <div
-            className="relative flex h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+            className="relative flex h-dvh w-full max-w-none flex-col overflow-hidden border-0 border-zinc-800 bg-zinc-950 shadow-2xl sm:h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -52,7 +52,7 @@ export function BookMeetingButton({ src }: { src?: string }) {
             </div>
             <iframe
               src={`${widgetSrc}?embed=1`}
-              className="flex-1 w-full border-0"
+              className="min-h-0 flex-1 w-full border-0"
               title="Umów rozmowę z twórcą when?"
             />
           </div>
