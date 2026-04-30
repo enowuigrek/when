@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from "react";
 
-export function BookMeetingButton({ src }: { src?: string }) {
+type BookMeetingButtonProps = {
+  src?: string;
+  label?: string;
+  className?: string;
+};
+
+export function BookMeetingButton({
+  src,
+  label = "Umów bezpłatną rozmowę →",
+  className = "rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90",
+}: BookMeetingButtonProps) {
   const widgetSrc = src ?? "/widget/when/demo-30-min";
   const [open, setOpen] = useState(false);
 
@@ -25,9 +35,9 @@ export function BookMeetingButton({ src }: { src?: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
+        className={className}
       >
-        Umów bezpłatną rozmowę →
+        {label}
       </button>
 
       {open && (

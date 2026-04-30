@@ -12,6 +12,7 @@ export const metadata = {
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.whenbooking.pl";
+const CONTACT_EMAIL = "kontakt@lukasznowak.dev";
 
 /** Structured data for Google: lets the SERP show name, logo, ratings.
  *  We use SoftwareApplication because WHEN is a SaaS booking tool. */
@@ -211,12 +212,11 @@ export default async function StartPage() {
           <nav className="flex items-center gap-6 text-sm">
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
             <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
-            <a
-              href="/rejestracja"
-              className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 hover:opacity-90 transition-opacity"
-            >
-              Załóż konto →
-            </a>
+            <BookMeetingButton
+              src={ownerWidgetSrc}
+              label="Umów rozmowę"
+              className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 transition-opacity hover:opacity-90"
+            />
           </nav>
         </div>
       </header>
@@ -244,10 +244,10 @@ export default async function StartPage() {
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <p className="text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
             <a
-              href="/rejestracja"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline transition-colors"
             >
-              Masz już dość demo? Załóż konto →
+              Wolisz najpierw pogadać? Napisz do mnie →
             </a>
           </div>
         </div>
@@ -366,16 +366,16 @@ export default async function StartPage() {
             </p>
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <a
-              href="/rejestracja"
-              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
-            >
-              Załóż konto za darmo →
-            </a>
             <BookMeetingButton src={ownerWidgetSrc} />
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+            >
+              Napisz do mnie →
+            </a>
           </div>
           <p className="mt-4 text-xs text-zinc-600">
-            Bez karty kredytowej &nbsp;·&nbsp; lub umów 30-minutową rozmowę ze mną
+            Najpierw rozmowa albo wiadomość — konto zakładamy dopiero, gdy ma to sens
           </p>
         </div>
       </section>
