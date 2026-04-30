@@ -1,12 +1,8 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/cleanup-demos",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-pending-payments",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+    "crons": [
+        {
+            "path": "/api/cron/cleanup-demos",
+            "schedule": "0 3 * * *"
+        }
+    ]
 }
