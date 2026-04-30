@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashPassword } from "@/lib/auth/password";
 import { createAdminSession } from "@/lib/auth/admin-session";
+import { clearDemoCookie } from "@/lib/tenant";
 
 const schema = z.object({
   business_name: z.string().trim().min(2, "Podaj nazwę firmy").max(120),
@@ -126,6 +127,7 @@ export async function registerAction(
     ]),
   ]);
 
+  await clearDemoCookie();
   await createAdminSession(tenantId);
   redirect("/admin");
 }
