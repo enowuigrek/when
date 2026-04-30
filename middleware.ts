@@ -18,6 +18,19 @@ export function middleware(req: NextRequest) {
   const hostname = host.split(":")[0].toLowerCase();
   const pathname = req.nextUrl.pathname;
 
+  // Auto-clear stale demo cookie when a real admin session is present.
+  // Full session validation happens in server components; here we just check
+  // cookie co-existence so the real session always wins without needing crypto.
+  if (pathname.startsWith("/admin")) {
+    const hasSession = req.cookies.has("when_admin");
+    const hasDemo = req.cookies.has("when_demo");
+    if (hasSession && hasDemo) {
+      const res = NextResponse.next();
+      res.cookies.delete("when_demo");
+      return res;
+    }
+  }
+
   // Detect tenant subdomain.
   // Production: *.whenbooking.pl  (3 parts)
   // Dev shortcut: *.localhost     (2 parts)
