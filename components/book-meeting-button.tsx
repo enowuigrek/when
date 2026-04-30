@@ -40,7 +40,7 @@ export function BookMeetingButton({ src }: { src?: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-3">
+            <div className="hidden items-center justify-between border-b border-zinc-800 px-5 py-3 sm:flex">
               <p className="text-sm font-medium text-zinc-300">Umów bezpłatną rozmowę</p>
               <button
                 onClick={() => setOpen(false)}
@@ -50,6 +50,13 @@ export function BookMeetingButton({ src }: { src?: string }) {
                 ×
               </button>
             </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800/80 bg-zinc-950/90 text-2xl leading-none text-zinc-300 shadow-lg backdrop-blur transition-colors hover:text-zinc-100 sm:hidden"
+              aria-label="Zamknij"
+            >
+              ×
+            </button>
             <iframe
               src={`${widgetSrc}?embed=1`}
               className="min-h-0 flex-1 w-full border-0"
