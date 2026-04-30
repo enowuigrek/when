@@ -3,12 +3,12 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange } from "@/lib/db/bookings";
-import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
+import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getSettings, getTimeFilters } from "@/lib/db/settings";
 import { getStaffUnavailableDatesMap } from "@/lib/db/staff-schedule";
 import { BookingFlow } from "./booking-flow";
+import { getSlotsForDate } from "./actions";
 
 type Params = Promise<{ slug: string }>;
 
@@ -51,21 +51,9 @@ export default async function BookingServicePage({ params }: { params: Params })
   for (const [sid, set] of unavailableMap) staffUnavailable[sid] = Array.from(set);
 
   const initialDate = days.find((d) => !d.closed)?.date ?? today;
-
-  const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
-  const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
-  const staffCount = service.is_group ? 1 : Math.max(1, activeStaff.length);
-  const initialSlots = computeAvailableSlots(
-    initialDate,
-    service.duration_min,
-    hours,
-    existing,
-    settings.slot_granularity_min,
-    staffCount,
-    true,
-    service.is_group && service.max_participants ? service.max_participants : undefined
-  );
+  const initialStaffId = !service.is_group && activeStaff.length === 1 ? activeStaff[0].id : null;
+  const initialSlotsRes = await getSlotsForDate(service.slug, initialDate, initialStaffId);
+  const initialSlots = initialSlotsRes.ok ? initialSlotsRes.slots : [];
 
   return (
     <>
@@ -116,7 +104,7 @@ export default async function BookingServicePage({ params }: { params: Params })
             staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
             staffUnavailable={staffUnavailable}
             isGroup={service.is_group}
-            maxParticipants={service.max_participants}
+            initialStaffId={initialStaffId}
           />
         </section>
       </main>

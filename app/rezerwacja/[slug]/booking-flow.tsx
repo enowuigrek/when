@@ -31,7 +31,7 @@ export function BookingFlow({
   staff,
   staffUnavailable,
   isGroup = false,
-  maxParticipants,
+  initialStaffId = null,
 }: {
   serviceSlug: string;
   days: Day[];
@@ -42,13 +42,13 @@ export function BookingFlow({
   staff: StaffOption[];
   staffUnavailable: Record<string, string[]>;
   isGroup?: boolean;
-  maxParticipants?: number | null;
+  initialStaffId?: string | null;
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(initialStaffId);
   const [loadingSlots, startSlotLoad] = useTransition();
 
   const [formState, formAction, formPending] = useActionState<BookingFormState, FormData>(

@@ -40,6 +40,7 @@ export function WidgetBookingFlow({
   staff,
   staffUnavailable,
   isEmbed = false,
+  initialStaffId = null,
 }: {
   tenantSlug: string;
   serviceSlug: string;
@@ -51,12 +52,13 @@ export function WidgetBookingFlow({
   staff: StaffOption[];
   staffUnavailable: Record<string, string[]>;
   isEmbed?: boolean;
+  initialStaffId?: string | null;
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(initialStaffId);
   const [loadingSlots, startSlotLoad] = useTransition();
 
   const [formState, formAction, formPending] = useActionState<WidgetBookingState, FormData>(

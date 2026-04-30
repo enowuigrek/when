@@ -69,7 +69,8 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
   }
 
   const initialDate = days.find((d) => !d.closed)?.date ?? today;
-  const initialSlotsRes = await getWidgetSlots(tenantSlug, serviceSlug, initialDate, null);
+  const initialStaffId = !service.is_group && activeStaff.length === 1 ? activeStaff[0].id : null;
+  const initialSlotsRes = await getWidgetSlots(tenantSlug, serviceSlug, initialDate, initialStaffId);
   const initialSlots = initialSlotsRes.ok ? initialSlotsRes.slots : [];
 
   const staffIds = activeStaff.map((s) => s.id);
@@ -134,6 +135,7 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
             staff={staffOptions}
             staffUnavailable={staffUnavailable}
             isEmbed={isEmbed}
+            initialStaffId={initialStaffId}
           />
         </section>
       </main>
