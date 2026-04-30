@@ -16,10 +16,12 @@ function fmt(d: string): string {
 export function WeekNav({
   weekStart,
   staffParam,
+  pracownicyParam,
   todayMonday,
 }: {
   weekStart: string; // Monday
   staffParam?: string;
+  pracownicyParam?: string;
   todayMonday: string;
 }) {
   const router = useRouter();
@@ -31,6 +33,7 @@ export function WeekNav({
     const params = new URLSearchParams();
     params.set("tydzien", monday);
     if (staffParam) params.set("pracownik", staffParam);
+    if (pracownicyParam) params.set("pracownicy", pracownicyParam);
     return `/admin/grafik?${params.toString()}`;
   }
 
@@ -75,7 +78,6 @@ export function WeekNav({
         onChange={(e) => {
           const picked = e.target.value;
           if (!picked) return;
-          // Snap to Monday of picked week
           const [y, m, d] = picked.split("-").map(Number);
           const dt = new Date(Date.UTC(y, m - 1, d));
           const dow = dt.getUTCDay();

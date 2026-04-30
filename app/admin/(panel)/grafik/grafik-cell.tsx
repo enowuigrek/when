@@ -35,7 +35,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 type Tab = "schedule" | "timeoff";
 
-export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRow, timeOff, businessOpen, businessClose, allStaff, allServices }: Props) {
+export function GrafikCell({ staffId, dayOfWeek, dateStr, scheduleRow, timeOff, businessOpen, businessClose, allStaff, allServices }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("schedule");
   const [pending, start] = useTransition();
@@ -100,7 +100,6 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
         ) : isWorking ? (
           <>
             <span className="font-mono">{currentStart}–{currentEnd}</span>
-            {isDefault && <span className="ml-1 text-zinc-600">(domyślne)</span>}
           </>
         ) : (
           <span>wolny</span>
@@ -176,8 +175,7 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-full px-3 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
-                  style={{ backgroundColor: staffColor }}
+                  className="rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
                 >
                   {pending ? "…" : "Zapisz"}
                 </button>
