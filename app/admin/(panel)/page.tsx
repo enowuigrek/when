@@ -257,6 +257,7 @@ export default async function DashboardPage() {
                     staffColor: b.staffColor,
                     notes: b.notes,
                     status,
+                    paymentStatus: null,
                   }}
                   allStaff={allStaff.map((st) => ({ id: st.id, name: st.name, color: st.color }))}
                   allServices={allServices}

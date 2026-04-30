@@ -120,11 +120,12 @@ Nie blokują niczego, ale podnoszą jakość:
 
 - **Email domain config per-tenant** — żeby maile szły z `kontakt@salon.pl`,
   nie z `noreply@whenbooking.pl`. Resend obsługuje multi-domain.
-- **Embed widget — modal popup** zamiast pełnej strony. Przycisk
-  "Zarezerwuj" → otwiera overlay nad stroną klienta. Mniej tarcia.
-- **Custom subdomena per-tenant** — `salon-name.whenbooking.pl` zamiast
-  ścieżki `/widget/salon-name`. Lepiej wygląda do udostępniania.
-- **"Dziś" button w panelu** — szybki powrót do dzisiejszego dnia w grafiku.
+- ✅ **Embed widget — modal popup** — zrobione. Przycisk „Zarezerwuj wizytę"
+  z JS snippetem. Ustawienia → Embed widget.
+- ✅ **Custom subdomena per-tenant** — zrobione. `middleware.ts` rewrituje
+  `slug.whenbooking.pl/*` → `/widget/slug/*`. Wymaga ręcznego dodania
+  wildcard domeny `*.whenbooking.pl` w Vercel → Domains.
+- ✅ **"Dziś" button w panelu** — jest w harmonogramie.
 - **OG image dla każdej rezerwacji** — gdy klient wysyła link potwierdzenia
   na messenger, ładny preview z datą i godziną.
 - **Mobile PWA dla właściciela** — żeby telefon mógł działać jak app, pushe

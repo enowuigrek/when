@@ -7,15 +7,30 @@ import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 
-export const metadata = {
-  title: "Rezerwacja potwierdzona",
-  robots: { index: false },
-};
+export async function generateMetadata({ params }: { params: Params }) {
+  const { id } = await params;
+  const booking = /^[0-9a-f-]{36}$/i.test(id) ? await getBookingByIdPublic(id) : null;
+  const businessName = booking
+    ? ((await getSettingsForTenant(booking.tenant_id)).business_name)
+    : "when?";
+  return {
+    title: `Rezerwacja potwierdzona — ${businessName}`,
+    robots: { index: false },
+  };
+}
 
 type Params = Promise<{ id: string }>;
 
-export default async function SuccessPage({ params }: { params: Params }) {
+export default async function SuccessPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Promise<{ embed?: string }>;
+}) {
   const { id } = await params;
+  const { embed } = await searchParams;
+  const isEmbed = embed === "1";
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const booking = await getBookingByIdPublic(id);
@@ -46,19 +61,32 @@ export default async function SuccessPage({ params }: { params: Params }) {
 
   return (
     <>
-      <SiteHeader />
+      {!isEmbed && <SiteHeader />}
       <main className="flex-1">
-        <section className="mx-auto max-w-xl px-6 py-16 md:py-24">
+        <section className={`mx-auto max-w-xl px-6 ${isEmbed ? "py-10" : "py-16 md:py-24"}`}>
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-2xl text-[var(--color-accent)]">
             ✓
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            Rezerwacja potwierdzona
-          </h1>
-          <p className="mt-3 text-zinc-400">
-            Do zobaczenia! Numer rezerwacji:{" "}
-            <span className="font-mono text-zinc-300">{booking.id.slice(0, 8)}</span>
-          </p>
+          {booking.status === "pending_payment" ? (
+            <>
+              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                Płatność w toku…
+              </h1>
+              <p className="mt-3 text-zinc-400">
+                Czekamy na potwierdzenie płatności. Gdy przejdzie — wyślemy Ci e-mail z potwierdzeniem rezerwacji.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                Rezerwacja potwierdzona
+              </h1>
+              <p className="mt-3 text-zinc-400">
+                Do zobaczenia! Numer rezerwacji:{" "}
+                <span className="font-mono text-zinc-300">{booking.id.slice(0, 8)}</span>
+              </p>
+            </>
+          )}
 
           <dl className="mt-8 space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
             {service && (
@@ -123,14 +151,16 @@ export default async function SuccessPage({ params }: { params: Params }) {
             </div>
           )}
 
-          <div className="mt-8">
-            <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-200">
-              ← Wróć na stronę główną
-            </Link>
-          </div>
+          {!isEmbed && (
+            <div className="mt-8">
+              <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-200">
+                ← Wróć na stronę główną
+              </Link>
+            </div>
+          )}
         </section>
       </main>
-      <SiteFooter />
+      {!isEmbed && <SiteFooter />}
     </>
   );
 }

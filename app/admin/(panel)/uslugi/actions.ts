@@ -33,9 +33,20 @@ const serviceSchema = z.object({
     .max(500)
     .optional()
     .nullable(),
+  payment_mode: z.enum(["none", "deposit", "full"]).default("none"),
+  deposit_amount_pln: z.coerce
+    .number()
+    .int()
+    .min(1, "Minimum 1 zł")
+    .max(9999)
+    .optional()
+    .nullable(),
 }).refine(
   (d) => !d.is_group || (d.max_participants != null && d.max_participants >= 1),
   { message: "Podaj limit miejsc dla zajęć grupowych.", path: ["max_participants"] }
+).refine(
+  (d) => d.payment_mode !== "deposit" || (d.deposit_amount_pln != null && d.deposit_amount_pln >= 1),
+  { message: "Podaj kwotę zadatku.", path: ["deposit_amount_pln"] }
 );
 
 export type ServiceFormState =
@@ -44,6 +55,7 @@ export type ServiceFormState =
 
 function parseForm(formData: FormData) {
   const isGroup = formData.get("is_group")?.toString() === "true";
+  const paymentMode = formData.get("payment_mode")?.toString() ?? "none";
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     description: formData.get("description")?.toString() ?? "",
@@ -54,6 +66,11 @@ function parseForm(formData: FormData) {
     max_participants: isGroup
       ? (formData.get("max_participants")?.toString() ?? "")
       : null,
+    payment_mode: paymentMode,
+    deposit_amount_pln:
+      paymentMode === "deposit"
+        ? (formData.get("deposit_amount_pln")?.toString() ?? "")
+        : null,
   };
   return serviceSchema.safeParse(raw);
 }
@@ -94,6 +111,8 @@ export async function createServiceAction(
     active: true,
     is_group: parsed.data.is_group,
     max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
+    payment_mode: parsed.data.payment_mode,
+    deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
   });
 
   if (error) {
@@ -137,6 +156,8 @@ export async function updateServiceAction(
       sort_order: parsed.data.sort_order,
       is_group: parsed.data.is_group,
       max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
+      payment_mode: parsed.data.payment_mode,
+      deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
     })
     .eq("tenant_id", tenantId)
     .eq("id", id);

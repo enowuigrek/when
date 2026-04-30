@@ -11,6 +11,7 @@ import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
+import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
@@ -168,9 +169,9 @@ export async function submitBooking(
       serviceName: service.name,
       startsAtIso: startsAt.toISOString(),
     });
+    const s = await getSettings();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     if (parsed.data.customerEmail) {
-      const s = await getSettings();
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
       const cancelToken = signBookingToken(result.id, "cancel");
       const rescheduleToken = signBookingToken(result.id, "reschedule");
       const { subject, html, text } = buildConfirmationEmail({
@@ -194,6 +195,24 @@ export async function submitBooking(
       sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
         (err) => console.error("[email] Failed to send confirmation:", err)
       );
+    }
+    // Owner notification
+    if (s.email) {
+      const { subject, html, text } = buildOwnerNotificationEmail({
+        bookingId: result.id,
+        customerName: parsed.data.customerName,
+        customerPhone: parsed.data.customerPhone,
+        customerEmail: parsed.data.customerEmail ?? null,
+        serviceName: service.name,
+        staffName: null,
+        startsAtIso: startsAt.toISOString(),
+        endsAtIso: endsAt.toISOString(),
+        pricePln: service.price_pln,
+        notes: parsed.data.notes ?? null,
+        businessName: s.business_name,
+        adminUrl: `${siteUrl}/admin/harmonogram`,
+      });
+      sendEmail({ to: s.email, subject, html, text }).catch(() => {});
     }
     redirect(`/rezerwacja/sukces/${result.id}`);
   }
@@ -242,9 +261,9 @@ export async function submitBooking(
   });
 
   // Send confirmation email — fire-and-forget, never blocks booking.
+  const s2 = await getSettings();
+  const siteUrl2 = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   if (parsed.data.customerEmail) {
-    const s = await getSettings();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     const cancelToken = signBookingToken(result.id, "cancel");
     const rescheduleToken = signBookingToken(result.id, "reschedule");
     const { subject, html, text } = buildConfirmationEmail({
@@ -256,18 +275,39 @@ export async function submitBooking(
       pricePln: effectivePrice,
       notes: parsed.data.notes ?? null,
       business: {
-        name: s.business_name,
-        addressStreet: s.address_street,
-        addressPostal: s.address_postal,
-        addressCity: s.address_city,
-        phone: s.phone,
+        name: s2.business_name,
+        addressStreet: s2.address_street,
+        addressPostal: s2.address_postal,
+        addressCity: s2.address_city,
+        phone: s2.phone,
       },
-      cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
-      rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
+      cancelUrl: `${siteUrl2}/rezerwacja/anuluj/${cancelToken}`,
+      rescheduleUrl: `${siteUrl2}/rezerwacja/zmien/${rescheduleToken}`,
     });
     sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
       (err) => console.error("[email] Failed to send confirmation:", err)
     );
+  }
+  // Owner notification
+  if (s2.email) {
+    const staffName = resolvedStaffId
+      ? (await getActiveStaff()).find((st) => st.id === resolvedStaffId)?.name ?? null
+      : null;
+    const { subject, html, text } = buildOwnerNotificationEmail({
+      bookingId: result.id,
+      customerName: parsed.data.customerName,
+      customerPhone: parsed.data.customerPhone,
+      customerEmail: parsed.data.customerEmail ?? null,
+      serviceName: service.name,
+      staffName,
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+      pricePln: effectivePrice,
+      notes: parsed.data.notes ?? null,
+      businessName: s2.business_name,
+      adminUrl: `${siteUrl2}/admin/harmonogram`,
+    });
+    sendEmail({ to: s2.email, subject, html, text }).catch(() => {});
   }
 
   redirect(`/rezerwacja/sukces/${result.id}`);

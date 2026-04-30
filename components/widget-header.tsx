@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import type { Settings } from "@/lib/db/settings";
 
 type Props = {
@@ -12,13 +13,20 @@ type Props = {
  * unobtrusive "Powered by WHEN" mark on the right. Mirrors the visual
  * weight of SiteHeader so the widget feels like a real site, not an
  * embedded form.
+ *
+ * On subdomain (*.whenbooking.pl), home link goes to "/" instead of
+ * "/widget/{slug}" to keep the URL clean.
  */
-export function WidgetHeader({ settings, tenantSlug }: Props) {
+export async function WidgetHeader({ settings, tenantSlug }: Props) {
+  const hdrs = await headers();
+  const isSubdomain = !!hdrs.get("x-tenant-subdomain");
+  const homeHref = isSubdomain ? "/" : `/widget/${tenantSlug}`;
+
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
         <Link
-          href={`/widget/${tenantSlug}`}
+          href={homeHref}
           className="text-lg font-semibold tracking-tight text-zinc-100 hover:opacity-80 transition-opacity"
         >
           {settings.business_name}

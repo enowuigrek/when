@@ -39,6 +39,7 @@ export function WidgetBookingFlow({
   today,
   staff,
   staffUnavailable,
+  isEmbed = false,
 }: {
   tenantSlug: string;
   serviceSlug: string;
@@ -49,6 +50,7 @@ export function WidgetBookingFlow({
   today: string;
   staff: StaffOption[];
   staffUnavailable: Record<string, string[]>;
+  isEmbed?: boolean;
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
@@ -214,6 +216,7 @@ export function WidgetBookingFlow({
           <input type="hidden" name="serviceSlug" value={serviceSlug} />
           <input type="hidden" name="startsAtIso" value={selectedSlot.startsAtIso} />
           {selectedStaffId && <input type="hidden" name="staffId" value={selectedStaffId} />}
+          {isEmbed && <input type="hidden" name="embed" value="1" />}
 
           <Field
             label="Imię i nazwisko *"

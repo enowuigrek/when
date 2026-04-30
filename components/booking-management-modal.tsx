@@ -27,7 +27,8 @@ export type BookingForModal = {
   staffName: string | null;
   staffColor: string | null;
   notes: string | null;
-  status: "confirmed" | "cancelled" | "completed" | "no_show";
+  status: "confirmed" | "cancelled" | "completed" | "no_show" | "pending_payment";
+  paymentStatus: "pending" | "paid" | "refunded" | null;
 };
 
 type Tab = "info" | "reschedule" | "service" | "reassign" | "cancel";
@@ -179,6 +180,7 @@ function BookingModal({
   }
 
   const isCancelled = booking.status === "cancelled";
+  const isPendingPayment = booking.status === "pending_payment";
   const isPast = new Date(booking.startsAt).getTime() < Date.now();
 
   return (
@@ -210,10 +212,19 @@ function BookingModal({
           {isCancelled && (
             <p className="mt-2 inline-block rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-400">Anulowana</p>
           )}
+          {isPendingPayment && (
+            <p className="mt-2 inline-block rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-400">⏳ Oczekuje na płatność</p>
+          )}
+          {booking.paymentStatus === "paid" && (
+            <p className="mt-2 inline-block rounded-full bg-emerald-900/30 px-2 py-0.5 text-[10px] font-medium text-emerald-400">✓ Opłacona</p>
+          )}
+          {booking.paymentStatus === "refunded" && (
+            <p className="mt-2 inline-block rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-400">Zwrócona</p>
+          )}
         </div>
 
         {/* Tabs */}
-        {!isCancelled && (
+        {!isCancelled && !isPendingPayment && (
           <div className="flex gap-0.5 border-b border-zinc-800 bg-zinc-900/40 px-2 py-1.5 text-xs">
             {([
               ["info", "Notatki"],
@@ -240,7 +251,7 @@ function BookingModal({
         <div className="px-5 py-4 text-sm">
           {error && <p className="mb-3 rounded-md border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
-          {(isCancelled || tab === "info") && (
+          {(isCancelled || isPendingPayment || tab === "info") && (
             <div className="space-y-3">
               <label className="block text-xs uppercase tracking-wider text-zinc-500">Notatki</label>
               <textarea
@@ -251,7 +262,7 @@ function BookingModal({
                 placeholder="Dodaj uwagi do rezerwacji…"
                 className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60"
               />
-              {!isCancelled && (
+              {!isCancelled && !isPendingPayment && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   {isPast && (
                     <button
@@ -276,7 +287,7 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && tab === "reschedule" && (
+          {!isCancelled && !isPendingPayment && tab === "reschedule" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-500">Wybierz nowy termin. Czas trwania pozostaje bez zmian.</p>
               <div className="flex gap-2">
@@ -312,7 +323,7 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && tab === "service" && (
+          {!isCancelled && !isPendingPayment && tab === "service" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-500">Zmień usługę. Czas trwania zostanie dopasowany — jeśli nowa usługa jest dłuższa i koliduje z inną rezerwacją, zobaczysz błąd.</p>
               <select
@@ -339,7 +350,7 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && tab === "reassign" && (
+          {!isCancelled && !isPendingPayment && tab === "reassign" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-500">Przepisz rezerwację na innego pracownika.</p>
               <select
@@ -365,7 +376,7 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && tab === "cancel" && (
+          {!isCancelled && !isPendingPayment && tab === "cancel" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-400">Anulowanie wyśle e-mail do klienta (jeśli ma adres).</p>
               <div>

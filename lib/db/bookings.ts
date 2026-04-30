@@ -49,6 +49,8 @@ export type CreateBookingInput = {
   staffId?: string | null;
   pricePlnSnapshot?: number | null;
   durationMinSnapshot?: number | null;
+  /** Override initial status. Defaults to "confirmed". Use "pending_payment" for Tpay flow. */
+  status?: "confirmed" | "pending_payment";
 };
 
 export type CreateBookingResult =
@@ -71,7 +73,7 @@ export async function createBooking(
       starts_at: input.startsAtIso,
       ends_at: input.endsAtIso,
       notes: input.notes,
-      status: "confirmed",
+      status: input.status ?? "confirmed",
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
@@ -101,7 +103,8 @@ export type BookingWithService = {
   customer_email: string | null;
   starts_at: string;
   ends_at: string;
-  status: "confirmed" | "cancelled" | "completed" | "no_show";
+  status: "confirmed" | "cancelled" | "completed" | "no_show" | "pending_payment";
+  payment_status: "pending" | "paid" | "refunded" | null;
   notes: string | null;
   created_at: string;
   staff_id: string | null;

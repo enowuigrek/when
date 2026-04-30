@@ -81,6 +81,7 @@ export async function addTimeOffFromGrafikAction(
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
     status: b.status,
+    paymentStatus: null,
   }));
 
   revalidatePath("/admin/grafik");

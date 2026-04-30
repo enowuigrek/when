@@ -72,6 +72,10 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/manifest.json",
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
 
 /**

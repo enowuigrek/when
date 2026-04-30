@@ -185,6 +185,7 @@ function BookingItem({
           staffColor: b.staff?.color ?? null,
           notes: b.notes,
           status,
+          paymentStatus: (b as { payment_status?: string | null }).payment_status as "pending" | "paid" | "refunded" | null ?? null,
         }}
         allStaff={allStaff}
         allServices={allServices}

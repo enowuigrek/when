@@ -125,7 +125,7 @@ export async function createBookingForTenant(
       starts_at: input.startsAtIso,
       ends_at: input.endsAtIso,
       notes: input.notes,
-      status: "confirmed",
+      status: input.status ?? "confirmed",
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getTenantIdBySlug } from "@/lib/tenant";
 import {
   getServiceBySlugForTenant,
@@ -15,7 +16,10 @@ import { WidgetBookingFlow } from "./widget-booking-flow";
 import { getWidgetSlots } from "./actions";
 import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
 
-type Props = { params: Promise<{ tenantSlug: string; serviceSlug: string }> };
+type Props = {
+  params: Promise<{ tenantSlug: string; serviceSlug: string }>;
+  searchParams: Promise<{ embed?: string }>;
+};
 
 export async function generateMetadata({ params }: Props) {
   const { tenantSlug, serviceSlug } = await params;
@@ -31,8 +35,13 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-export default async function WidgetServicePage({ params }: Props) {
+export default async function WidgetServicePage({ params, searchParams }: Props) {
   const { tenantSlug, serviceSlug } = await params;
+  const { embed } = await searchParams;
+  const isEmbed = embed === "1";
+  const hdrs = await headers();
+  const isSubdomain = !!hdrs.get("x-tenant-subdomain");
+  const basePath = isSubdomain ? "" : `/widget/${tenantSlug}`;
   const tenantId = await getTenantIdBySlug(tenantSlug);
   if (!tenantId) notFound();
 
@@ -75,10 +84,10 @@ export default async function WidgetServicePage({ params }: Props) {
       <WidgetHeader settings={settings} tenantSlug={tenantSlug} />
 
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-8" : "py-12 md:py-16"}`}>
           {/* Stepper — same UX as /rezerwacja flow */}
           <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
-            <Link href={`/widget/${tenantSlug}`} className="hover:text-zinc-300">
+            <Link href={`${basePath || "/"}${isEmbed ? "?embed=1" : ""}`} className="hover:text-zinc-300">
               <span className="font-mono">01</span> Usługa
             </Link>
             <span className="text-zinc-700">→</span>
@@ -105,7 +114,7 @@ export default async function WidgetServicePage({ params }: Props) {
                 {service.price_pln} zł
               </div>
               <Link
-                href={`/widget/${tenantSlug}`}
+                href={`${basePath || "/"}${isEmbed ? "?embed=1" : ""}`}
                 className="mt-1 inline-block text-xs text-zinc-500 hover:text-zinc-300"
               >
                 Zmień
@@ -123,11 +132,12 @@ export default async function WidgetServicePage({ params }: Props) {
             today={today}
             staff={staffOptions}
             staffUnavailable={staffUnavailable}
+            isEmbed={isEmbed}
           />
         </section>
       </main>
 
-      <SiteFooter />
+      {!isEmbed && <SiteFooter />}
     </div>
   );
 }

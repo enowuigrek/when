@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { ServiceFormState } from "./actions";
-import type { Service } from "@/lib/types";
+import type { Service, PaymentMode } from "@/lib/types";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 75, 90, 120];
 
@@ -18,6 +18,9 @@ export function ServiceForm({
     { status: "idle" }
   );
   const [isGroup, setIsGroup] = useState(service?.is_group ?? false);
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(
+    service?.payment_mode ?? "none"
+  );
 
   return (
     <form action={formAction} className="space-y-5 max-w-lg">
@@ -145,6 +148,68 @@ export function ServiceForm({
               <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.max_participants}</span>
             )}
           </label>
+        )}
+      </div>
+
+      {/* PAYMENT SECTION */}
+      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-4">
+        <div>
+          <p className="text-sm font-medium text-zinc-200">Płatność online</p>
+          <p className="text-xs text-zinc-500 mt-0.5">Wymagaj opłaty przy rezerwacji przez Tpay (BLIK, karta)</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {([
+            { value: "none", label: "Bez płatności", desc: "Rezerwacja od razu potwierdzona" },
+            { value: "deposit", label: "Zadatek", desc: "Klient płaci zadatek, reszta na miejscu" },
+            { value: "full", label: "Pełna kwota", desc: "Klient płaci z góry całą cenę" },
+          ] as { value: PaymentMode; label: string; desc: string }[]).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPaymentMode(opt.value)}
+              className={`flex flex-col rounded-lg border px-4 py-3 text-left transition-colors ${
+                paymentMode === opt.value
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-zinc-100"
+                  : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-sm font-medium">{opt.label}</span>
+              <span className="text-xs opacity-70 mt-0.5">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        <input type="hidden" name="payment_mode" value={paymentMode} />
+
+        {paymentMode === "deposit" && (
+          <label className="block">
+            <span className="mb-1 block text-sm text-zinc-300">
+              Kwota zadatku (zł) <span className="text-[var(--color-accent)]">*</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                name="deposit_amount_pln"
+                required
+                min={1}
+                max={9999}
+                defaultValue={service?.deposit_amount_pln ?? ""}
+                className="w-32 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+              />
+              <span className="text-sm text-zinc-500">zł</span>
+              <span className="text-xs text-zinc-600">(reszta płatna na miejscu)</span>
+            </div>
+            {state.status === "error" && state.fieldErrors?.deposit_amount_pln && (
+              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.deposit_amount_pln}</span>
+            )}
+          </label>
+        )}
+
+        {paymentMode !== "none" && (
+          <p className="text-xs text-amber-500/80">
+            Wymaga skonfigurowania konta Tpay w ustawieniach.
+          </p>
         )}
       </div>
 

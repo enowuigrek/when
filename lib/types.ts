@@ -1,3 +1,5 @@
+export type PaymentMode = "none" | "deposit" | "full";
+
 export type Service = {
   id: string;
   slug: string;
@@ -9,6 +11,9 @@ export type Service = {
   active: boolean;
   is_group: boolean;
   max_participants: number | null;
+  payment_mode: PaymentMode;
+  /** Only used when payment_mode = 'deposit'. Null → use price_pln as deposit. */
+  deposit_amount_pln: number | null;
 };
 
 export type BusinessHours = {

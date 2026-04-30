@@ -20,6 +20,7 @@ function toModalBooking(b: BookingWithService): BookingForModal {
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
     status: b.status,
+    paymentStatus: b.payment_status ?? null,
   };
 }
 import {

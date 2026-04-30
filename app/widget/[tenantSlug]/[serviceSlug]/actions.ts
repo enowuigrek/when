@@ -16,6 +16,9 @@ import { computeAvailableSlots, addDays } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
+import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
+import { sendPushToTenant } from "@/lib/push";
+import { createTransaction, tpayConfigured } from "@/lib/tpay";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
@@ -103,6 +106,7 @@ export async function submitWidgetBooking(
     customerEmail: formData.get("customerEmail")?.toString() ?? "",
     notes: formData.get("notes")?.toString() ?? "",
   };
+  const isEmbed = formData.get("embed")?.toString() === "1";
 
   const parsed = bookingSchema.safeParse(raw);
   if (!parsed.success) {
@@ -123,6 +127,14 @@ export async function submitWidgetBooking(
   const startsAt = new Date(parsed.data.startsAtIso);
   const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
+  // Determine if payment is required
+  const requiresPayment =
+    service.payment_mode !== "none" && tpayConfigured();
+  const paymentAmountPln =
+    service.payment_mode === "deposit" && service.deposit_amount_pln != null
+      ? service.deposit_amount_pln
+      : service.price_pln;
+
   const result = await createBookingForTenant(
     {
       serviceId: service.id,
@@ -135,6 +147,8 @@ export async function submitWidgetBooking(
       staffId: parsed.data.staffId ?? null,
       pricePlnSnapshot: service.price_pln,
       durationMinSnapshot: service.duration_min,
+      // pending_payment if Tpay required, else confirmed immediately
+      status: requiresPayment ? "pending_payment" : "confirmed",
     },
     tenantId
   );
@@ -153,9 +167,36 @@ export async function submitWidgetBooking(
     startsAtIso: startsAt.toISOString(),
   });
 
+  const settings = await getSettingsForTenant(tenantId);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  // ── Payment required → redirect to Tpay ──────────────────────────────────
+  if (requiresPayment) {
+    try {
+      const txn = await createTransaction({
+        amountPln: paymentAmountPln * 100, // convert to grosze
+        description: `${service.name} — ${settings.business_name}`,
+        customerName: parsed.data.customerName,
+        customerEmail: parsed.data.customerEmail || null,
+        bookingId: result.id,
+        successUrl: `${siteUrl}/rezerwacja/sukces/${result.id}${isEmbed ? "?embed=1" : ""}`,
+        errorUrl: `${siteUrl}/rezerwacja/platnosc/blad?booking=${result.id}`,
+        notifyUrl: `${siteUrl}/api/payments/tpay/notify`,
+      });
+      redirect(txn.paymentUrl);
+    } catch (err) {
+      console.error("[tpay] createTransaction failed", err);
+      // Tpay unavailable — cancel the pending booking and show error
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      await createAdminClient()
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", result.id);
+      return { status: "error", message: "Błąd płatności. Spróbuj ponownie lub zadzwoń do salonu." };
+    }
+  }
+
   if (parsed.data.customerEmail) {
-    const settings = await getSettingsForTenant(tenantId);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     const cancelToken = signBookingToken(result.id, "cancel");
     const rescheduleToken = signBookingToken(result.id, "reschedule");
     const { subject, html, text } = buildConfirmationEmail({
@@ -179,5 +220,32 @@ export async function submitWidgetBooking(
     sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(() => {});
   }
 
-  redirect(`/rezerwacja/sukces/${result.id}`);
+  // Notify owner (fire-and-forget)
+  if (settings.email) {
+    const { subject, html, text } = buildOwnerNotificationEmail({
+      bookingId: result.id,
+      customerName: parsed.data.customerName,
+      customerPhone: parsed.data.customerPhone,
+      customerEmail: parsed.data.customerEmail || null,
+      serviceName: service.name,
+      staffName: null, // staff name not loaded here; panel shows it anyway
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+      pricePln: service.price_pln,
+      notes: parsed.data.notes ?? null,
+      businessName: settings.business_name,
+      adminUrl: `${siteUrl}/admin/harmonogram`,
+    });
+    sendEmail({ to: settings.email, subject, html, text }).catch(() => {});
+  }
+
+  // Push notification to owner's devices (fire-and-forget)
+  sendPushToTenant(tenantId, {
+    title: "Nowa rezerwacja",
+    body: `${parsed.data.customerName} · ${service.name}`,
+    url: "/admin/harmonogram",
+    tag: "booking-new",
+  }).catch(() => {});
+
+  redirect(`/rezerwacja/sukces/${result.id}${isEmbed ? "?embed=1" : ""}`);
 }

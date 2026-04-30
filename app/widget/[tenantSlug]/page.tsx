@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { getTenantIdBySlug } from "@/lib/tenant";
 import { getServicesForTenant, getSettingsForTenant, getBusinessHoursForTenant } from "@/lib/db/for-tenant";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
 
-type Props = { params: Promise<{ tenantSlug: string }> };
+type Props = {
+  params: Promise<{ tenantSlug: string }>;
+  searchParams: Promise<{ embed?: string }>;
+};
 
 export async function generateMetadata({ params }: Props) {
   const { tenantSlug } = await params;
@@ -26,8 +30,16 @@ export async function generateMetadata({ params }: Props) {
 
 const DAY_SHORT = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"];
 
-export default async function WidgetHomePage({ params }: Props) {
+export default async function WidgetHomePage({ params, searchParams }: Props) {
   const { tenantSlug } = await params;
+  const { embed } = await searchParams;
+  const isEmbed = embed === "1";
+  // When served via subdomain (*.whenbooking.pl), middleware sets this header
+  // so we generate short paths (e.g. "/{slug}") instead of "/widget/{tenant}/{slug}"
+  const hdrs = await headers();
+  const isSubdomain = !!hdrs.get("x-tenant-subdomain");
+  const basePath = isSubdomain ? "" : `/widget/${tenantSlug}`;
+
   const tenantId = await getTenantIdBySlug(tenantSlug);
   if (!tenantId) notFound();
 
@@ -48,7 +60,7 @@ export default async function WidgetHomePage({ params }: Props) {
       <WidgetHeader settings={settings} tenantSlug={tenantSlug} />
 
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+        <section className={`mx-auto max-w-3xl px-6 ${isEmbed ? "py-8" : "py-12 md:py-16"}`}>
           {/* Stepper — first step active */}
           <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
             <span className="text-zinc-200">
@@ -75,7 +87,7 @@ export default async function WidgetHomePage({ params }: Props) {
             {services.map((s) => (
               <Link
                 key={s.id}
-                href={`/widget/${tenantSlug}/${s.slug}`}
+                href={`${basePath}/${s.slug}${isEmbed ? "?embed=1" : ""}`}
                 className="group flex items-start justify-between gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-900/70 active:scale-[0.99]"
               >
                 <div className="min-w-0 flex-1">
@@ -115,7 +127,7 @@ export default async function WidgetHomePage({ params }: Props) {
         </section>
       </main>
 
-      <SiteFooter />
+      {!isEmbed && <SiteFooter />}
     </div>
   );
 }

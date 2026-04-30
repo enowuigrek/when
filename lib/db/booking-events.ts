@@ -2,8 +2,8 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 
-export type BookingEventType = "created" | "rescheduled" | "cancelled";
-export type BookingEventSource = "customer" | "admin";
+export type BookingEventType = "created" | "rescheduled" | "cancelled" | "confirmed" | "payment_confirmed";
+export type BookingEventSource = "customer" | "admin" | "system";
 
 export type BookingEvent = {
   id: string;
@@ -23,8 +23,10 @@ export async function recordBookingEvent(input: {
   customerName: string;
   serviceName: string | null;
   startsAtIso: string;
+  /** Override tenant (for system/webhook contexts without admin session). */
+  tenantId?: string;
 }): Promise<void> {
-  const tenantId = await getAdminTenantId();
+  const tenantId = input.tenantId ?? (await getAdminTenantId());
   const { error } = await createAdminClient().from("booking_events").insert({
     tenant_id: tenantId,
     booking_id: input.bookingId,
