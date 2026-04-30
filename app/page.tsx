@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
+import { BookMeetingButton } from "@/components/book-meeting-button";
 
 export const metadata = {
   title: "WHEN — system rezerwacji online",
@@ -179,7 +180,7 @@ export default function StartPage() {
               href="#wdrozenie"
               className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 hover:opacity-90 transition-opacity"
             >
-              Wdróż u siebie →
+              Umów rozmowę →
             </a>
           </nav>
         </div>
@@ -320,26 +321,19 @@ export default function StartPage() {
               Jeśli jej nie masz — <Hi>możemy przygotować wszystko od zera</Hi>.
             </p>
             <p>
-              Wdrożenie odbywa się indywidualnie, zależnie od tego, czego potrzebuje Twoja firma.
-              <Hi> Nie zostajesz z konfiguracją sam</Hi> — pomagamy uruchomić system od początku do końca.
+              Wdrożenie odbywa się indywidualnie. <Hi>Nie zostajesz z konfiguracją sam</Hi> — przeprowadzam przez wszystko od początku do końca.
             </p>
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <BookMeetingButton />
             <a
               href="mailto:kontakt@lukasznowak.dev?subject=when%20—%20wdrożenie"
-              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:opacity-90"
-            >
-              Napisz do mnie →
-            </a>
-            <a
-              href="https://lukasznowak.dev"
-              target="_blank"
-              rel="noopener noreferrer"
               className="rounded-lg border border-zinc-700 px-6 py-3 font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
             >
-              lukasznowak.dev
+              Napisz email
             </a>
           </div>
+          <p className="mt-4 text-xs text-zinc-600">30 minut · bezpłatnie · Google Meet</p>
         </div>
       </section>
 
