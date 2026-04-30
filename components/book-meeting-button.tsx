@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 
-export function BookMeetingButton() {
+export function BookMeetingButton({ src }: { src?: string }) {
+  const widgetSrc = src ?? "/widget/when/demo-30-min";
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function BookMeetingButton() {
               </button>
             </div>
             <iframe
-              src="/widget/when/demo-30-min?embed=1"
+              src={`${widgetSrc}?embed=1`}
               className="flex-1 w-full border-0"
               title="Umów rozmowę z twórcą when?"
             />

@@ -30,13 +30,15 @@ export async function getDemoTenantId(): Promise<string | null> {
 
 /**
  * Tenant for admin panel.
- * Priority: demo cookie → admin session cookie → main tenant (fallback).
+ * Priority: admin session cookie → demo cookie → main tenant (fallback).
+ * A logged-in real account always wins over any lingering demo cookie.
  */
 export async function getAdminTenantId(): Promise<string> {
+  const session = await getSessionTenantId();
+  if (session) return session;
   const demo = await getDemoTenantId();
   if (demo) return demo;
-  const session = await getSessionTenantId();
-  return session ?? MAIN_TENANT_ID;
+  return MAIN_TENANT_ID;
 }
 
 /** Resolve a tenant by its public slug (used by public booking pages). */

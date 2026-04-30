@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
 import { BookMeetingButton } from "@/components/book-meeting-button";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "WHEN — system rezerwacji online",
@@ -156,7 +157,41 @@ function DemoCTAs() {
   );
 }
 
-export default function StartPage() {
+/**
+ * Returns the widget URL for the "Book a meeting with me" popup.
+ * Looks up the owner tenant by OWNER_EMAIL env var, then picks the
+ * first active service (ordered by sort_order). Falls back to a
+ * hardcoded path so the button never disappears.
+ */
+async function getOwnerWidgetSrc(): Promise<string> {
+  const fallback = "/widget/when/demo-30-min";
+  const ownerEmail = process.env.OWNER_EMAIL;
+  if (!ownerEmail) return fallback;
+
+  const supabase = createAdminClient();
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, slug")
+    .eq("email", ownerEmail)
+    .maybeSingle();
+  if (!tenant) return fallback;
+
+  const { data: svc } = await supabase
+    .from("services")
+    .select("slug")
+    .eq("tenant_id", tenant.id)
+    .eq("active", true)
+    .order("sort_order")
+    .limit(1)
+    .maybeSingle();
+  if (!svc) return `/widget/${tenant.slug}`;
+
+  return `/widget/${tenant.slug}/${svc.slug}`;
+}
+
+export default async function StartPage() {
+  const ownerWidgetSrc = await getOwnerWidgetSrc();
+
   return (
     <main className="min-h-screen text-zinc-100">
       {/* JSON-LD structured data for search engines */}
@@ -337,7 +372,7 @@ export default function StartPage() {
             >
               Załóż konto za darmo →
             </a>
-            <BookMeetingButton />
+            <BookMeetingButton src={ownerWidgetSrc} />
           </div>
           <p className="mt-4 text-xs text-zinc-600">
             Bez karty kredytowej &nbsp;·&nbsp; lub umów 30-minutową rozmowę ze mną
