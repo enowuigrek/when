@@ -254,6 +254,7 @@ function DayView({
   }
 
   const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
+  const hasUnassigned = dayBookings.some((b) => !b.staff_id);
 
   function bookingAtSlot(staffId: string, slotMin: number) {
     return dayBookings.find((b) => {
@@ -268,7 +269,7 @@ function DayView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 64 + visibleStaff.length * 180 : undefined }}>
+      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 64 + (visibleStaff.length + (hasUnassigned ? 1 : 0)) * 180 : undefined }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 64 }}>Godz.</th>
@@ -278,6 +279,11 @@ function DayView({
               </th>
             )) : (
               <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
+            )}
+            {visibleStaff.length > 0 && hasUnassigned && (
+              <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Nieprzypisane
+              </th>
             )}
           </tr>
         </thead>
@@ -325,6 +331,27 @@ function DayView({
                   )}
                 </td>
               )}
+              {visibleStaff.length > 0 && hasUnassigned && (
+                <td className="px-2 py-1 align-top">
+                  {dayBookings
+                    .filter((b) => !b.staff_id && warsawMinutes(b.starts_at) === slot.min)
+                    .map((b) => (
+                      <BookingManagementButton
+                        key={b.id}
+                        booking={toModalBooking(b)}
+                        allStaff={allStaff}
+                        allServices={allServices}
+                        className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
+                      >
+                        <div className="rounded border-l-2 border-zinc-500 bg-zinc-800/30 px-1.5 py-1">
+                          <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
+                          <p className="text-xs font-medium text-zinc-200">{b.customer_name}</p>
+                          {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
+                        </div>
+                      </BookingManagementButton>
+                    ))}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -356,6 +383,7 @@ function WeekView({
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
   const byDayStaff = new Map<string, Map<string, typeof active>>();
+  const hasUnassigned = active.some((b) => !b.staff_id);
   for (const b of active) {
     const ds = warsawDate(b.starts_at);
     if (!byDayStaff.has(ds)) byDayStaff.set(ds, new Map());
@@ -367,13 +395,18 @@ function WeekView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 112 + visibleStaff.length * 200 : undefined }}>
+      <table className="border-collapse text-sm w-full" style={{ tableLayout: "fixed", minWidth: visibleStaff.length > 0 ? 112 + (visibleStaff.length + (hasUnassigned ? 1 : 0)) * 200 : undefined }}>
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 112 }}>Dzień</th>
             {visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
+            {visibleStaff.length > 0 && hasUnassigned && (
+              <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Nieprzypisane
+              </th>
+            )}
             {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>
         </thead>
@@ -422,6 +455,32 @@ function WeekView({
                     </td>
                   );
                 })}
+                {visibleStaff.length > 0 && hasUnassigned && (
+                  <td className="px-3 py-3 align-top">
+                    {(dayMap?.get("__none__") ?? []).length === 0 ? (
+                      <Link href={navUrl("dzien", d)} className="block h-full min-h-[3rem] w-full text-zinc-700 hover:text-zinc-500">—</Link>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {(dayMap?.get("__none__") ?? []).map((b) => (
+                          <li key={b.id}>
+                            <BookingManagementButton
+                              booking={toModalBooking(b)}
+                              allStaff={allStaff}
+                              allServices={allServices}
+                              className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
+                            >
+                              <div className="rounded border-l-2 border-zinc-500 bg-zinc-800/30 px-1.5 py-1">
+                                <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
+                                <p className="text-xs font-medium text-zinc-200">{b.customer_name}</p>
+                                {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
+                              </div>
+                            </BookingManagementButton>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                )}
                 {visibleStaff.length === 0 && (
                   <td className="px-3 py-3 align-top">
                     {(dayMap?.get("__none__") ?? []).map((b) => (

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTenantIdBySlug } from "@/lib/tenant";
 import {
@@ -24,6 +25,15 @@ import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date");
+
+function warsawDate(instant: Date): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(instant);
+}
 
 function applyStaffHours(
   hours: BusinessHours[],
@@ -127,6 +137,37 @@ export async function submitWidgetBooking(
   const startsAt = new Date(parsed.data.startsAtIso);
   const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
 
+  let resolvedStaffId: string | null = parsed.data.staffId ?? null;
+  if (!service.is_group) {
+    const activeStaff = await getActiveStaffForTenant(tenantId);
+    if (!resolvedStaffId && activeStaff.length > 0) {
+      const dateStr = warsawDate(startsAt);
+      const availMap = await getStaffAvailabilityMapForTenant(
+        activeStaff.map((s) => s.id),
+        dateStr,
+        tenantId
+      );
+
+      for (const staff of activeStaff) {
+        if (availMap.get(staff.id)?.available === false) continue;
+        const existing = await getBookingsInRangeForTenant(
+          startsAt.toISOString(),
+          endsAt.toISOString(),
+          tenantId,
+          staff.id
+        );
+        if (existing.length === 0) {
+          resolvedStaffId = staff.id;
+          break;
+        }
+      }
+    }
+
+    if (activeStaff.length > 0 && !resolvedStaffId) {
+      return { status: "error", message: "Ten termin właśnie zajęto. Wybierz inny." };
+    }
+  }
+
   // Determine if payment is required
   const requiresPayment =
     service.payment_mode !== "none" && tpayConfigured();
@@ -144,7 +185,7 @@ export async function submitWidgetBooking(
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
       notes: parsed.data.notes ?? null,
-      staffId: parsed.data.staffId ?? null,
+      staffId: resolvedStaffId,
       pricePlnSnapshot: service.price_pln,
       durationMinSnapshot: service.duration_min,
       // pending_payment if Tpay required, else confirmed immediately
@@ -165,6 +206,7 @@ export async function submitWidgetBooking(
     customerName: parsed.data.customerName,
     serviceName: service.name,
     startsAtIso: startsAt.toISOString(),
+    tenantId,
   });
 
   const settings = await getSettingsForTenant(tenantId);
@@ -222,13 +264,16 @@ export async function submitWidgetBooking(
 
   // Notify owner (fire-and-forget)
   if (settings.email) {
+    const staffName = resolvedStaffId
+      ? (await getActiveStaffForTenant(tenantId)).find((staff) => staff.id === resolvedStaffId)?.name ?? null
+      : null;
     const { subject, html, text } = buildOwnerNotificationEmail({
       bookingId: result.id,
       customerName: parsed.data.customerName,
       customerPhone: parsed.data.customerPhone,
       customerEmail: parsed.data.customerEmail || null,
       serviceName: service.name,
-      staffName: null, // staff name not loaded here; panel shows it anyway
+      staffName,
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
       pricePln: service.price_pln,
@@ -246,6 +291,9 @@ export async function submitWidgetBooking(
     url: "/admin/harmonogram",
     tag: "booking-new",
   }).catch(() => {});
+
+  revalidatePath("/admin/harmonogram");
+  revalidatePath("/admin");
 
   redirect(`/rezerwacja/sukces/${result.id}${isEmbed ? "?embed=1" : ""}`);
 }
