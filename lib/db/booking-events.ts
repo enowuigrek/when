@@ -41,9 +41,9 @@ export async function recordBookingEvent(input: {
   }
 }
 
-export async function getRecentBookingEvents(limit = 30, sinceHours = 48): Promise<BookingEvent[]> {
+export async function getRecentBookingEvents(limit = 30, sinceHours = 48, sinceIso?: string): Promise<BookingEvent[]> {
   const tenantId = await getAdminTenantId();
-  const since = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+  const since = sinceIso ?? new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const { data, error } = await createAdminClient()
     .from("booking_events")
     .select("*")

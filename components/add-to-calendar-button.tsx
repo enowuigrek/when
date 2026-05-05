@@ -37,15 +37,12 @@ export function AddToCalendarButton({ googleCalUrl, icalUrl }: Props) {
     );
   }
 
-  // iOS → webcal:// protocol so Calendar app intercepts it directly
-  // Other → .ics download (Apple Calendar / Outlook opens it natively)
-  const calUrl = platform === "ios"
-    ? icalUrl.replace(/^https?:\/\//, "webcal://")
-    : icalUrl;
-
+  // iOS and desktop: download the .ics file — iOS Safari shows a banner
+  // "Open in Calendar" which adds a single event (NOT a subscription).
+  // webcal:// would subscribe the URL as a recurring calendar feed — wrong.
   return (
     <a
-      href={calUrl}
+      href={icalUrl}
       className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
     >
       <CalendarIcon /> Dodaj do kalendarza

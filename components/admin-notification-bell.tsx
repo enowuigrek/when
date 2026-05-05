@@ -34,49 +34,45 @@ type Toast = NotifItem;
 
 const POLL_MS = 30_000;
 
-function storageKey(tenantId: string) {
-  return `when_admin_notifs_v3_${tenantId}`;
-}
+// ── localStorage helpers ──────────────────────────────────────────────────────
 
-function dismissedKey(tenantId: string) {
-  return `when_admin_dismissed_v1_${tenantId}`;
-}
+/** Visible notifications stored across page loads. */
+function notifsKey(tenantId: string) { return `when_admin_notifs_v3_${tenantId}`; }
+
+/**
+ * Cursor = created_at of the most recently processed event.
+ * The API is asked for events NEWER than this timestamp on each poll,
+ * so dismissed/cleared notifications are never refetched.
+ */
+function cursorKey(tenantId: string) { return `when_admin_cursor_v1_${tenantId}`; }
 
 function loadStored(tenantId: string): NotifItem[] {
   if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(storageKey(tenantId)) ?? "[]");
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem(notifsKey(tenantId)) ?? "[]"); }
+  catch { return []; }
 }
 
 function saveStored(items: NotifItem[], tenantId: string) {
-  localStorage.setItem(storageKey(tenantId), JSON.stringify(items.slice(0, 50)));
+  localStorage.setItem(notifsKey(tenantId), JSON.stringify(items.slice(0, 50)));
 }
 
-function loadDismissed(tenantId: string): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    return new Set(JSON.parse(localStorage.getItem(dismissedKey(tenantId)) ?? "[]") as string[]);
-  } catch {
-    return new Set();
-  }
+function loadCursor(tenantId: string): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(cursorKey(tenantId));
 }
 
-function saveDismissed(ids: Set<string>, tenantId: string) {
-  // Keep last 500 dismissed IDs — enough to never resurface deleted notifs
-  localStorage.setItem(dismissedKey(tenantId), JSON.stringify([...ids].slice(-500)));
+function saveCursor(iso: string, tenantId: string) {
+  localStorage.setItem(cursorKey(tenantId), iso);
 }
 
 function warsawDateStr(iso: string) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Warsaw",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date(iso));
 }
+
+// ── UI constants ──────────────────────────────────────────────────────────────
 
 const TITLE: Record<EventType, string> = {
   created: "Nowa rezerwacja",
@@ -85,9 +81,7 @@ const TITLE: Record<EventType, string> = {
 };
 
 const ICON: Record<EventType, string> = {
-  created: "🟢",
-  rescheduled: "🔄",
-  cancelled: "🔴",
+  created: "🟢", rescheduled: "🔄", cancelled: "🔴",
 };
 
 const ACCENT: Record<EventType, string> = {
@@ -96,49 +90,69 @@ const ACCENT: Record<EventType, string> = {
   cancelled: "text-red-400",
 };
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   const router = useRouter();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
-  const initialLoad = useRef(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  // Stable ref for dismissed IDs — checked in poll() without needing re-render
-  const dismissedRef = useRef<Set<string>>(new Set());
+  const initialLoad = useRef(true);
+
+  /**
+   * Cursor ref — holds the created_at of the latest event we've processed.
+   * Passed as ?since= to the API so we ONLY receive events newer than this.
+   * Dismissed/cleared notifications are always older than the cursor and
+   * will never be returned by the API again.
+   */
+  const cursorRef = useRef<string | null>(null);
 
   const unread = items.filter((i) => !i.read).length;
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/notifications");
+      const since = cursorRef.current;
+      const url = since
+        ? `/api/admin/notifications?since=${encodeURIComponent(since)}`
+        : "/api/admin/notifications";
+      const res = await fetch(url);
       if (!res.ok) return;
       const { events } = await res.json() as { events: RawEvent[] };
+      if (events.length === 0) {
+        initialLoad.current = false;
+        return;
+      }
+
+      // Advance cursor to the most recent event in this batch
+      const latestCreatedAt = events.reduce(
+        (max, e) => (e.created_at > max ? e.created_at : max),
+        cursorRef.current ?? ""
+      );
+      cursorRef.current = latestCreatedAt;
+      saveCursor(latestCreatedAt, tenantId);
 
       setItems((prev) => {
-        // Combine currently-visible IDs + permanently-dismissed IDs so deleted
-        // notifications are never re-added by the next poll.
-        const seenIds = new Set([...prev.map((i) => i.id), ...dismissedRef.current]);
+        const seenIds = new Set(prev.map((i) => i.id));
         const newItems: NotifItem[] = [];
         const newToasts: Toast[] = [];
 
         for (const e of events) {
-          if (!seenIds.has(e.id)) {
-            // Skip self-generated admin events from showing as toasts (admin
-            // already saw them in their own UI), but still show in dropdown.
-            const item: NotifItem = {
-              id: e.id,
-              eventType: e.event_type,
-              source: e.source,
-              customerName: e.customer_name,
-              serviceName: e.service_name,
-              startsAt: e.starts_at,
-              createdAt: e.created_at,
-              read: initialLoad.current,
-            };
-            newItems.push(item);
-            if (!initialLoad.current && e.source === "customer") {
-              newToasts.push(item);
-            }
+          if (seenIds.has(e.id)) continue;
+          const item: NotifItem = {
+            id: e.id,
+            eventType: e.event_type,
+            source: e.source,
+            customerName: e.customer_name,
+            serviceName: e.service_name,
+            startsAt: e.starts_at,
+            createdAt: e.created_at,
+            // Mark as read on initial load so old events don't light up the badge
+            read: initialLoad.current,
+          };
+          newItems.push(item);
+          if (!initialLoad.current && e.source === "customer") {
+            newToasts.push(item);
           }
         }
 
@@ -150,23 +164,22 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
         );
         saveStored(merged, tenantId);
 
-        if (newToasts.length > 0) {
-          setToasts((t) => [...t, ...newToasts]);
-        }
+        if (newToasts.length > 0) setToasts((t) => [...t, ...newToasts]);
         return merged;
       });
     } catch {
       // network error — ignore
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
-    dismissedRef.current = loadDismissed(tenantId);
+    // Restore cursor and visible notifications from previous session
+    cursorRef.current = loadCursor(tenantId);
     setItems(loadStored(tenantId));
     poll();
     const interval = setInterval(poll, POLL_MS);
     return () => clearInterval(interval);
-  }, [poll]);
+  }, [poll, tenantId]);
 
   useEffect(() => {
     if (toasts.length === 0) return;
@@ -195,14 +208,21 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   }
 
   function deleteNotif(id: string) {
+    // Just remove from UI — the cursor ensures it won't be refetched
     setItems((prev) => {
       const updated = prev.filter((i) => i.id !== id);
       saveStored(updated, tenantId);
       return updated;
     });
-    // Permanently mark as dismissed so it won't come back on next poll
-    dismissedRef.current.add(id);
-    saveDismissed(dismissedRef.current, tenantId);
+  }
+
+  function clearAll() {
+    // Advance cursor to now so the next poll starts from this moment
+    const now = new Date().toISOString();
+    cursorRef.current = now;
+    saveCursor(now, tenantId);
+    setItems([]);
+    saveStored([], tenantId);
   }
 
   function navigateTo(startsAt: string) {
@@ -211,9 +231,9 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
     router.push(`/admin/harmonogram?widok=dzien&od=${date}`);
   }
 
-  // Portal the toast stack to document.body so it's never trapped inside
-  // a backdrop-filter stacking context (the admin header uses backdrop-blur
-  // which makes position:fixed children position relative to the header).
+  // Portal toast stack to document.body so it's not trapped inside the
+  // admin header's backdrop-blur stacking context (which would make
+  // position:fixed position relative to the header instead of the viewport).
   const toastStack = toasts.length > 0
     ? createPortal(
         <div className="fixed bottom-4 right-4 z-[9999] space-y-2">
@@ -233,7 +253,9 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
                   {t.customerName}
                   {t.serviceName ? ` · ${t.serviceName}` : ""}
                 </p>
-                <p className="text-xs text-zinc-500">{formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}</p>
+                <p className="text-xs text-zinc-500">
+                  {formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}
+                </p>
               </div>
             </div>
           ))}
@@ -246,7 +268,6 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
     <>
       {toastStack}
 
-      {/* Bell button + dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
           type="button"
@@ -272,13 +293,7 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
               {items.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    // Mark every visible item as dismissed before clearing
-                    items.forEach((i) => dismissedRef.current.add(i.id));
-                    saveDismissed(dismissedRef.current, tenantId);
-                    setItems([]);
-                    saveStored([], tenantId);
-                  }}
+                  onClick={clearAll}
                   className="text-xs text-zinc-500 hover:text-zinc-300"
                 >
                   Wyczyść wszystkie
