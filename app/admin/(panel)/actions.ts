@@ -174,10 +174,9 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
   const id = formData.get("id")?.toString();
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, message: "Nieprawidłowe ID." };
 
-  const date = formData.get("date")?.toString(); // YYYY-MM-DD
-  const time = formData.get("time")?.toString(); // HH:MM
-  if (!date || !time || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
-    return { ok: false, message: "Nieprawidłowa data lub godzina." };
+  const startsAtIso = formData.get("startsAtIso")?.toString();
+  if (!startsAtIso || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(startsAtIso)) {
+    return { ok: false, message: "Nieprawidłowy termin." };
   }
 
   const tenantId = await getAdminTenantId();
@@ -190,14 +189,9 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     .maybeSingle();
 
   if (!booking) return { ok: false, message: "Rezerwacja nie znaleziona." };
-  const duration = (booking.service as { duration_min: number } | null)?.duration_min ?? 30;
+  const duration = (booking.duration_min_snapshot as number | null) ?? (booking.service as { duration_min: number } | null)?.duration_min ?? 30;
 
-  // Construct UTC ISO from Warsaw-local date+time. Compute Warsaw offset for that instant.
-  const guess = new Date(`${date}T${time}:00Z`);
-  const warsawHour = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Warsaw", hour: "2-digit", hour12: false }).format(guess));
-  const utcHour = guess.getUTCHours();
-  const offsetH = (warsawHour - utcHour + 24) % 24;
-  const startsAt = new Date(guess.getTime() - offsetH * 3600_000);
+  const startsAt = new Date(startsAtIso);
   const endsAt = new Date(startsAt.getTime() + duration * 60_000);
 
   const { error } = await supabase

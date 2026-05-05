@@ -10,7 +10,13 @@ import {
   rescheduleBookingAction,
   changeBookingServiceAction,
 } from "@/app/admin/(panel)/actions";
+import {
+  getAdminRescheduleSetup,
+  getAdminSlotsForDate,
+} from "@/app/admin/(panel)/rezerwacja/nowa/actions";
+import { CalendarPicker } from "@/components/calendar-picker";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import type { Slot } from "@/lib/slots";
 
 type Staff = { id: string; name: string; color: string };
 export type ServiceOption = { id: string; name: string; duration_min: number; price_pln: number };
@@ -32,13 +38,6 @@ export type BookingForModal = {
 };
 
 type Tab = "info" | "reschedule" | "service" | "reassign" | "cancel";
-
-function warsawDateStr(iso: string): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Warsaw",
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date(iso));
-}
 
 export function BookingManagementButton({
   booking,
@@ -81,10 +80,17 @@ function BookingModal({
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState(booking.notes ?? "");
   const [staffSel, setStaffSel] = useState(booking.staffId ?? "");
-  const [date, setDate] = useState(warsawDateStr(booking.startsAt));
-  const [time, setTime] = useState(formatWarsawTime(booking.startsAt));
   const [reason, setReason] = useState("");
   const [serviceSel, setServiceSel] = useState(booking.serviceId ?? "");
+
+  // Reschedule — lazy-loaded calendar + slots
+  type RescheduleSetup = { days: { date: string; closed: boolean }[]; today: string; initialDate: string };
+  const [rescheduleSetup, setRescheduleSetup] = useState<RescheduleSetup | null>(null);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<string>("");
+  const [rescheduleSlots, setRescheduleSlots] = useState<Slot[]>([]);
+  const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<Slot | null>(null);
+  const [slotsLoading, startSlotsLoad] = useTransition();
 
   useEffect(() => {
     function h(e: KeyboardEvent) {
@@ -96,6 +102,32 @@ function BookingModal({
 
   function refresh() {
     router.refresh();
+  }
+
+  async function switchTab(t: Tab) {
+    setTab(t);
+    setError(null);
+    if (t !== "reschedule") return;
+    if (rescheduleSetup || rescheduleLoading) return;
+    if (!booking.serviceId) return;
+    setRescheduleLoading(true);
+    const res = await getAdminRescheduleSetup(booking.serviceId, booking.staffId);
+    if (res.ok) {
+      setRescheduleSetup({ days: res.days, today: res.today, initialDate: res.initialDate });
+      setRescheduleDate(res.initialDate);
+      setRescheduleSlots(res.initialSlots);
+    }
+    setRescheduleLoading(false);
+  }
+
+  function pickRescheduleDate(date: string) {
+    setRescheduleDate(date);
+    setRescheduleSelectedSlot(null);
+    if (!booking.serviceId) return;
+    startSlotsLoad(async () => {
+      const res = await getAdminSlotsForDate(booking.serviceId!, date, booking.staffId ?? undefined);
+      setRescheduleSlots(res.ok ? res.slots : []);
+    });
   }
 
   async function handleSaveNotes() {
@@ -124,10 +156,10 @@ function BookingModal({
 
   async function handleReschedule() {
     setError(null);
+    if (!rescheduleSelectedSlot) return;
     const fd = new FormData();
     fd.set("id", booking.id);
-    fd.set("date", date);
-    fd.set("time", time);
+    fd.set("startsAtIso", rescheduleSelectedSlot.startsAtIso);
     start(async () => {
       const res = await rescheduleBookingAction(fd);
       if (!res.ok) setError(res.message);
@@ -236,7 +268,7 @@ function BookingModal({
               <button
                 key={k}
                 type="button"
-                onClick={() => { setTab(k); setError(null); }}
+                onClick={() => switchTab(k)}
                 className={`flex-1 rounded px-2 py-1.5 transition-colors ${
                   tab === k ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
                 }`}
@@ -288,38 +320,77 @@ function BookingModal({
           )}
 
           {!isCancelled && !isPendingPayment && tab === "reschedule" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <p className="text-xs text-zinc-500">Wybierz nowy termin. Czas trwania pozostaje bez zmian.</p>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-zinc-500">Data</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+
+              {rescheduleLoading && (
+                <p className="text-sm text-zinc-500">Ładowanie kalendarza…</p>
+              )}
+
+              {!booking.serviceId && !rescheduleLoading && (
+                <p className="text-sm text-zinc-400">Nie można załadować terminów — brak przypisanej usługi.</p>
+              )}
+
+              {rescheduleSetup && (
+                <>
+                  <CalendarPicker
+                    days={rescheduleSetup.days}
+                    selectedDate={rescheduleDate}
+                    onPick={pickRescheduleDate}
+                    today={rescheduleSetup.today}
                   />
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-zinc-500">Godzina</label>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleReschedule}
-                  disabled={pending}
-                  className="rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
-                >
-                  {pending ? "…" : "Przełóż"}
-                </button>
-              </div>
+
+                  <div>
+                    {slotsLoading ? (
+                      <p className="text-sm text-zinc-500">Ładowanie godzin…</p>
+                    ) : rescheduleSlots.length === 0 ? (
+                      <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-3 text-sm text-zinc-400">
+                        Brak wolnych terminów tego dnia.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2">
+                        {rescheduleSlots.map((s) => {
+                          const isSelected = s.startsAtIso === rescheduleSelectedSlot?.startsAtIso;
+                          return (
+                            <button
+                              key={s.startsAtIso}
+                              type="button"
+                              onClick={() => setRescheduleSelectedSlot(s)}
+                              className={`rounded-md border py-2 font-mono text-sm transition-colors ${
+                                isSelected
+                                  ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950 font-semibold"
+                                  : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {rescheduleSelectedSlot && (
+                    <p className="text-xs text-zinc-400">
+                      Wybrany termin:{" "}
+                      <span className="font-medium text-zinc-200">
+                        {formatWarsawDate(rescheduleSelectedSlot.startsAtIso)}, {formatWarsawTime(rescheduleSelectedSlot.startsAtIso)}
+                      </span>
+                    </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleReschedule}
+                      disabled={pending || !rescheduleSelectedSlot}
+                      className="rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
+                    >
+                      {pending ? "…" : "Przełóż"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

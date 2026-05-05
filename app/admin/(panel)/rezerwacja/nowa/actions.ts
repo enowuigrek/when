@@ -7,7 +7,7 @@ import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { getServiceById, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getSettings } from "@/lib/db/settings";
-import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
+import { computeAvailableSlots, addDays, applyStaffHours, warsawToday, warsawDayOfWeek } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
@@ -17,6 +17,57 @@ import type { Slot } from "@/lib/slots";
 
 export async function searchCustomersAction(query: string) {
   return searchCustomersByPhone(query);
+}
+
+export async function getAdminRescheduleSetup(
+  serviceId: string,
+  staffId: string | null
+): Promise<
+  | { ok: true; days: { date: string; closed: boolean }[]; today: string; initialDate: string; initialSlots: Slot[] }
+  | { ok: false; message: string }
+> {
+  const [service, hours, settings, activeStaff] = await Promise.all([
+    getServiceById(serviceId),
+    getBusinessHours(),
+    getSettings(),
+    getActiveStaff(),
+  ]);
+
+  if (!service) return { ok: false, message: "Usługa nie istnieje." };
+
+  const today = warsawToday();
+
+  const days = Array.from({ length: settings.booking_horizon_days }, (_, i) => {
+    const date = addDays(today, i);
+    const dow = warsawDayOfWeek(date);
+    const dayHours = hours.find((h) => h.day_of_week === dow);
+    return { date, closed: !dayHours || dayHours.closed };
+  });
+
+  const initialDate = days.find((d) => !d.closed)?.date ?? today;
+
+  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), initialDate);
+  let initialSlots: Slot[] = [];
+
+  if (staffId) {
+    const avail = availMap.get(staffId);
+    if (!avail || avail.available !== false) {
+      const effectiveHours = applyStaffHours(hours, initialDate, avail ?? null);
+      const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
+      const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
+      const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+      initialSlots = computeAvailableSlots(initialDate, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1);
+    }
+  } else {
+    const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
+    const staffCount = Math.max(1, availableStaff.length);
+    const dayStartUtc = new Date(`${initialDate}T00:00:00Z`).toISOString();
+    const dayEndUtc = new Date(`${addDays(initialDate, 1)}T00:00:00Z`).toISOString();
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+    initialSlots = computeAvailableSlots(initialDate, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount);
+  }
+
+  return { ok: true, days, today, initialDate, initialSlots };
 }
 
 export async function getAdminSlotsForDate(
