@@ -7,29 +7,13 @@ import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { getServiceById, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getSettings } from "@/lib/db/settings";
-import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import { resolveEffectivePricing } from "@/lib/db/staff-groups";
 import type { Slot } from "@/lib/slots";
-import type { BusinessHours } from "@/lib/types";
-
-function applyStaffHours(
-  hours: BusinessHours[],
-  dateStr: string,
-  avail: { startTime: string | null; endTime: string | null } | null
-): BusinessHours[] {
-  if (!avail?.startTime || !avail?.endTime) return hours;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-  return hours.map((h) =>
-    h.day_of_week === dayOfWeek
-      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
-      : h
-  );
-}
 
 export async function searchCustomersAction(query: string) {
   return searchCustomersByPhone(query);

@@ -23,7 +23,7 @@ export type BusinessHours = {
   closed: boolean;
 };
 
-export type BookingStatus = "confirmed" | "cancelled" | "completed" | "no_show";
+export type BookingStatus = "confirmed" | "cancelled" | "completed" | "no_show" | "pending_payment";
 
 export type Booking = {
   id: string;

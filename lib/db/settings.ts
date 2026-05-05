@@ -32,7 +32,7 @@ export type TimeFilter = {
   active: boolean;
 };
 
-const FALLBACK: Settings = {
+export const FALLBACK_SETTINGS: Settings = {
   id: 1,
   business_name: "when?",
   tagline: null,
@@ -60,7 +60,7 @@ export async function getSettings(): Promise<Settings> {
     .select("*")
     .eq("tenant_id", tenantId)
     .maybeSingle();
-  return (data as Settings | null) ?? FALLBACK;
+  return (data as Settings | null) ?? FALLBACK_SETTINGS;
 }
 
 export async function getTimeFilters(): Promise<TimeFilter[]> {

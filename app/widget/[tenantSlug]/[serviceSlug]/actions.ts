@@ -13,7 +13,7 @@ import {
   createBookingForTenant,
   getStaffAvailabilityMapForTenant,
 } from "@/lib/db/for-tenant";
-import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
@@ -22,7 +22,6 @@ import { sendPushToTenant } from "@/lib/push";
 import { createTransaction, tpayConfigured } from "@/lib/tpay";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import type { Slot } from "@/lib/slots";
-import type { BusinessHours } from "@/lib/types";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date");
 
@@ -33,21 +32,6 @@ function warsawDate(instant: Date): string {
     month: "2-digit",
     day: "2-digit",
   }).format(instant);
-}
-
-function applyStaffHours(
-  hours: BusinessHours[],
-  dateStr: string,
-  avail: { startTime: string | null; endTime: string | null } | null
-): BusinessHours[] {
-  if (!avail?.startTime || !avail?.endTime) return hours;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-  return hours.map((h) =>
-    h.day_of_week === dayOfWeek
-      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
-      : h
-  );
 }
 
 export async function getWidgetSlots(
@@ -71,6 +55,18 @@ export async function getWidgetSlots(
 
   const dayStart = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEnd = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
+
+  if (service.is_group && service.max_participants) {
+    const existing = await getBookingsInRangeForTenant(dayStart, dayEnd, tenantId);
+    return {
+      ok: true,
+      slots: computeAvailableSlots(
+        dateStr, service.duration_min, hours, existing,
+        settings.slot_granularity_min, 1, true, service.max_participants
+      ),
+    };
+  }
+
   const availMap = await getStaffAvailabilityMapForTenant(activeStaff.map((s) => s.id), dateStr, tenantId);
 
   if (staffId) {

@@ -8,23 +8,7 @@ import {
   getBookingsInRangeForTenant,
   getStaffAvailabilityMapForTenant,
 } from "@/lib/db/for-tenant";
-import { computeAvailableSlots, addDays } from "@/lib/slots";
-import type { BusinessHours } from "@/lib/types";
-
-function applyStaffHours(
-  hours: BusinessHours[],
-  dateStr: string,
-  avail: { startTime: string | null; endTime: string | null } | null
-): BusinessHours[] {
-  if (!avail?.startTime || !avail?.endTime) return hours;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-  return hours.map((h) =>
-    h.day_of_week === dayOfWeek
-      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
-      : h
-  );
-}
+import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

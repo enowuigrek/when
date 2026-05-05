@@ -13,28 +13,12 @@ import {
   getSettingsForTenant,
   createBookingForTenant,
 } from "@/lib/db/for-tenant";
-import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import type { Slot } from "@/lib/slots";
-import type { BusinessHours } from "@/lib/types";
-
-function applyStaffHours(
-  hours: BusinessHours[],
-  dateStr: string,
-  avail: { startTime: string | null; endTime: string | null } | null
-): BusinessHours[] {
-  if (!avail?.startTime || !avail?.endTime) return hours;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-  return hours.map((h) =>
-    h.day_of_week === dayOfWeek
-      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
-      : h
-  );
-}
 
 export async function getSlotsForReschedule(
   serviceSlug: string,

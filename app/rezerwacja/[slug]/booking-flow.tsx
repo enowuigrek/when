@@ -261,7 +261,7 @@ export function BookingFlow({
             hint="Opcjonalnie — wyślemy potwierdzenie."
             error={formState.status === "error" ? formState.fieldErrors?.customerEmail : undefined}
           />
-          <Field label="Uwagi" name="notes" as="textarea" hint="Coś co barber powinien wiedzieć?" />
+          <Field label="Uwagi" name="notes" as="textarea" hint="Coś, co warto wiedzieć?" />
 
           {formState.status === "error" && (
             <p className="rounded-md border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">

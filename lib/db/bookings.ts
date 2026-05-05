@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
+import type { BookingStatus } from "@/lib/types";
 
 /**
  * Fetch confirmed bookings overlapping a UTC instant range.
@@ -50,7 +51,7 @@ export type CreateBookingInput = {
   pricePlnSnapshot?: number | null;
   durationMinSnapshot?: number | null;
   /** Override initial status. Defaults to "confirmed". Use "pending_payment" for Tpay flow. */
-  status?: "confirmed" | "pending_payment";
+  status?: BookingStatus;
 };
 
 export type CreateBookingResult =
@@ -103,7 +104,7 @@ export type BookingWithService = {
   customer_email: string | null;
   starts_at: string;
   ends_at: string;
-  status: "confirmed" | "cancelled" | "completed" | "no_show" | "pending_payment";
+  status: BookingStatus;
   payment_status: "pending" | "paid" | "refunded" | null;
   notes: string | null;
   created_at: string;

@@ -272,12 +272,15 @@ function Field({
   const base = "w-full rounded-lg border bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] transition-colors";
   const state = error ? "border-red-700" : "border-zinc-800 focus:border-zinc-600";
   return (
-    <div>
-      <label className="mb-1 block text-xs font-medium text-zinc-400">{label}</label>
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-zinc-400">
+        {label}
+        {required && <span className="text-[var(--color-accent)]"> *</span>}
+      </span>
       {as === "textarea"
         ? <textarea name={name} rows={2} placeholder={placeholder} className={`${base} ${state} resize-none`} />
         : <input type={type} name={name} required={required} placeholder={placeholder} className={`${base} ${state}`} />}
       {error && <p className="mt-0.5 text-xs text-red-400">{error}</p>}
-    </div>
+    </label>
   );
 }

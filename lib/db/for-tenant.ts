@@ -6,30 +6,11 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Service, BusinessHours } from "@/lib/types";
+import { FALLBACK_SETTINGS } from "@/lib/db/settings";
 import type { Settings, TimeFilter } from "@/lib/db/settings";
 import type { Staff } from "@/lib/db/staff";
 import type { CreateBookingInput, CreateBookingResult } from "@/lib/db/bookings";
 
-const FALLBACK_SETTINGS: Settings = {
-  id: 1,
-  business_name: "when?",
-  tagline: null,
-  description: null,
-  address_street: null,
-  address_city: null,
-  address_postal: null,
-  phone: null,
-  email: null,
-  instagram_url: null,
-  facebook_url: null,
-  website_url: null,
-  maps_url: null,
-  logo_url: null,
-  slot_granularity_min: 15,
-  booking_horizon_days: 21,
-  color_accent: "#d4a26a",
-  theme: "system" as const,
-};
 
 export async function getServicesForTenant(tenantId: string): Promise<Service[]> {
   const { data } = await createAdminClient()

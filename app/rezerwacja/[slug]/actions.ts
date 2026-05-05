@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking, getBusyStaffIds, getGroupBookingCount } from "@/lib/db/bookings";
-import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import type { Slot } from "@/lib/slots";
-import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
@@ -18,21 +17,6 @@ import { recordBookingEvent } from "@/lib/db/booking-events";
 import { resolveEffectivePricing } from "@/lib/db/staff-groups";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
-
-function applyStaffHours(
-  hours: BusinessHours[],
-  dateStr: string,
-  avail: { startTime: string | null; endTime: string | null } | null
-): BusinessHours[] {
-  if (!avail?.startTime || !avail?.endTime) return hours;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-  return hours.map((h) =>
-    h.day_of_week === dayOfWeek
-      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
-      : h
-  );
-}
 
 export async function getSlotsForDate(
   serviceSlug: string,
@@ -133,12 +117,66 @@ export async function submitBooking(
     };
   }
 
-  const service = await getServiceBySlug(parsed.data.serviceSlug);
+  const [service, settings] = await Promise.all([
+    getServiceBySlug(parsed.data.serviceSlug),
+    getSettings(),
+  ]);
   if (!service) {
     return { status: "error", message: "Usługa nie istnieje." };
   }
 
   const startsAt = new Date(parsed.data.startsAtIso);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  function sendBookingEmails(
+    bookingId: string,
+    endsAt: Date,
+    pricePln: number,
+    staffName: string | null
+  ) {
+    if (parsed.data.customerEmail) {
+      const cancelToken = signBookingToken(bookingId, "cancel");
+      const rescheduleToken = signBookingToken(bookingId, "reschedule");
+      const { subject, html, text } = buildConfirmationEmail({
+        bookingId,
+        customerName: parsed.data.customerName,
+        serviceName: service!.name,
+        startsAtIso: startsAt.toISOString(),
+        endsAtIso: endsAt.toISOString(),
+        pricePln,
+        notes: parsed.data.notes ?? null,
+        business: {
+          name: settings.business_name,
+          addressStreet: settings.address_street,
+          addressPostal: settings.address_postal,
+          addressCity: settings.address_city,
+          phone: settings.phone,
+        },
+        cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
+        rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
+      });
+      sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
+        (err) => console.error("[email] Failed to send confirmation:", err)
+      );
+    }
+    if (settings.email) {
+      const { subject, html, text } = buildOwnerNotificationEmail({
+        bookingId,
+        customerName: parsed.data.customerName,
+        customerPhone: parsed.data.customerPhone,
+        customerEmail: parsed.data.customerEmail ?? null,
+        serviceName: service!.name,
+        staffName,
+        startsAtIso: startsAt.toISOString(),
+        endsAtIso: endsAt.toISOString(),
+        pricePln,
+        notes: parsed.data.notes ?? null,
+        businessName: settings.business_name,
+        adminUrl: `${siteUrl}/admin/harmonogram`,
+      });
+      sendEmail({ to: settings.email, subject, html, text }).catch(() => {});
+    }
+  }
 
   // ── Group class: server-side capacity check ──────────────────────────────────
   if (service.is_group && service.max_participants) {
@@ -147,7 +185,6 @@ export async function submitBooking(
     if (booked >= service.max_participants) {
       return { status: "error", message: "Brak wolnych miejsc w tym terminie. Wybierz inny." };
     }
-    // Group bookings don't auto-assign staff
     const result = await createBooking({
       serviceId: service.id,
       customerName: parsed.data.customerName,
@@ -169,55 +206,11 @@ export async function submitBooking(
       serviceName: service.name,
       startsAtIso: startsAt.toISOString(),
     });
-    const s = await getSettings();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-    if (parsed.data.customerEmail) {
-      const cancelToken = signBookingToken(result.id, "cancel");
-      const rescheduleToken = signBookingToken(result.id, "reschedule");
-      const { subject, html, text } = buildConfirmationEmail({
-        bookingId: result.id,
-        customerName: parsed.data.customerName,
-        serviceName: service.name,
-        startsAtIso: startsAt.toISOString(),
-        endsAtIso: endsAt.toISOString(),
-        pricePln: service.price_pln,
-        notes: parsed.data.notes ?? null,
-        business: {
-          name: s.business_name,
-          addressStreet: s.address_street,
-          addressPostal: s.address_postal,
-          addressCity: s.address_city,
-          phone: s.phone,
-        },
-        cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
-        rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
-      });
-      sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
-        (err) => console.error("[email] Failed to send confirmation:", err)
-      );
-    }
-    // Owner notification
-    if (s.email) {
-      const { subject, html, text } = buildOwnerNotificationEmail({
-        bookingId: result.id,
-        customerName: parsed.data.customerName,
-        customerPhone: parsed.data.customerPhone,
-        customerEmail: parsed.data.customerEmail ?? null,
-        serviceName: service.name,
-        staffName: null,
-        startsAtIso: startsAt.toISOString(),
-        endsAtIso: endsAt.toISOString(),
-        pricePln: service.price_pln,
-        notes: parsed.data.notes ?? null,
-        businessName: s.business_name,
-        adminUrl: `${siteUrl}/admin/harmonogram`,
-      });
-      sendEmail({ to: s.email, subject, html, text }).catch(() => {});
-    }
+    sendBookingEmails(result.id, endsAt, service.price_pln, null);
     redirect(`/rezerwacja/sukces/${result.id}`);
   }
 
-  // Auto-assign staff when client selected "Dowolny"
+  // ── Individual service ────────────────────────────────────────────────────────
   let resolvedStaffId: string | null = parsed.data.staffId ?? null;
   if (!resolvedStaffId) {
     const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
@@ -260,55 +253,10 @@ export async function submitBooking(
     startsAtIso: startsAt.toISOString(),
   });
 
-  // Send confirmation email — fire-and-forget, never blocks booking.
-  const s2 = await getSettings();
-  const siteUrl2 = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  if (parsed.data.customerEmail) {
-    const cancelToken = signBookingToken(result.id, "cancel");
-    const rescheduleToken = signBookingToken(result.id, "reschedule");
-    const { subject, html, text } = buildConfirmationEmail({
-      bookingId: result.id,
-      customerName: parsed.data.customerName,
-      serviceName: service.name,
-      startsAtIso: startsAt.toISOString(),
-      endsAtIso: endsAt.toISOString(),
-      pricePln: effectivePrice,
-      notes: parsed.data.notes ?? null,
-      business: {
-        name: s2.business_name,
-        addressStreet: s2.address_street,
-        addressPostal: s2.address_postal,
-        addressCity: s2.address_city,
-        phone: s2.phone,
-      },
-      cancelUrl: `${siteUrl2}/rezerwacja/anuluj/${cancelToken}`,
-      rescheduleUrl: `${siteUrl2}/rezerwacja/zmien/${rescheduleToken}`,
-    });
-    sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
-      (err) => console.error("[email] Failed to send confirmation:", err)
-    );
-  }
-  // Owner notification
-  if (s2.email) {
-    const staffName = resolvedStaffId
-      ? (await getActiveStaff()).find((st) => st.id === resolvedStaffId)?.name ?? null
-      : null;
-    const { subject, html, text } = buildOwnerNotificationEmail({
-      bookingId: result.id,
-      customerName: parsed.data.customerName,
-      customerPhone: parsed.data.customerPhone,
-      customerEmail: parsed.data.customerEmail ?? null,
-      serviceName: service.name,
-      staffName,
-      startsAtIso: startsAt.toISOString(),
-      endsAtIso: endsAt.toISOString(),
-      pricePln: effectivePrice,
-      notes: parsed.data.notes ?? null,
-      businessName: s2.business_name,
-      adminUrl: `${siteUrl2}/admin/harmonogram`,
-    });
-    sendEmail({ to: s2.email, subject, html, text }).catch(() => {});
-  }
+  const staffName = resolvedStaffId
+    ? (await getActiveStaff()).find((st) => st.id === resolvedStaffId)?.name ?? null
+    : null;
+  sendBookingEmails(result.id, endsAt, effectivePrice, staffName);
 
   redirect(`/rezerwacja/sukces/${result.id}`);
 }
