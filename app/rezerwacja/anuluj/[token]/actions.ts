@@ -35,6 +35,7 @@ export async function customerCancelAction(formData: FormData) {
     customerName: booking.customer_name,
     serviceName: cancelService?.name ?? null,
     startsAtIso: booking.starts_at,
+    tenantId: booking.tenant_id,
   });
 
   if (booking.customer_email) {

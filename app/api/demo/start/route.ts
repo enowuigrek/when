@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   await seedDemoTenant(tenant.id as string, variant);
   await setDemoCookie(tenant.id as string);
-  await createAdminSession();
+  await createAdminSession(tenant.id as string);
 
   return NextResponse.redirect(new URL("/admin", req.url));
 }
