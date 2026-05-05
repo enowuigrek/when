@@ -7,15 +7,15 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+        <Link href="/rezerwacja" className="text-lg font-semibold tracking-tight">
           {s.business_name}
           <span className="text-[var(--color-accent)]">.</span>
         </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
-          <a href="#uslugi" className="hover:text-zinc-100">Usługi</a>
-          <a href="#godziny" className="hover:text-zinc-100">Godziny</a>
-          <a href="#kontakt" className="hover:text-zinc-100">Kontakt</a>
+          <Link href="/rezerwacja" className="hover:text-zinc-100 transition-colors">Usługi</Link>
+          <Link href="/godziny" className="hover:text-zinc-100 transition-colors">Godziny</Link>
+          <Link href="/kontakt" className="hover:text-zinc-100 transition-colors">Kontakt</Link>
         </nav>
 
         <SiteHeaderCta />

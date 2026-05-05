@@ -23,6 +23,11 @@ export default async function ServicePickPage({
 
   const services = await getServices();
 
+  // Single service — skip the picker and go straight to booking
+  if (services.length === 1) {
+    redirect(`/rezerwacja/${services[0].slug}`);
+  }
+
   return (
     <>
       <SiteHeader />

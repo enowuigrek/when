@@ -37,6 +37,10 @@ function storageKey(tenantId: string) {
   return `when_admin_notifs_v3_${tenantId}`;
 }
 
+function dismissedKey(tenantId: string) {
+  return `when_admin_dismissed_v1_${tenantId}`;
+}
+
 function loadStored(tenantId: string): NotifItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -48,6 +52,20 @@ function loadStored(tenantId: string): NotifItem[] {
 
 function saveStored(items: NotifItem[], tenantId: string) {
   localStorage.setItem(storageKey(tenantId), JSON.stringify(items.slice(0, 50)));
+}
+
+function loadDismissed(tenantId: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    return new Set(JSON.parse(localStorage.getItem(dismissedKey(tenantId)) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(ids: Set<string>, tenantId: string) {
+  // Keep last 500 dismissed IDs — enough to never resurface deleted notifs
+  localStorage.setItem(dismissedKey(tenantId), JSON.stringify([...ids].slice(-500)));
 }
 
 function warsawDateStr(iso: string) {
@@ -84,6 +102,8 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   const [open, setOpen] = useState(false);
   const initialLoad = useRef(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Stable ref for dismissed IDs — checked in poll() without needing re-render
+  const dismissedRef = useRef<Set<string>>(new Set());
 
   const unread = items.filter((i) => !i.read).length;
 
@@ -94,7 +114,9 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
       const { events } = await res.json() as { events: RawEvent[] };
 
       setItems((prev) => {
-        const seenIds = new Set(prev.map((i) => i.id));
+        // Combine currently-visible IDs + permanently-dismissed IDs so deleted
+        // notifications are never re-added by the next poll.
+        const seenIds = new Set([...prev.map((i) => i.id), ...dismissedRef.current]);
         const newItems: NotifItem[] = [];
         const newToasts: Toast[] = [];
 
@@ -138,6 +160,7 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   }, []);
 
   useEffect(() => {
+    dismissedRef.current = loadDismissed(tenantId);
     setItems(loadStored(tenantId));
     poll();
     const interval = setInterval(poll, POLL_MS);
@@ -176,6 +199,9 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
       saveStored(updated, tenantId);
       return updated;
     });
+    // Permanently mark as dismissed so it won't come back on next poll
+    dismissedRef.current.add(id);
+    saveDismissed(dismissedRef.current, tenantId);
   }
 
   function navigateTo(startsAt: string) {

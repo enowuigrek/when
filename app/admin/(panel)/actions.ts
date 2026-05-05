@@ -7,7 +7,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
+import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
+import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 
 export async function logoutAction() {
@@ -217,6 +219,35 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     serviceName: (booking.service as { name: string } | null)?.name ?? null,
     startsAtIso: startsAt.toISOString(),
   });
+
+  // Send reschedule confirmation email to customer
+  if (booking.customer_email) {
+    const s = await getSettings();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    const cancelToken = signBookingToken(id, "cancel");
+    const rescheduleToken = signBookingToken(id, "reschedule");
+    const { subject, html, text } = buildConfirmationEmail({
+      bookingId: id,
+      customerName: booking.customer_name as string,
+      serviceName: (booking.service as { name: string } | null)?.name ?? "—",
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+      pricePln: (booking.price_pln_snapshot as number) ?? 0,
+      notes: (booking.notes as string | null) ?? null,
+      business: {
+        name: s.business_name,
+        addressStreet: s.address_street,
+        addressPostal: s.address_postal,
+        addressCity: s.address_city,
+        phone: s.phone,
+      },
+      cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
+      rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
+    });
+    sendEmail({ to: booking.customer_email as string, subject, html, text }).catch(
+      (err) => console.error("[email] Reschedule notification failed:", err)
+    );
+  }
 
   revalidatePath("/admin/harmonogram");
   return { ok: true };

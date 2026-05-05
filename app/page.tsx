@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
-import { BookMeetingButton } from "@/components/book-meeting-button";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
@@ -159,26 +158,25 @@ function DemoCTAs() {
 }
 
 /**
- * Returns the widget URL for the "Book a meeting with me" popup.
+ * Returns the direct booking URL for the owner's "Book a meeting" CTA.
  * Looks up the owner tenant by OWNER_EMAIL env var, then picks the
- * first active service (ordered by sort_order). Falls back to a
- * hardcoded path so the button never disappears.
+ * first active service (ordered by sort_order).
  */
-async function getOwnerWidgetSrc(): Promise<string> {
-  const fallback = "/widget/when/demo-30-min";
+async function getOwnerBookingUrl(): Promise<string> {
+  const fallback = "/rezerwacja";
   const ownerEmail = process.env.OWNER_EMAIL ?? CONTACT_EMAIL;
 
   const supabase = createAdminClient();
   let { data: tenant } = await supabase
     .from("tenants")
-    .select("id, slug")
+    .select("id")
     .eq("email", ownerEmail)
     .maybeSingle();
 
   if (!tenant) {
     const { data: firstTenant } = await supabase
       .from("tenants")
-      .select("id, slug")
+      .select("id")
       .neq("kind", "demo")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -196,13 +194,12 @@ async function getOwnerWidgetSrc(): Promise<string> {
     .order("sort_order")
     .limit(1)
     .maybeSingle();
-  if (!svc) return `/widget/${tenant.slug}`;
 
-  return `/widget/${tenant.slug}/${svc.slug}`;
+  return svc ? `/rezerwacja/${svc.slug}` : fallback;
 }
 
 export default async function StartPage() {
-  const ownerWidgetSrc = await getOwnerWidgetSrc();
+  const ownerBookingUrl = await getOwnerBookingUrl();
 
   return (
     <main className="min-h-screen text-zinc-100">
@@ -223,11 +220,12 @@ export default async function StartPage() {
           <nav className="flex items-center gap-6 text-sm">
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
             <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
-            <BookMeetingButton
-              src={ownerWidgetSrc}
-              label="Umów rozmowę"
+            <Link
+              href={ownerBookingUrl}
               className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 transition-opacity hover:opacity-90"
-            />
+            >
+              Umów rozmowę
+            </Link>
           </nav>
         </div>
       </header>
@@ -377,7 +375,12 @@ export default async function StartPage() {
             </p>
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <BookMeetingButton src={ownerWidgetSrc} />
+            <Link
+              href={ownerBookingUrl}
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
+            >
+              Umów bezpłatną rozmowę →
+            </Link>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
