@@ -117,15 +117,26 @@ export async function submitBooking(
     };
   }
 
+  // Destructure early so inner helpers have definite types (no `parsed.data` narrowing issue).
+  const {
+    serviceSlug: parsedServiceSlug,
+    startsAtIso,
+    staffId: parsedStaffId,
+    customerName,
+    customerPhone,
+    customerEmail,
+    notes,
+  } = parsed.data;
+
   const [service, settings] = await Promise.all([
-    getServiceBySlug(parsed.data.serviceSlug),
+    getServiceBySlug(parsedServiceSlug),
     getSettings(),
   ]);
   if (!service) {
     return { status: "error", message: "Usługa nie istnieje." };
   }
 
-  const startsAt = new Date(parsed.data.startsAtIso);
+  const startsAt = new Date(startsAtIso);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
   function sendBookingEmails(
@@ -134,17 +145,17 @@ export async function submitBooking(
     pricePln: number,
     staffName: string | null
   ) {
-    if (parsed.data.customerEmail) {
+    if (customerEmail) {
       const cancelToken = signBookingToken(bookingId, "cancel");
       const rescheduleToken = signBookingToken(bookingId, "reschedule");
       const { subject, html, text } = buildConfirmationEmail({
         bookingId,
-        customerName: parsed.data.customerName,
+        customerName,
         serviceName: service!.name,
         startsAtIso: startsAt.toISOString(),
         endsAtIso: endsAt.toISOString(),
         pricePln,
-        notes: parsed.data.notes ?? null,
+        notes: notes ?? null,
         business: {
           name: settings.business_name,
           addressStreet: settings.address_street,
@@ -155,22 +166,22 @@ export async function submitBooking(
         cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
         rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
       });
-      sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
+      sendEmail({ to: customerEmail, subject, html, text }).catch(
         (err) => console.error("[email] Failed to send confirmation:", err)
       );
     }
     if (settings.email) {
       const { subject, html, text } = buildOwnerNotificationEmail({
         bookingId,
-        customerName: parsed.data.customerName,
-        customerPhone: parsed.data.customerPhone,
-        customerEmail: parsed.data.customerEmail ?? null,
+        customerName,
+        customerPhone,
+        customerEmail: customerEmail ?? null,
         serviceName: service!.name,
         staffName,
         startsAtIso: startsAt.toISOString(),
         endsAtIso: endsAt.toISOString(),
         pricePln,
-        notes: parsed.data.notes ?? null,
+        notes: notes ?? null,
         businessName: settings.business_name,
         adminUrl: `${siteUrl}/admin/harmonogram`,
       });
@@ -187,12 +198,12 @@ export async function submitBooking(
     }
     const result = await createBooking({
       serviceId: service.id,
-      customerName: parsed.data.customerName,
-      customerPhone: parsed.data.customerPhone,
-      customerEmail: parsed.data.customerEmail ?? null,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      customerEmail: customerEmail ?? null,
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
-      notes: parsed.data.notes ?? null,
+      notes: notes ?? null,
       staffId: null,
       pricePlnSnapshot: service.price_pln,
       durationMinSnapshot: service.duration_min,
@@ -202,7 +213,7 @@ export async function submitBooking(
       bookingId: result.id,
       eventType: "created",
       source: "customer",
-      customerName: parsed.data.customerName,
+      customerName: customerName,
       serviceName: service.name,
       startsAtIso: startsAt.toISOString(),
     });
@@ -211,7 +222,7 @@ export async function submitBooking(
   }
 
   // ── Individual service ────────────────────────────────────────────────────────
-  let resolvedStaffId: string | null = parsed.data.staffId ?? null;
+  let resolvedStaffId: string | null = parsedStaffId ?? null;
   if (!resolvedStaffId) {
     const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
     const [busyIds, allStaff] = await Promise.all([
@@ -229,12 +240,12 @@ export async function submitBooking(
 
   const result = await createBooking({
     serviceId: service.id,
-    customerName: parsed.data.customerName,
-    customerPhone: parsed.data.customerPhone,
-    customerEmail: parsed.data.customerEmail ?? null,
+    customerName: customerName,
+    customerPhone: customerPhone,
+    customerEmail: customerEmail ?? null,
     startsAtIso: startsAt.toISOString(),
     endsAtIso: endsAt.toISOString(),
-    notes: parsed.data.notes ?? null,
+    notes: notes ?? null,
     staffId: resolvedStaffId,
     pricePlnSnapshot: effectivePrice,
     durationMinSnapshot: effectiveDuration,
@@ -248,7 +259,7 @@ export async function submitBooking(
     bookingId: result.id,
     eventType: "created",
     source: "customer",
-    customerName: parsed.data.customerName,
+    customerName: customerName,
     serviceName: service.name,
     startsAtIso: startsAt.toISOString(),
   });
