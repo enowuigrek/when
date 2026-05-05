@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
@@ -210,31 +211,40 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
     router.push(`/admin/harmonogram?widok=dzien&od=${date}`);
   }
 
+  // Portal the toast stack to document.body so it's never trapped inside
+  // a backdrop-filter stacking context (the admin header uses backdrop-blur
+  // which makes position:fixed children position relative to the header).
+  const toastStack = toasts.length > 0
+    ? createPortal(
+        <div className="fixed bottom-4 right-4 z-[9999] space-y-2">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl transition-all"
+              onClick={() => {
+                setToasts((prev) => prev.filter((x) => x.id !== t.id));
+                navigateTo(t.startsAt);
+              }}
+            >
+              <span className="mt-0.5">{ICON[t.eventType]}</span>
+              <div>
+                <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
+                <p className="text-xs text-zinc-300">
+                  {t.customerName}
+                  {t.serviceName ? ` · ${t.serviceName}` : ""}
+                </p>
+                <p className="text-xs text-zinc-500">{formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )
+    : null;
+
   return (
     <>
-      {/* Toast stack */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl transition-all"
-            onClick={() => {
-              setToasts((prev) => prev.filter((x) => x.id !== t.id));
-              navigateTo(t.startsAt);
-            }}
-          >
-            <span className="mt-0.5">{ICON[t.eventType]}</span>
-            <div>
-              <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
-              <p className="text-xs text-zinc-300">
-                {t.customerName}
-                {t.serviceName ? ` · ${t.serviceName}` : ""}
-              </p>
-              <p className="text-xs text-zinc-500">{formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {toastStack}
 
       {/* Bell button + dropdown */}
       <div className="relative" ref={dropdownRef}>
@@ -263,6 +273,9 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
                 <button
                   type="button"
                   onClick={() => {
+                    // Mark every visible item as dismissed before clearing
+                    items.forEach((i) => dismissedRef.current.add(i.id));
+                    saveDismissed(dismissedRef.current, tenantId);
                     setItems([]);
                     saveStored([], tenantId);
                   }}

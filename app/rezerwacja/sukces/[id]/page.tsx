@@ -112,18 +112,29 @@ export default async function SuccessPage({
           </dl>
 
           <div className="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-5 text-sm text-zinc-400">
-            <p>
+            <p className="leading-relaxed">
               <span className="text-zinc-200">{s.business_name}</span>
-              <br />
-              {s.address_street}, {s.address_postal} {s.address_city}
-              <br />
+              {(s.address_street || s.address_postal || s.address_city) && (
+                <>
+                  <br />
+                  {[
+                    s.address_street,
+                    [s.address_postal, s.address_city].filter(Boolean).join(" "),
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </>
+              )}
               {s.phone && (
-                <a
-                  href={`tel:${s.phone.replace(/\s/g, "")}`}
-                  className="font-mono text-zinc-300 hover:text-[var(--color-accent)]"
-                >
-                  {s.phone}
-                </a>
+                <>
+                  <br />
+                  <a
+                    href={`tel:${s.phone.replace(/\s/g, "")}`}
+                    className="font-mono text-zinc-300 hover:text-[var(--color-accent)]"
+                  >
+                    {s.phone}
+                  </a>
+                </>
               )}
             </p>
           </div>
