@@ -216,9 +216,10 @@ function BookingModal({
   const isPast = new Date(booking.startsAt).getTime() < Date.now();
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4 pb-4 pt-[72px]" onClick={onClose}>
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        className="flex w-full max-w-md flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        style={{ maxHeight: "calc(100vh - 96px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -280,7 +281,7 @@ function BookingModal({
         )}
 
         {/* Body */}
-        <div className="px-5 py-4 text-sm">
+        <div className="overflow-y-auto px-5 py-4 text-sm">
           {error && <p className="mb-3 rounded-md border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
           {(isCancelled || isPendingPayment || tab === "info") && (
