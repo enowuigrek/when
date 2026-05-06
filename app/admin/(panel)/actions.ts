@@ -11,6 +11,7 @@ import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
+import { notifyStaff } from "@/lib/email/notify-staff";
 
 export async function logoutAction() {
   await destroyAdminSession();
@@ -80,18 +81,67 @@ export async function assignStaffAction(formData: FormData): Promise<{ ok: true 
   const id = formData.get("id")?.toString();
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, message: "Nieprawidłowe ID." };
 
-  const staffId = formData.get("staffId")?.toString() || null;
+  const newStaffId = formData.get("staffId")?.toString() || null;
 
   const tenantId = await getAdminTenantId();
-  const { error } = await createAdminClient()
+  const supabase = createAdminClient();
+
+  // Fetch booking before update to know old staff + booking details
+  const { data: booking } = await supabase
     .from("bookings")
-    .update({ staff_id: staffId })
+    .select("staff_id, customer_name, customer_phone, starts_at, ends_at, service:services(name)")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+
+  const oldStaffId = booking?.staff_id as string | null ?? null;
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ staff_id: newStaffId })
     .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) {
     if (error.code === "23P01") return { ok: false, message: "Pracownik jest już zajęty w tym terminie." };
     return { ok: false, message: `Błąd: ${error.message}` };
+  }
+
+  // Send staff notifications (fire-and-forget)
+  if (booking) {
+    const customerName = booking.customer_name as string;
+    const customerPhone = booking.customer_phone as string;
+    const serviceName = (booking.service as unknown as { name: string } | null)?.name ?? "—";
+    const startsAtIso = booking.starts_at as string;
+    const endsAtIso = booking.ends_at as string;
+
+    // Notify new staff if assigned
+    if (newStaffId) {
+      notifyStaff({
+        staffId: newStaffId,
+        type: oldStaffId ? "reassigned_to" : "assigned",
+        customerName,
+        customerPhone,
+        serviceName,
+        startsAtIso,
+        endsAtIso,
+        previousStaffName: null, // we'd need an extra lookup — skip for now
+      }).catch(() => {});
+    }
+
+    // Notify old staff if removed
+    if (oldStaffId && oldStaffId !== newStaffId) {
+      notifyStaff({
+        staffId: oldStaffId,
+        type: "unassigned",
+        customerName,
+        customerPhone,
+        serviceName,
+        startsAtIso,
+        endsAtIso,
+        newStaffName: null, // could fetch but keep simple
+      }).catch(() => {});
+    }
   }
 
   revalidatePath("/admin/harmonogram");
@@ -213,6 +263,19 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     serviceName: (booking.service as { name: string } | null)?.name ?? null,
     startsAtIso: startsAt.toISOString(),
   });
+
+  // Notify staff member about the rescheduled time (fire-and-forget)
+  if (booking.staff_id) {
+    notifyStaff({
+      staffId: booking.staff_id as string,
+      type: "rescheduled",
+      customerName: booking.customer_name as string,
+      customerPhone: booking.customer_phone as string,
+      serviceName: (booking.service as { name: string } | null)?.name ?? "—",
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+    }).catch(() => {});
+  }
 
   // Send reschedule confirmation email to customer
   if (booking.customer_email) {

@@ -13,6 +13,7 @@ import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import { resolveEffectivePricing } from "@/lib/db/staff-groups";
+import { notifyStaff } from "@/lib/email/notify-staff";
 import type { Slot } from "@/lib/slots";
 
 export async function searchCustomersAction(query: string) {
@@ -206,6 +207,20 @@ export async function createAdminBookingAction(
       email: parsed.data.customerEmail ?? null,
     });
   } catch {
+  }
+
+  // Notify assigned staff member
+  if (resolvedStaffId) {
+    notifyStaff({
+      staffId: resolvedStaffId,
+      // Admin explicitly chose staff → "assigned"; auto-assigned → also "assigned"
+      type: "assigned",
+      customerName: parsed.data.customerName,
+      customerPhone: parsed.data.customerPhone,
+      serviceName: service.name,
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+    }).catch(() => {});
   }
 
   revalidatePath("/admin/harmonogram");

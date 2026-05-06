@@ -67,6 +67,21 @@ export function StaffForm({
         </div>
 
         <div>
+          <label className="mb-1.5 block text-sm text-zinc-400">
+            Email pracownika
+            <span className="ml-2 text-xs text-zinc-600">— powiadomienia o rezerwacjach</span>
+          </label>
+          <input
+            type="email"
+            name="email"
+            defaultValue={staff?.email ?? ""}
+            placeholder="np. marek@example.com"
+            className={inp}
+          />
+          {err.email && <p className="mt-1 text-xs text-red-400">{err.email}</p>}
+        </div>
+
+        <div>
           <label className="mb-2 block text-sm text-zinc-400">Kolor w kalendarzu</label>
           <div className="flex flex-wrap gap-2">
             {COLORS.map((c) => (

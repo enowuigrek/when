@@ -19,6 +19,7 @@ async function requireAdmin() {
 const staffSchema = z.object({
   name: z.string().trim().min(1, "Imię jest wymagane").max(80),
   bio: z.string().trim().max(500).optional().or(z.literal("").transform(() => undefined)),
+  email: z.string().trim().email("Niepoprawny email").optional().or(z.literal("").transform(() => undefined)),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Niepoprawny kolor"),
   sort_order: z.coerce.number().int().min(0),
 });
@@ -37,6 +38,7 @@ export async function createStaffAction(
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     bio: formData.get("bio")?.toString() ?? "",
+    email: formData.get("email")?.toString() ?? "",
     color: formData.get("color")?.toString() ?? "#d4a26a",
     sort_order: formData.get("sort_order")?.toString() ?? "0",
   };
@@ -52,7 +54,7 @@ export async function createStaffAction(
   }
 
   try {
-    await createStaff({ ...parsed.data, bio: parsed.data.bio ?? null });
+    await createStaff({ ...parsed.data, bio: parsed.data.bio ?? null, email: parsed.data.email ?? null });
   } catch (e) {
     return { status: "error", message: String(e) };
   }
@@ -73,6 +75,7 @@ export async function updateStaffAction(
   const raw = {
     name: formData.get("name")?.toString() ?? "",
     bio: formData.get("bio")?.toString() ?? "",
+    email: formData.get("email")?.toString() ?? "",
     color: formData.get("color")?.toString() ?? "#d4a26a",
     sort_order: formData.get("sort_order")?.toString() ?? "0",
   };
@@ -90,7 +93,7 @@ export async function updateStaffAction(
   const serviceIds = formData.getAll("serviceIds[]").map(String);
 
   try {
-    await updateStaff(id, { ...parsed.data, bio: parsed.data.bio ?? null });
+    await updateStaff(id, { ...parsed.data, bio: parsed.data.bio ?? null, email: parsed.data.email ?? null });
     await setStaffServices(id, serviceIds);
   } catch (e) {
     return { status: "error", message: String(e) };
