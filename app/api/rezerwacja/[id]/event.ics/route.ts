@@ -62,10 +62,12 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      // attachment + .ics URL extension makes iOS Safari show a banner
-      // prompting "Open in Calendar". Inline + relative URL gets shown
-      // as plain text on iOS — broken UX.
-      "Content-Disposition": `attachment; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
+      // inline (not attachment) — iOS Safari refuses many `attachment`
+      // downloads with "Safari nie może pobrać tego pliku". With inline
+      // + text/calendar + .ics URL, iOS shows the native "Add to
+      // Calendar" sheet, and desktop browsers still hand the file to
+      // the OS calendar handler.
+      "Content-Disposition": `inline; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
       "Cache-Control": "no-store",
     },
   });

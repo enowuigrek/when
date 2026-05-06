@@ -37,9 +37,10 @@ export function AddToCalendarButton({ googleCalUrl, icalUrl }: Props) {
     );
   }
 
-  // iOS and desktop: download the .ics file — iOS Safari shows a banner
-  // "Open in Calendar" which adds a single event (NOT a subscription).
-  // webcal:// would subscribe the URL as a recurring calendar feed — wrong.
+  // iOS and desktop: open the .ics file inline. iOS Safari renders the
+  // native "Add to Calendar" sheet for a one-off event. webcal:// would
+  // subscribe the URL as a recurring feed — wrong. attachment download
+  // fails on iOS with "Safari nie może pobrać tego pliku".
   return (
     <a
       href={icalUrl}
