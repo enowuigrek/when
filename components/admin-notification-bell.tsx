@@ -34,16 +34,7 @@ type Toast = NotifItem;
 
 const POLL_MS = 30_000;
 
-// ── localStorage helpers ──────────────────────────────────────────────────────
-
-/** Visible notifications stored across page loads. */
 function notifsKey(tenantId: string) { return `when_admin_notifs_v3_${tenantId}`; }
-
-/**
- * Cursor = created_at of the most recently processed event.
- * The API is asked for events NEWER than this timestamp on each poll,
- * so dismissed/cleared notifications are never refetched.
- */
 function cursorKey(tenantId: string) { return `when_admin_cursor_v1_${tenantId}`; }
 
 function loadStored(tenantId: string): NotifItem[] {
@@ -51,20 +42,16 @@ function loadStored(tenantId: string): NotifItem[] {
   try { return JSON.parse(localStorage.getItem(notifsKey(tenantId)) ?? "[]"); }
   catch { return []; }
 }
-
 function saveStored(items: NotifItem[], tenantId: string) {
   localStorage.setItem(notifsKey(tenantId), JSON.stringify(items.slice(0, 50)));
 }
-
 function loadCursor(tenantId: string): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(cursorKey(tenantId));
 }
-
 function saveCursor(iso: string, tenantId: string) {
   localStorage.setItem(cursorKey(tenantId), iso);
 }
-
 function warsawDateStr(iso: string) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Warsaw",
@@ -72,40 +59,54 @@ function warsawDateStr(iso: string) {
   }).format(new Date(iso));
 }
 
-// ── UI constants ──────────────────────────────────────────────────────────────
-
 const TITLE: Record<EventType, string> = {
   created: "Nowa rezerwacja",
   rescheduled: "Zmiana terminu",
   cancelled: "Anulowana rezerwacja",
 };
-
 const ICON: Record<EventType, string> = {
   created: "🟢", rescheduled: "🔄", cancelled: "🔴",
 };
-
 const ACCENT: Record<EventType, string> = {
   created: "text-emerald-400",
   rescheduled: "text-blue-400",
   cancelled: "text-red-400",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Bell SVG ──────────────────────────────────────────────────────────────
 
-export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
+function BellIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────
+//
+// panelLeft  – when provided, render a fixed side panel at that x offset
+//              instead of a dropdown. Pass sidebar width (60 or 220).
+// navMode    – render trigger as a full-width nav-link-style row
+// sidebarExpanded – controls whether the label text is visible in navMode
+
+export function AdminNotificationBell({
+  tenantId,
+  panelLeft,
+  navMode = false,
+  sidebarExpanded = false,
+}: {
+  tenantId: string;
+  panelLeft?: number;
+  navMode?: boolean;
+  sidebarExpanded?: boolean;
+}) {
   const router = useRouter();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const initialLoad = useRef(true);
-
-  /**
-   * Cursor ref — holds the created_at of the latest event we've processed.
-   * Passed as ?since= to the API so we ONLY receive events newer than this.
-   * Dismissed/cleared notifications are always older than the cursor and
-   * will never be returned by the API again.
-   */
   const cursorRef = useRef<string | null>(null);
 
   const unread = items.filter((i) => !i.read).length;
@@ -119,12 +120,8 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
       const res = await fetch(url);
       if (!res.ok) return;
       const { events } = await res.json() as { events: RawEvent[] };
-      if (events.length === 0) {
-        initialLoad.current = false;
-        return;
-      }
+      if (events.length === 0) { initialLoad.current = false; return; }
 
-      // Advance cursor to the most recent event in this batch
       const latestCreatedAt = events.reduce(
         (max, e) => (e.created_at > max ? e.created_at : max),
         cursorRef.current ?? ""
@@ -147,13 +144,10 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
             serviceName: e.service_name,
             startsAt: e.starts_at,
             createdAt: e.created_at,
-            // Mark as read on initial load so old events don't light up the badge
             read: initialLoad.current,
           };
           newItems.push(item);
-          if (!initialLoad.current && e.source === "customer") {
-            newToasts.push(item);
-          }
+          if (!initialLoad.current && e.source === "customer") newToasts.push(item);
         }
 
         initialLoad.current = false;
@@ -163,17 +157,13 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         saveStored(merged, tenantId);
-
         if (newToasts.length > 0) setToasts((t) => [...t, ...newToasts]);
         return merged;
       });
-    } catch {
-      // network error — ignore
-    }
+    } catch { /* network error */ }
   }, [tenantId]);
 
   useEffect(() => {
-    // Restore cursor and visible notifications from previous session
     cursorRef.current = loadCursor(tenantId);
     setItems(loadStored(tenantId));
     poll();
@@ -181,24 +171,14 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
     return () => clearInterval(interval);
   }, [poll, tenantId]);
 
+  // Auto-dismiss toasts after 5 s
   useEffect(() => {
     if (toasts.length === 0) return;
     const t = setTimeout(() => setToasts((prev) => prev.slice(1)), 5000);
     return () => clearTimeout(t);
   }, [toasts]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  function openDropdown() {
+  function openPanel() {
     setOpen((v) => !v);
     setItems((prev) => {
       const updated = prev.map((i) => ({ ...i, read: true }));
@@ -208,7 +188,6 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   }
 
   function deleteNotif(id: string) {
-    // Just remove from UI — the cursor ensures it won't be refetched
     setItems((prev) => {
       const updated = prev.filter((i) => i.id !== id);
       saveStored(updated, tenantId);
@@ -217,7 +196,6 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
   }
 
   function clearAll() {
-    // Advance cursor to now so the next poll starts from this moment
     const now = new Date().toISOString();
     cursorRef.current = now;
     saveCursor(now, tenantId);
@@ -227,35 +205,24 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
 
   function navigateTo(startsAt: string) {
     setOpen(false);
-    const date = warsawDateStr(startsAt);
-    router.push(`/admin/harmonogram?widok=dzien&od=${date}`);
+    router.push(`/admin/harmonogram?widok=dzien&od=${warsawDateStr(startsAt)}`);
   }
 
-  // Portal toast stack to document.body so it's not trapped inside the
-  // admin header's backdrop-blur stacking context (which would make
-  // position:fixed position relative to the header instead of the viewport).
+  // ── Toast portal (always rendered into body) ──────────────────────────
   const toastStack = toasts.length > 0
     ? createPortal(
         <div className="fixed bottom-4 right-4 z-[9999] space-y-2">
           {toasts.map((t) => (
             <div
               key={t.id}
-              className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl transition-all"
-              onClick={() => {
-                setToasts((prev) => prev.filter((x) => x.id !== t.id));
-                navigateTo(t.startsAt);
-              }}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl"
+              onClick={() => { setToasts((p) => p.filter((x) => x.id !== t.id)); navigateTo(t.startsAt); }}
             >
               <span className="mt-0.5">{ICON[t.eventType]}</span>
               <div>
                 <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
-                <p className="text-xs text-zinc-300">
-                  {t.customerName}
-                  {t.serviceName ? ` · ${t.serviceName}` : ""}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}
-                </p>
+                <p className="text-xs text-zinc-300">{t.customerName}{t.serviceName ? ` · ${t.serviceName}` : ""}</p>
+                <p className="text-xs text-zinc-500">{formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}</p>
               </div>
             </div>
           ))}
@@ -264,86 +231,174 @@ export function AdminNotificationBell({ tenantId }: { tenantId: string }) {
       )
     : null;
 
+  // ── Trigger button ────────────────────────────────────────────────────
+  const trigger = navMode ? (
+    // Full-width nav-row style (used inside sidebar)
+    <button
+      type="button"
+      onClick={openPanel}
+      className={`flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium transition-colors ${
+        open ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+      }`}
+    >
+      <span className="relative shrink-0">
+        <BellIcon />
+        {unread > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[9px] font-bold text-zinc-950">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </span>
+      <span
+        className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
+          sidebarExpanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+        }`}
+      >
+        Powiadomienia
+      </span>
+    </button>
+  ) : (
+    // Standalone icon button (legacy / mobile top bar)
+    <button
+      type="button"
+      onClick={openPanel}
+      className="relative rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800/60 hover:text-zinc-100"
+      aria-label="Powiadomienia"
+    >
+      <BellIcon />
+      {unread > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[10px] font-bold text-zinc-950">
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </button>
+  );
+
+  // ── Panel content (shared between side-panel and dropdown) ────────────
+  const panelContent = (
+    <>
+      <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
+        <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
+        {items.length > 0 && (
+          <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+            Wyczyść wszystkie
+          </button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
+      ) : (
+        <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+          {items.map((item) => (
+            <li key={item.id} className={`flex items-start gap-3 px-4 py-3 ${item.read ? "" : "bg-zinc-900/60"}`}>
+              {!item.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
+              <button
+                type="button"
+                onClick={() => navigateTo(item.startsAt)}
+                className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
+              >
+                <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{ICON[item.eventType]} {TITLE[item.eventType]}</p>
+                <p className="text-sm text-zinc-100">{item.customerName}</p>
+                {item.serviceName && <p className="text-xs text-zinc-400">{item.serviceName}</p>}
+                <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
+              </button>
+              <button type="button" onClick={() => deleteNotif(item.id)} className="ml-1 shrink-0 text-zinc-600 hover:text-zinc-300" aria-label="Usuń">×</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+
+  // ── Side panel (portalised into body) ─────────────────────────────────
+  const sidePanel = panelLeft !== undefined && open
+    ? createPortal(
+        <>
+          {/* Invisible backdrop — click to close */}
+          <div className="fixed inset-0 z-[190]" onClick={() => setOpen(false)} />
+
+          {/* Panel */}
+          <div
+            className="fixed bottom-0 top-0 z-[200] flex w-80 flex-col border-r border-zinc-800/60 bg-zinc-900 shadow-2xl"
+            style={{ left: panelLeft }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with close */}
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800/60 px-4">
+              <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
+              <div className="flex items-center gap-3">
+                {items.length > 0 && (
+                  <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                    Wyczyść
+                  </button>
+                )}
+                <button type="button" onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-300 text-lg leading-none">×</button>
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+              {items.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
+              ) : (
+                <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+                  {items.map((item) => (
+                    <li key={item.id} className={`flex items-start gap-3 px-4 py-3 ${item.read ? "" : "bg-zinc-900/60"}`}>
+                      {!item.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
+                      <button
+                        type="button"
+                        onClick={() => navigateTo(item.startsAt)}
+                        className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
+                      >
+                        <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{ICON[item.eventType]} {TITLE[item.eventType]}</p>
+                        <p className="text-sm text-zinc-100">{item.customerName}</p>
+                        {item.serviceName && <p className="text-xs text-zinc-400">{item.serviceName}</p>}
+                        <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
+                      </button>
+                      <button type="button" onClick={() => deleteNotif(item.id)} className="ml-1 shrink-0 text-zinc-600 hover:text-zinc-300 text-lg leading-none" aria-label="Usuń">×</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </>,
+        document.body
+      )
+    : null;
+
+  // ── Legacy dropdown (when panelLeft not provided) ─────────────────────
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || panelLeft !== undefined) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, panelLeft]);
+
+  const legacyDropdown = panelLeft === undefined && open ? (
+    <div className="absolute right-0 top-full z-[200] mt-2 w-80 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950 shadow-2xl flex flex-col max-h-96">
+      {panelContent}
+    </div>
+  ) : null;
+
   return (
     <>
       {toastStack}
+      {sidePanel}
 
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={openDropdown}
-          className="relative rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800/60 hover:text-zinc-100"
-          aria-label="Powiadomienia"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[10px] font-bold text-zinc-950">
-              {unread > 9 ? "9+" : unread}
-            </span>
-          )}
-        </button>
-
-        {open && (
-          <div className="absolute right-0 top-full z-[200] mt-2 w-80 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
-              <span className="text-sm font-medium text-zinc-200">Powiadomienia</span>
-              {items.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="text-xs text-zinc-500 hover:text-zinc-300"
-                >
-                  Wyczyść wszystkie
-                </button>
-              )}
-            </div>
-
-            {items.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
-            ) : (
-              <ul className="max-h-96 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className={`flex items-start gap-3 px-4 py-3 ${item.read ? "" : "bg-zinc-900/60"}`}
-                  >
-                    {!item.read && (
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => navigateTo(item.startsAt)}
-                      className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
-                    >
-                      <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>
-                        {ICON[item.eventType]} {TITLE[item.eventType]}
-                      </p>
-                      <p className="text-sm text-zinc-100">{item.customerName}</p>
-                      {item.serviceName && (
-                        <p className="text-xs text-zinc-400">{item.serviceName}</p>
-                      )}
-                      <p className="text-xs text-zinc-500">
-                        {formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteNotif(item.id)}
-                      className="ml-1 shrink-0 text-zinc-600 hover:text-zinc-300"
-                      aria-label="Usuń"
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
+      {panelLeft !== undefined ? (
+        // Side-panel mode: just render the trigger directly
+        trigger
+      ) : (
+        // Legacy dropdown mode: wrap in relative container
+        <div className="relative" ref={dropdownRef}>
+          {trigger}
+          {legacyDropdown}
+        </div>
+      )}
     </>
   );
 }

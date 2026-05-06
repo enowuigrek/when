@@ -7,7 +7,7 @@ import { AdminNotificationBell } from "./admin-notification-bell";
 
 const STORAGE_KEY = "when_sidebar_expanded_v1";
 
-// ── Inline SVG icons (18 × 18) ────────────────────────────────────────────
+// ── Icons (18 × 18 inline SVG) ────────────────────────────────────────────
 
 function IcHome() {
   return (
@@ -37,27 +37,27 @@ function IcGrid() {
     </svg>
   );
 }
-function IcScissors() {
+/** Universal "services / offerings" — tag icon */
+function IcTag() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="3" />
-      <circle cx="6" cy="18" r="3" />
-      <line x1="20" y1="4" x2="8.12" y2="15.88" />
-      <line x1="14.47" y1="14.48" x2="20" y2="20" />
-      <line x1="8.12" y1="8.12" x2="12" y2="12" />
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
     </svg>
   );
 }
-function IcUsers() {
+/** Staff / employees — briefcase */
+function IcBriefcase() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+      <line x1="12" y1="12" x2="12" y2="12" />
+      <path d="M2 12h20" />
     </svg>
   );
 }
+/** Clients / customers — person */
 function IcPerson() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -126,13 +126,13 @@ const NAV_MAIN: NavItem[] = [
 ];
 
 const NAV_MANAGE: NavItem[] = [
-  { href: "/admin/uslugi", label: "Usługi", icon: <IcScissors /> },
-  { href: "/admin/pracownicy", label: "Pracownicy", icon: <IcUsers /> },
+  { href: "/admin/uslugi", label: "Usługi", icon: <IcTag /> },
+  { href: "/admin/pracownicy", label: "Pracownicy", icon: <IcBriefcase /> },
   { href: "/admin/klienci", label: "Klienci", icon: <IcPerson /> },
   { href: "/admin/ustawienia", label: "Ustawienia", icon: <IcSettings /> },
 ];
 
-// ── Shared nav link ───────────────────────────────────────────────────────
+// ── Single nav link ───────────────────────────────────────────────────────
 
 function SidebarLink({
   item,
@@ -154,19 +154,18 @@ function SidebarLink({
       href={item.href}
       onClick={onClick}
       title={!expanded ? item.label : undefined}
-      className={`relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors
-        ${active
+      className={`relative flex h-10 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
+        active
           ? "bg-zinc-800 text-zinc-100"
           : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
-        }`}
+      }`}
     >
-      {/* Active accent bar */}
       {active && (
         <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-[var(--color-accent)]" />
       )}
       <span className="shrink-0">{item.icon}</span>
       <span
-        className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
+        className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
           expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
         }`}
       >
@@ -176,7 +175,7 @@ function SidebarLink({
   );
 }
 
-// ── Shared sidebar body ───────────────────────────────────────────────────
+// ── Shared sidebar body (reused for desktop + mobile drawer) ──────────────
 
 function SidebarBody({
   expanded,
@@ -195,9 +194,13 @@ function SidebarBody({
   pathname: string;
   onNavClick?: () => void;
 }) {
+  // Sidebar pixel width — used to position the notification side panel
+  const sidebarPx = expanded ? 220 : 60;
+
   return (
     <div className="flex h-full flex-col">
-      {/* ── Top: toggle + business name ── */}
+
+      {/* ── Top: toggle + name ── */}
       <div className="flex h-14 shrink-0 items-center border-b border-zinc-800/60 px-3">
         <button
           type="button"
@@ -217,78 +220,51 @@ function SidebarBody({
       </div>
 
       {/* ── CTA: new booking ── */}
-      <div className="shrink-0 p-3">
+      <div className="shrink-0 px-3 py-3">
         <Link
           href="/admin/rezerwacja/nowa"
           onClick={onNavClick}
           title={!expanded ? "Nowa rezerwacja" : undefined}
-          className={`flex h-9 items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-zinc-950 transition-opacity hover:opacity-85 ${
-            expanded ? "px-3" : ""
-          }`}
+          className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-zinc-950 transition-opacity hover:opacity-85"
         >
           <span className="shrink-0"><IcPlus /></span>
-          <span
-            className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
-              expanded ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0"
-            }`}
-          >
-            Nowa rezerwacja
-          </span>
+          {expanded && (
+            <span className="ml-2 whitespace-nowrap">Nowa rezerwacja</span>
+          )}
         </Link>
       </div>
 
       {/* ── Main nav ── */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-2 py-1">
         {NAV_MAIN.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            expanded={expanded}
-            pathname={pathname}
-            onClick={onNavClick}
-          />
+          <SidebarLink key={item.href} item={item} expanded={expanded} pathname={pathname} onClick={onNavClick} />
         ))}
 
-        {/* Divider */}
         <div className="my-2 mx-1 border-t border-zinc-800/60" />
 
         {NAV_MANAGE.map((item) => (
-          <SidebarLink
-            key={item.href}
-            item={item}
-            expanded={expanded}
-            pathname={pathname}
-            onClick={onNavClick}
-          />
+          <SidebarLink key={item.href} item={item} expanded={expanded} pathname={pathname} onClick={onNavClick} />
         ))}
       </nav>
 
       {/* ── Bottom: notifications + logout ── */}
       <div className="shrink-0 border-t border-zinc-800/60 px-2 py-3 space-y-0.5">
-        {/* Notification bell wrapped to look like a nav item */}
-        <div
-          className={`flex h-10 items-center px-1 ${expanded ? "gap-3" : "justify-center"}`}
-        >
-          <AdminNotificationBell tenantId={tenantId} />
-          <span
-            className={`overflow-hidden whitespace-nowrap text-sm text-zinc-400 transition-[max-width,opacity] duration-200 ${
-              expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
-            }`}
-          >
-            Powiadomienia
-          </span>
-        </div>
+        <AdminNotificationBell
+          tenantId={tenantId}
+          panelLeft={sidebarPx}
+          navMode
+          sidebarExpanded={expanded}
+        />
 
-        {/* Logout */}
         <form action={logoutAction}>
           <button
             type="submit"
             title={!expanded ? "Wyloguj" : undefined}
-            className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
+            className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
           >
             <span className="shrink-0"><IcLogout /></span>
             <span
-              className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
+              className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
                 expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
@@ -312,17 +288,16 @@ export function AdminSidebar({
   businessName: string;
   logoutAction: () => Promise<void>;
 }) {
-  // Start collapsed — hydrate from localStorage after mount to avoid flash
   const [expanded, setExpanded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
+  // Hydrate from localStorage after mount (avoid SSR flash)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved !== null) setExpanded(saved === "true");
   }, []);
 
-  // Close mobile drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   function toggleExpanded() {
@@ -335,12 +310,12 @@ export function AdminSidebar({
 
   return (
     <>
-      {/* ── Desktop sidebar ─────────────────────────────────────── */}
+      {/* ── Desktop sidebar ──────────────────────────────────────── */}
       <aside
         className={`hidden md:block shrink-0 border-r border-zinc-800/60 bg-zinc-900 transition-[width] duration-200 ease-in-out ${
           expanded ? "w-[220px]" : "w-[60px]"
         }`}
-        style={{ position: "sticky", top: 0, height: "100vh", overflowX: "visible" }}
+        style={{ position: "sticky", top: 0, height: "100vh" }}
       >
         <SidebarBody
           expanded={expanded}
@@ -352,9 +327,9 @@ export function AdminSidebar({
         />
       </aside>
 
-      {/* ── Mobile: slim top bar + slide-in drawer ─────────────── */}
+      {/* ── Mobile: top bar + slide-in drawer ────────────────────── */}
       <div className="md:hidden">
-        {/* Top bar */}
+        {/* Slim top bar */}
         <div className="fixed left-0 right-0 top-0 z-[250] flex h-12 items-center justify-between border-b border-zinc-800/60 bg-zinc-900/95 px-3 backdrop-blur">
           <button
             type="button"
@@ -373,21 +348,19 @@ export function AdminSidebar({
             >
               <IcPlus />
             </Link>
+            {/* Bell in compact mode (no navMode) — shows legacy dropdown on mobile */}
             <AdminNotificationBell tenantId={tenantId} />
           </div>
         </div>
 
-        {/* Overlay */}
+        {/* Backdrop */}
         {mobileOpen && (
-          <div
-            className="fixed inset-0 z-[260] bg-black/60"
-            onClick={() => setMobileOpen(false)}
-          />
+          <div className="fixed inset-0 z-[260] bg-black/60" onClick={() => setMobileOpen(false)} />
         )}
 
         {/* Drawer */}
         <aside
-          className={`fixed left-0 top-0 bottom-0 z-[270] w-[220px] bg-zinc-900 transition-transform duration-200 ease-in-out ${
+          className={`fixed bottom-0 left-0 top-0 z-[270] w-[220px] bg-zinc-900 transition-transform duration-200 ease-in-out ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
