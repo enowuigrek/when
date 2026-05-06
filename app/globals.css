@@ -15,7 +15,19 @@
 :root {
   --accent: #d4a26a;
   --accent-hover: #c4915a;
+  --color-accent-fg: #09090b;
   color-scheme: dark;
+}
+
+/* Any element with accent background automatically gets the right text color.
+   Overrides hardcoded text-zinc-950 across all buttons without touching each file. */
+.bg-\[var\(--color-accent\)\] {
+  color: var(--color-accent-fg, #09090b);
+}
+
+/* Hover state — slightly lighter/darker shade of accent */
+.hover\:bg-\[var\(--color-accent-hover\)\]:hover {
+  color: var(--color-accent-fg, #09090b);
 }
 
 /* Base body colour — sections control their own bg, body is the canvas */

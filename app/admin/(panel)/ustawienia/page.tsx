@@ -28,7 +28,10 @@ export default async function UstawieniaPage() {
       </p>
 
       <div className="mt-8">
-        <SettingsForm settings={settings} />
+        <SettingsForm
+          settings={settings}
+          hoursSection={<HoursSection hours={hours} />}
+        />
       </div>
 
       <hr className="my-10 border-zinc-800/60" />
@@ -40,17 +43,6 @@ export default async function UstawieniaPage() {
 
       <div className="mt-6">
         <FiltersSection filters={filters} />
-      </div>
-
-      <hr className="my-10 border-zinc-800/60" />
-
-      <h2 className="text-lg font-semibold tracking-tight">Godziny otwarcia</h2>
-      <p className="mt-1 text-sm text-zinc-500">
-        Ustaw godziny i dni działalności. Klienci nie będą mogli rezerwować poza tymi godzinami.
-      </p>
-
-      <div className="mt-6">
-        <HoursSection hours={hours} />
       </div>
 
       <hr className="my-10 border-zinc-800/60" />
@@ -70,17 +62,14 @@ export default async function UstawieniaPage() {
 
       <hr className="my-10 border-zinc-800/60" />
 
-      <h2 className="text-lg font-semibold tracking-tight">Subdomena i embed widget</h2>
-      <p className="mt-1 text-sm text-zinc-500">
-        Twój widget jest dostępny pod własną subdomeną lub możesz go osadzić na swojej stronie.
-      </p>
-
       {/* Subdomain info */}
-      <div className="mt-6 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 space-y-3">
+      <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-zinc-200">Twój link do rezerwacji</p>
-            <p className="mt-0.5 text-xs text-zinc-500">Gotowy adres do wysyłania klientom — bez osadzania na stronie.</p>
+            <p className="text-sm font-medium text-zinc-200">Link do rezerwacji</p>
+            <p className="mt-0.5 font-mono text-sm text-[var(--color-accent)]">
+              https://{tenantSlug}.whenbooking.pl
+            </p>
           </div>
           <a
             href={`https://${tenantSlug}.whenbooking.pl`}
@@ -91,17 +80,20 @@ export default async function UstawieniaPage() {
             ↗ Otwórz
           </a>
         </div>
-        <p className="font-mono text-sm text-[var(--color-accent)]">
-          https://{tenantSlug}.whenbooking.pl
-        </p>
         <p className="text-xs text-zinc-600">
-          Subdomena jest automatycznie aktywna — nie wymaga konfiguracji. Możesz ją wysłać klientom lub dodać jako link na swojej stronie.
+          Wyślij ten link klientom lub dodaj na swojej stronie.
         </p>
-      </div>
 
-      <div className="mt-6">
-        <p className="mb-3 text-sm font-medium text-zinc-300">Osadź na własnej stronie</p>
-        <EmbedSnippet tenantSlug={tenantSlug} />
+        {/* Embed — collapsed by default */}
+        <details className="group">
+          <summary className="cursor-pointer list-none text-xs text-zinc-500 hover:text-zinc-300 select-none">
+            <span className="group-open:hidden">▸ Osadź widget na własnej stronie</span>
+            <span className="hidden group-open:inline">▾ Osadź widget na własnej stronie</span>
+          </summary>
+          <div className="mt-4 border-t border-zinc-800/60 pt-4">
+            <EmbedSnippet tenantSlug={tenantSlug} />
+          </div>
+        </details>
       </div>
     </div>
   );

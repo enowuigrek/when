@@ -9,7 +9,13 @@ const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30];
 
 type Tab = "firma" | "narzedzie";
 
-export function SettingsForm({ settings }: { settings: Settings }) {
+export function SettingsForm({
+  settings,
+  hoursSection,
+}: {
+  settings: Settings;
+  hoursSection?: React.ReactNode;
+}) {
   const [state, action, pending] = useActionState<SettingsFormState, FormData>(
     updateSettingsAction,
     { status: "idle" }
@@ -157,6 +163,16 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             <input name="website_url" defaultValue={settings.website_url ?? ""} placeholder="https://twojasalon.pl" className={input} />
           </Field>
         </fieldset>
+
+        {/* Godziny otwarcia — rendered from server, has its own form */}
+        {hoursSection && (
+          <div className="mt-2">
+            <div className="mb-2">
+              <p className="text-sm font-medium uppercase tracking-widest text-zinc-500">Godziny otwarcia</p>
+            </div>
+            {hoursSection}
+          </div>
+        )}
       </div>
 
       {/* ── TAB: NARZĘDZIE ── */}
