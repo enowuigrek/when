@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 
 type Props = {
   googleCalUrl: string;
-  icalUrl: string;
+  // Pre-rendered base64 data URL of the .ics file. Used on iOS and
+  // desktop. iOS Safari refuses to "download" text/calendar (shows
+  // "Safari nie może pobrać tego pliku") and webcal:// turns it into a
+  // recurring subscription. A data: URL with text/calendar content
+  // type bypasses both — Safari hands the bytes straight to the
+  // Calendar app and shows the native "Add to Calendar" sheet.
+  icsDataUrl: string;
 };
 
 function detectPlatform(): "ios" | "android" | "other" {
@@ -14,7 +20,7 @@ function detectPlatform(): "ios" | "android" | "other" {
   return "other";
 }
 
-export function AddToCalendarButton({ googleCalUrl, icalUrl }: Props) {
+export function AddToCalendarButton({ googleCalUrl, icsDataUrl }: Props) {
   const [platform, setPlatform] = useState<"ios" | "android" | "other" | null>(null);
 
   useEffect(() => {
@@ -37,13 +43,10 @@ export function AddToCalendarButton({ googleCalUrl, icalUrl }: Props) {
     );
   }
 
-  // iOS and desktop: open the .ics file inline. iOS Safari renders the
-  // native "Add to Calendar" sheet for a one-off event. webcal:// would
-  // subscribe the URL as a recurring feed — wrong. attachment download
-  // fails on iOS with "Safari nie może pobrać tego pliku".
   return (
     <a
-      href={icalUrl}
+      href={icsDataUrl}
+      download="rezerwacja.ics"
       className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
     >
       <CalendarIcon /> Dodaj do kalendarza

@@ -6,6 +6,7 @@ import { getBookingByIdPublic, getSettingsForTenant } from "@/lib/db/for-tenant"
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
+import { buildIcsForBooking, buildIcsDataUrl, fmtUtc } from "@/lib/ics";
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { id } = await params;
@@ -50,14 +51,21 @@ export default async function SuccessPage({
     [s.address_street, s.address_postal, s.address_city].filter(Boolean).join(", ")
   );
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const gcStart = booking.starts_at.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const gcEnd = booking.ends_at.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  // Pre-render the .ics into a base64 data URL so iOS Safari can hand
+  // it directly to the Calendar app. A regular link to /api/.../event.ics
+  // triggers Safari's download manager which on iOS pops up "Safari nie
+  // może pobrać tego pliku".
+  const ics = buildIcsForBooking({
+    booking,
+    settings: s,
+    service,
+    siteUrl,
+  });
+  const icsDataUrl = buildIcsDataUrl(ics);
+  const gcStart = fmtUtc(booking.starts_at);
+  const gcEnd = fmtUtc(booking.ends_at);
   const gcDetails = encodeURIComponent(`Zarządzaj rezerwacją: ${siteUrl}/rezerwacja/sukces/${id}`);
   const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${gcTitle}&dates=${gcStart}/${gcEnd}&location=${gcLocation}&details=${gcDetails}`;
-  // Absolute URL ending in .ics — required for iOS Safari to recognise
-  // the file type and offer "Open in Calendar". Relative URLs without
-  // the .ics extension get rendered as plain text on iPhone.
-  const icalUrl = `${siteUrl || ""}/api/rezerwacja/${id}/event.ics`;
 
   return (
     <>
@@ -141,7 +149,7 @@ export default async function SuccessPage({
 
           {/* Smart calendar button — client component detects iOS/Android/other */}
           <div className="mt-6">
-            <AddToCalendarButton googleCalUrl={googleCalUrl} icalUrl={icalUrl} />
+            <AddToCalendarButton googleCalUrl={googleCalUrl} icsDataUrl={icsDataUrl} />
           </div>
 
           {/* Self-service links */}

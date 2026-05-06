@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
-import { getBookingByIdPublic } from "@/lib/db/for-tenant";
-import { getSettingsForTenant } from "@/lib/db/for-tenant";
+import { getBookingByIdPublic, getSettingsForTenant } from "@/lib/db/for-tenant";
+import { buildIcsForBooking } from "@/lib/ics";
 
 type Params = Promise<{ id: string }>;
-
-function fmtIcal(iso: string): string {
-  return iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-}
-
-function escape(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-}
 
 export async function GET(_req: Request, { params }: { params: Params }) {
   const { id } = await params;
@@ -22,51 +14,19 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   if (!booking || booking.status !== "confirmed") {
     return new NextResponse("Not found", { status: 404 });
   }
-  const s = await getSettingsForTenant(booking.tenant_id);
+  const settings = await getSettingsForTenant(booking.tenant_id);
+  const service = (booking as { service?: { name: string } }).service ?? null;
 
-  const service = (booking as { service?: { name: string } }).service;
-  const title = service ? `${service.name} — ${s.business_name}` : s.business_name;
-  const location = [s.address_street, s.address_postal, s.address_city]
-    .filter(Boolean)
-    .join(", ");
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const uid = `booking-${booking.id}@when`;
-  const now = fmtIcal(new Date().toISOString());
-  const dtstart = fmtIcal(booking.starts_at);
-  const dtend = fmtIcal(booking.ends_at);
-  const description = escape(
-    `Nr rezerwacji: ${booking.id.slice(0, 8).toUpperCase()}\nZarządzaj rezerwacją: ${siteUrl}/rezerwacja/sukces/${booking.id}`
-  );
-
-  const ics = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//when?//booking//PL",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${now}`,
-    `DTSTART:${dtstart}`,
-    `DTEND:${dtend}`,
-    `SUMMARY:${escape(title)}`,
-    location ? `LOCATION:${escape(location)}` : "",
-    `DESCRIPTION:${description}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ]
-    .filter(Boolean)
-    .join("\r\n");
+  const ics = buildIcsForBooking({
+    booking,
+    settings,
+    service,
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "",
+  });
 
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      // inline (not attachment) — iOS Safari refuses many `attachment`
-      // downloads with "Safari nie może pobrać tego pliku". With inline
-      // + text/calendar + .ics URL, iOS shows the native "Add to
-      // Calendar" sheet, and desktop browsers still hand the file to
-      // the OS calendar handler.
       "Content-Disposition": `inline; filename="rezerwacja-${booking.id.slice(0, 8)}.ics"`,
       "Cache-Control": "no-store",
     },
