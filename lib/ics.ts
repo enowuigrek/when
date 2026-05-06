@@ -84,10 +84,3 @@ export function buildIcsForBooking(opts: {
     .join("\r\n");
 }
 
-export function buildIcsDataUrl(ics: string): string {
-  // Base64-encoded data URL bypasses iOS Safari's refusal to "download"
-  // text/calendar files. iOS recognises text/calendar in a data: URL
-  // and shows the native "Add to Calendar" sheet directly.
-  const b64 = Buffer.from(ics, "utf-8").toString("base64");
-  return `data:text/calendar;charset=utf-8;base64,${b64}`;
-}
