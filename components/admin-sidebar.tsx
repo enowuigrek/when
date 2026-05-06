@@ -219,14 +219,16 @@ function SidebarBody({
           }`}
         >
           {logoUrl ? (
-            <Image
-              src={logoUrl}
-              alt={businessName}
-              width={120}
-              height={32}
-              className="h-8 w-auto object-contain"
-              unoptimized
-            />
+            <div className="rounded-lg bg-zinc-900 px-2 py-1">
+              <Image
+                src={logoUrl}
+                alt={businessName}
+                width={120}
+                height={32}
+                className="h-8 w-auto object-contain"
+                unoptimized
+              />
+            </div>
           ) : (
             <span className="whitespace-nowrap text-sm font-semibold text-zinc-100">
               {businessName}
@@ -359,7 +361,9 @@ export function AdminSidebar({
             <IcMenu />
           </button>
           {logoUrl ? (
-            <Image src={logoUrl} alt={businessName} width={100} height={28} className="h-7 w-auto object-contain" unoptimized />
+            <div className="rounded-md bg-zinc-900 px-2 py-0.5">
+              <Image src={logoUrl} alt={businessName} width={100} height={28} className="h-7 w-auto object-contain" unoptimized />
+            </div>
           ) : (
             <span className="text-sm font-semibold text-zinc-100">{businessName}</span>
           )}
