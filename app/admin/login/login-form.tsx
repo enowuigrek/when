@@ -13,13 +13,13 @@ export function LoginForm() {
     <form action={action} className="space-y-4">
       <label className="block">
         <span className="mb-1 block text-sm text-zinc-300">
-          Email <span className="text-zinc-600">(opcjonalnie)</span>
+          Login <span className="text-zinc-600">(opcjonalnie)</span>
         </span>
         <input
-          type="email"
+          type="text"
           name="email"
-          autoComplete="email"
-          placeholder="twoj@email.pl"
+          autoComplete="username"
+          placeholder="login lub email"
           className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
         />
         <span className="mt-1 block text-xs text-zinc-600">
