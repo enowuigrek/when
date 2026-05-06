@@ -203,7 +203,7 @@ function SidebarBody({
   return (
     <div className="flex h-full flex-col">
 
-      {/* ── Top: toggle + name ── */}
+      {/* ── Top: toggle + name (text only when no logo) ── */}
       <div className="flex h-14 shrink-0 items-center border-b border-zinc-800/60 px-3">
         <button
           type="button"
@@ -213,29 +213,38 @@ function SidebarBody({
         >
           {expanded ? <IcChevronLeft /> : <IcChevronRight />}
         </button>
-        <span
-          className={`ml-2 overflow-hidden transition-[max-width,opacity] duration-200 ${
-            expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
-          }`}
-        >
-          {logoUrl ? (
-            <div className="rounded-lg bg-zinc-900 px-2 py-1">
-              <Image
-                src={logoUrl}
-                alt={businessName}
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain"
-                unoptimized
-              />
-            </div>
-          ) : (
+        {!logoUrl && (
+          <span
+            className={`ml-2 overflow-hidden transition-[max-width,opacity] duration-200 ${
+              expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+            }`}
+          >
             <span className="whitespace-nowrap text-sm font-semibold text-zinc-100">
               {businessName}
             </span>
-          )}
-        </span>
+          </span>
+        )}
       </div>
+
+      {/* ── Logo zone (own section, visible when expanded + logo set) ── */}
+      {logoUrl && (
+        <div
+          className={`shrink-0 overflow-hidden transition-[max-height,opacity] duration-200 ${
+            expanded ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="mx-3 my-3 overflow-hidden rounded-xl">
+            <Image
+              src={logoUrl}
+              alt={businessName}
+              width={200}
+              height={90}
+              className="w-full h-[90px] object-cover object-center"
+              unoptimized
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── CTA: new booking ── */}
       <div className="shrink-0 px-3 py-3">
@@ -361,8 +370,8 @@ export function AdminSidebar({
             <IcMenu />
           </button>
           {logoUrl ? (
-            <div className="rounded-md bg-zinc-900 px-2 py-0.5">
-              <Image src={logoUrl} alt={businessName} width={100} height={28} className="h-7 w-auto object-contain" unoptimized />
+            <div className="h-9 w-28 overflow-hidden rounded-lg">
+              <Image src={logoUrl} alt={businessName} width={112} height={36} className="w-full h-full object-cover object-center" unoptimized />
             </div>
           ) : (
             <span className="text-sm font-semibold text-zinc-100">{businessName}</span>
