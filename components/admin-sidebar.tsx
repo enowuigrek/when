@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminNotificationBell } from "./admin-notification-bell";
@@ -180,6 +181,7 @@ function SidebarLink({
 function SidebarBody({
   expanded,
   businessName,
+  logoUrl,
   tenantId,
   logoutAction,
   onToggle,
@@ -188,6 +190,7 @@ function SidebarBody({
 }: {
   expanded: boolean;
   businessName: string;
+  logoUrl?: string;
   tenantId: string;
   logoutAction: () => Promise<void>;
   onToggle: () => void;
@@ -211,11 +214,24 @@ function SidebarBody({
           {expanded ? <IcChevronLeft /> : <IcChevronRight />}
         </button>
         <span
-          className={`ml-2 overflow-hidden whitespace-nowrap text-sm font-semibold text-zinc-100 transition-[max-width,opacity] duration-200 ${
+          className={`ml-2 overflow-hidden transition-[max-width,opacity] duration-200 ${
             expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
           }`}
         >
-          {businessName}
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt={businessName}
+              width={120}
+              height={32}
+              className="h-8 w-auto object-contain"
+              unoptimized
+            />
+          ) : (
+            <span className="whitespace-nowrap text-sm font-semibold text-zinc-100">
+              {businessName}
+            </span>
+          )}
         </span>
       </div>
 
@@ -225,7 +241,7 @@ function SidebarBody({
           href="/admin/rezerwacja/nowa"
           onClick={onNavClick}
           title={!expanded ? "Nowa rezerwacja" : undefined}
-          className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-zinc-950 transition-opacity hover:opacity-85"
+          className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-[var(--color-accent-fg)] transition-opacity hover:opacity-85"
         >
           <span className="shrink-0"><IcPlus /></span>
           {expanded && (
@@ -282,10 +298,12 @@ function SidebarBody({
 export function AdminSidebar({
   tenantId,
   businessName,
+  logoUrl,
   logoutAction,
 }: {
   tenantId: string;
   businessName: string;
+  logoUrl?: string;
   logoutAction: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -320,6 +338,7 @@ export function AdminSidebar({
         <SidebarBody
           expanded={expanded}
           businessName={businessName}
+          logoUrl={logoUrl}
           tenantId={tenantId}
           logoutAction={logoutAction}
           onToggle={toggleExpanded}
@@ -339,11 +358,15 @@ export function AdminSidebar({
           >
             <IcMenu />
           </button>
-          <span className="text-sm font-semibold text-zinc-100">{businessName}</span>
+          {logoUrl ? (
+            <Image src={logoUrl} alt={businessName} width={100} height={28} className="h-7 w-auto object-contain" unoptimized />
+          ) : (
+            <span className="text-sm font-semibold text-zinc-100">{businessName}</span>
+          )}
           <div className="flex items-center gap-1">
             <Link
               href="/admin/rezerwacja/nowa"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-zinc-950"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
               aria-label="Nowa rezerwacja"
             >
               <IcPlus />
@@ -367,6 +390,7 @@ export function AdminSidebar({
           <SidebarBody
             expanded={true}
             businessName={businessName}
+            logoUrl={logoUrl}
             tenantId={tenantId}
             logoutAction={logoutAction}
             onToggle={() => setMobileOpen(false)}

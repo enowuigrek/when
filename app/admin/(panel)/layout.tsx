@@ -26,6 +26,7 @@ export default async function PanelLayout({
         <AdminSidebar
           tenantId={tenantId}
           businessName={s.business_name}
+          logoUrl={s.logo_url ?? undefined}
           logoutAction={logoutAction}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}

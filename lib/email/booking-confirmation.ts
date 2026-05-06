@@ -2,6 +2,7 @@ import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
 type BusinessInfo = {
   name: string;
+  logoUrl?: string | null;
   addressStreet: string | null;
   addressPostal: string | null;
   addressCity: string | null;
@@ -47,9 +48,10 @@ export function buildConfirmationEmail(data: ConfirmationData): {
       <!-- HEADER -->
       <tr>
         <td style="padding:32px 40px 28px;border-bottom:1px solid #27272a;">
-          <span style="font-size:22px;font-weight:600;color:#f4f4f5;letter-spacing:-0.5px;">
-            ${b.name}<span style="color:${accent};">.</span>
-          </span>
+          ${b.logoUrl
+            ? `<img src="${b.logoUrl}" alt="${b.name}" style="height:48px;max-width:200px;object-fit:contain;display:block;" />`
+            : `<span style="font-size:22px;font-weight:600;color:#f4f4f5;letter-spacing:-0.5px;">${b.name}<span style="color:${accent};">.</span></span>`
+          }
         </td>
       </tr>
       <!-- HERO -->

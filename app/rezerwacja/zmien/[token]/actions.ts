@@ -131,6 +131,7 @@ export async function rescheduleBookingAction(formData: FormData) {
       notes: booking.notes,
       business: {
         name: s.business_name,
+        logoUrl: s.logo_url,
         addressStreet: s.address_street,
         addressPostal: s.address_postal,
         addressCity: s.address_city,

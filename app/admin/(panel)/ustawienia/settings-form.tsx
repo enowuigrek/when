@@ -5,11 +5,6 @@ import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
 
-const THEMES = [
-  { value: "dark", label: "Ciemny" },
-  { value: "light", label: "Jasny" },
-] as const;
-
 const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30];
 
 type Tab = "firma" | "narzedzie";
@@ -48,6 +43,14 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     wrapper.style.setProperty("--accent-hover", accentColor);
     wrapper.style.setProperty("--color-accent", accentColor);
     wrapper.style.setProperty("--color-accent-hover", accentColor);
+    const hex = accentColor.replace("#", "");
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16) / 255;
+      const g = parseInt(hex.slice(2, 4), 16) / 255;
+      const b = parseInt(hex.slice(4, 6), 16) / 255;
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      wrapper.style.setProperty("--color-accent-fg", lum > 0.45 ? "#09090b" : "#ffffff");
+    }
   }, [accentColor]);
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
@@ -163,46 +166,39 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             Wygląd
           </legend>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Kolor akcentu" error={err.color_accent}>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  name="color_accent"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-9 w-14 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-0.5"
-                />
-                <input
-                  type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  placeholder="#d4a26a"
-                  className={`${input} font-mono`}
-                />
-              </div>
-            </Field>
+          {/* theme is preserved as-is — controlled per-tenant, not in UI */}
+          <input type="hidden" name="theme" value={theme} />
 
-            <Field label="Motyw" error={err.theme}>
-              <input type="hidden" name="theme" value={theme} />
-              <div className="flex rounded-lg border border-zinc-800 overflow-hidden">
-                {THEMES.map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setTheme(t.value)}
-                    className={`flex-1 py-2 text-sm transition-colors ${
-                      theme === t.value
-                        ? "bg-[var(--color-accent)] text-zinc-950 font-medium"
-                        : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </Field>
-          </div>
+          <Field label="Kolor akcentu" error={err.color_accent}>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                name="color_accent"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="h-9 w-14 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-0.5"
+              />
+              <input
+                type="text"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                placeholder="#d4a26a"
+                className={`${input} font-mono`}
+              />
+            </div>
+          </Field>
+
+          <Field label="Logo (URL do obrazka)" error={err.logo_url}>
+            <input
+              name="logo_url"
+              defaultValue={settings.logo_url ?? ""}
+              placeholder="https://twojadomena.pl/logo.png"
+              className={input}
+            />
+            <span className="mt-1 block text-xs text-zinc-500">
+              Zostaw puste żeby wyświetlać nazwę firmy w panelu i mailach.
+            </span>
+          </Field>
         </fieldset>
 
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">

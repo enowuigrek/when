@@ -159,6 +159,7 @@ export async function submitBooking(
         notes: notes ?? null,
         business: {
           name: settings.business_name,
+          logoUrl: settings.logo_url,
           addressStreet: settings.address_street,
           addressPostal: settings.address_postal,
           addressCity: settings.address_city,

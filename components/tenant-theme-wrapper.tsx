@@ -1,11 +1,13 @@
 import { getSettings } from "@/lib/db/settings";
 
-/**
- * Wraps children in <div data-theme={...} style={accent vars}> based on
- * the cookie tenant's settings. Used by admin/(panel) and /rezerwacja
- * layouts so per-tenant theming applies WITHOUT polluting the root <html>
- * (which the marketing landing page expects to stay dark).
- */
+function accentFg(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum > 0.45 ? "#09090b" : "#ffffff";
+}
+
 export async function TenantThemeWrapper({ children }: { children: React.ReactNode }) {
   const s = await getSettings();
   const theme = s.theme === "system" ? "dark" : s.theme;
@@ -19,6 +21,7 @@ export async function TenantThemeWrapper({ children }: { children: React.ReactNo
         "--accent-hover": accent,
         "--color-accent": accent,
         "--color-accent-hover": accent,
+        "--color-accent-fg": accentFg(accent),
       } as React.CSSProperties}
     >
       {children}

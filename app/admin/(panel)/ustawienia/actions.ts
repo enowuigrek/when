@@ -28,6 +28,7 @@ const settingsSchema = z.object({
   facebook_url: urlOptional,
   website_url: urlOptional,
   maps_url: urlOptional,
+  logo_url: urlOptional,
   color_accent: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Niepoprawny kolor").default("#d4a26a"),
   theme: z.enum(["dark", "light", "system"]).default("dark"),
   slot_granularity_min: z.coerce.number().int().refine(v => [5,10,15,20,30].includes(v), "Niedozwolona wartość"),
@@ -49,7 +50,7 @@ export async function updateSettingsAction(
     [
       "business_name","tagline","description","address_street","address_city",
       "address_postal","phone","email","instagram_url","facebook_url","website_url",
-      "maps_url","color_accent","theme","slot_granularity_min","booking_horizon_days",
+      "maps_url","logo_url","color_accent","theme","slot_granularity_min","booking_horizon_days",
     ].map((k) => [k, formData.get(k)?.toString() ?? ""])
   );
 
