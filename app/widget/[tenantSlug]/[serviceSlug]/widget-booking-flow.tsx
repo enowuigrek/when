@@ -4,6 +4,9 @@ import { useActionState, useState, useTransition } from "react";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { StaffPicker } from "@/components/booking/staff-picker";
+import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
+import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
 import { submitWidgetBooking } from "./actions";
 import type { WidgetBookingState } from "./actions";
 
@@ -28,6 +31,9 @@ function formatDateLabel(dateStr: string): string {
   const dow = DOW_PL[d.getUTCDay()];
   return `${dow} ${d.getUTCDate()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
+
+const inp =
+  "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50";
 
 export function WidgetBookingFlow({
   tenantSlug,
@@ -58,7 +64,7 @@ export function WidgetBookingFlow({
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(initialStaffId);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId ?? "");
   const [loadingSlots, startSlotLoad] = useTransition();
 
   const [formState, formAction, formPending] = useActionState<WidgetBookingState, FormData>(
@@ -66,11 +72,11 @@ export function WidgetBookingFlow({
     { status: "idle" }
   );
 
-  function reloadSlots(date: string, staffId: string | null) {
+  function reloadSlots(date: string, staffId: string) {
     setSelectedSlot(null);
     setActiveFilter(null);
     startSlotLoad(async () => {
-      const res = await fetchWidgetSlots(tenantSlug, serviceSlug, date, staffId);
+      const res = await fetchWidgetSlots(tenantSlug, serviceSlug, date, staffId || null);
       setSlots(res.ok ? res.slots : []);
     });
   }
@@ -80,7 +86,7 @@ export function WidgetBookingFlow({
     reloadSlots(date, selectedStaffId);
   }
 
-  function pickStaff(staffId: string | null) {
+  function pickStaff(staffId: string) {
     setSelectedStaffId(staffId);
     reloadSlots(selectedDate, staffId);
   }
@@ -90,128 +96,56 @@ export function WidgetBookingFlow({
     ? days.map((d) => (unavailableSet.has(d.date) ? { ...d, closed: true } : d))
     : days;
 
-  const visibleSlots = activeFilter
-    ? slots.filter((s) => {
-        const f = timeFilters.find((f) => f.id === activeFilter);
-        if (!f) return true;
-        const h = Number(s.label.split(":")[0]);
-        return h >= f.from_hour && h < f.to_hour;
-      })
-    : slots;
+  const visibleSlots = applyTimeFilter(slots, activeFilter, timeFilters);
 
   return (
-    <div className="space-y-5">
-      {/* STAFF PICKER */}
+    <div className="mt-8 space-y-8">
+      {/* STAFF */}
       {staff.length > 1 && (
         <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Pracownik</p>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => pickStaff(null)}
-              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                selectedStaffId === null
-                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-              }`}
-            >
-              Dowolny
-            </button>
-            {staff.map((s) => {
-              const unavailableToday = (staffUnavailable[s.id] ?? []).includes(selectedDate);
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => pickStaff(s.id)}
-                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
-                    selectedStaffId === s.id
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                      : unavailableToday
-                      ? "border-zinc-800/60 text-zinc-600 opacity-50"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
-                  }`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color, opacity: unavailableToday ? 0.4 : 1 }} />
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
+          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Pracownik</p>
+          <StaffPicker
+            staff={staff}
+            selectedStaffId={selectedStaffId}
+            onPick={pickStaff}
+            unavailableForStaffId={(id) => (staffUnavailable[id] ?? []).includes(selectedDate)}
+          />
         </div>
       )}
 
       {/* CALENDAR */}
       <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Data</p>
+        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Dzień</p>
         <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
       </div>
 
       {/* SLOTS */}
       <div>
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Godzina</p>
-          {timeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {timeFilters.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setActiveFilter(activeFilter === f.id ? null : f.id)}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors ${
-                    activeFilter === f.id
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Godzina</p>
+          <TimeFilterBar
+            filters={timeFilters}
+            activeId={activeFilter}
+            onToggle={(id) => setActiveFilter(activeFilter === id ? null : id)}
+          />
         </div>
-
-        {loadingSlots ? (
-          <p className="text-sm text-zinc-500">Ładowanie…</p>
-        ) : visibleSlots.length === 0 ? (
-          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-3 text-xs text-zinc-400">
-            {slots.length === 0 ? "Brak terminów tego dnia. Wybierz inny." : "Brak terminów w tym przedziale."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
-            {visibleSlots.map((s) => {
-              const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;
-              const isTaken = s.available === false;
-              return (
-                <button
-                  key={s.startsAtIso}
-                  type="button"
-                  disabled={isTaken}
-                  onClick={() => !isTaken && setSelectedSlot(s)}
-                  className={`rounded-lg border py-2 font-mono text-xs font-medium transition-all ${
-                    isTaken
-                      ? "cursor-not-allowed border-zinc-800/30 text-zinc-700 line-through"
-                      : isSelected
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm"
-                      : "border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/60"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <TimeSlotGrid
+          slots={visibleSlots}
+          selectedIso={selectedSlot?.startsAtIso ?? null}
+          onPick={setSelectedSlot}
+          loading={loadingSlots}
+          filtered={!!activeFilter && slots.length > 0}
+        />
       </div>
 
       {/* BOOKING FORM — appears when slot selected */}
       {selectedSlot && (
-        <form action={formAction} className="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
+        <form action={formAction} className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-6">
           {/* Selected time summary */}
-          <div className="mb-1 flex items-center gap-2 rounded-lg bg-[var(--color-accent)]/10 px-3 py-2">
-            <span className="text-sm font-medium text-[var(--color-accent)]">{formatDateLabel(selectedDate)}</span>
-            <span className="text-zinc-500">·</span>
-            <span className="font-mono text-sm text-[var(--color-accent)]">{selectedSlot.label}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="text-[var(--color-accent)] font-medium">
+              {formatDateLabel(selectedDate)} · {selectedSlot.label}
+            </span>
           </div>
 
           <input type="hidden" name="tenantSlug" value={tenantSlug} />
@@ -242,10 +176,13 @@ export function WidgetBookingFlow({
             placeholder="opcjonalnie — do potwierdzenia"
             error={formState.status === "error" ? formState.fieldErrors?.customerEmail : undefined}
           />
-          <Field label="Uwagi" name="notes" as="textarea" placeholder="Coś, co warto wiedzieć…" />
+          <div>
+            <label className="mb-1.5 block text-sm text-zinc-400">Uwagi</label>
+            <textarea name="notes" rows={2} className={inp} placeholder="Coś, co warto wiedzieć…" />
+          </div>
 
           {formState.status === "error" && (
-            <p className="rounded-md border border-red-900/50 bg-red-950/30 p-2.5 text-xs text-red-300">
+            <p className="rounded-md border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">
               {formState.message}
             </p>
           )}
@@ -253,7 +190,7 @@ export function WidgetBookingFlow({
           <button
             type="submit"
             disabled={formPending}
-            className="w-full rounded-full bg-[var(--color-accent)] py-2.5 text-sm font-semibold text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="w-full rounded-full bg-[var(--color-accent)] py-2.5 text-sm font-semibold text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
           >
             {formPending ? "Rezerwuję…" : "Potwierdź rezerwację"}
           </button>
@@ -264,23 +201,25 @@ export function WidgetBookingFlow({
 }
 
 function Field({
-  label, name, type = "text", required, placeholder, error, as,
+  label,
+  name,
+  type = "text",
+  required,
+  placeholder,
+  error,
 }: {
-  label: string; name: string; type?: string; required?: boolean;
-  placeholder?: string; error?: string; as?: "textarea";
+  label: string;
+  name: string;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+  error?: string;
 }) {
-  const base = "w-full rounded-lg border bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] transition-colors";
-  const state = error ? "border-red-700" : "border-zinc-800 focus:border-zinc-600";
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-zinc-400">
-        {label}
-        {required && <span className="text-[var(--color-accent)]"> *</span>}
-      </span>
-      {as === "textarea"
-        ? <textarea name={name} rows={2} placeholder={placeholder} className={`${base} ${state} resize-none`} />
-        : <input type={type} name={name} required={required} placeholder={placeholder} className={`${base} ${state}`} />}
-      {error && <p className="mt-0.5 text-xs text-red-400">{error}</p>}
-    </label>
+    <div>
+      <label className="mb-1.5 block text-sm text-zinc-400">{label}</label>
+      <input type={type} name={name} required={required} placeholder={placeholder} className={inp} />
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+    </div>
   );
 }

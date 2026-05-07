@@ -7,6 +7,9 @@ import type { Staff } from "@/lib/db/staff";
 import type { TimeFilter } from "@/lib/db/settings";
 import type { Customer } from "@/lib/db/customers";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { StaffPicker } from "@/components/booking/staff-picker";
+import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
+import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
 import {
   getAdminSlotsForDate,
   createAdminBookingAction,
@@ -18,11 +21,6 @@ type Day = { date: string; closed: boolean };
 
 const inp =
   "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50";
-
-const COLORS = [
-  "#d4a26a","#6ab0d4","#6ad4a2","#d46a6a",
-  "#a26ad4","#d4c26a","#6a8fd4","#d48f6a",
-];
 
 export function AdminBookingForm({
   services,
@@ -127,14 +125,7 @@ export function AdminBookingForm({
     loadSlots(selectedServiceId, date, selectedStaffId);
   }
 
-  const visibleSlots = activeFilter
-    ? slots.filter((s) => {
-        const f = timeFilters.find((f) => f.id === activeFilter);
-        if (!f) return true;
-        const h = Number(s.label.split(":")[0]);
-        return h >= f.from_hour && h < f.to_hour;
-      })
-    : slots;
+  const visibleSlots = applyTimeFilter(slots, activeFilter, timeFilters);
 
   const selectedService = services.find((s) => s.id === selectedServiceId) ?? null;
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? null;
@@ -238,40 +229,7 @@ export function AdminBookingForm({
       {staff.length > 0 && (
         <div>
           <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">3 · Pracownik</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => pickStaff("")}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
-                selectedStaffId === ""
-                  ? "border-zinc-500 bg-zinc-800 text-zinc-100"
-                  : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-              }`}
-            >
-              Dowolny
-            </button>
-            {staff.map((s) => {
-              const isSelected = s.id === selectedStaffId;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => pickStaff(s.id)}
-                  className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
-                    isSelected
-                      ? "border-zinc-500 bg-zinc-800 text-zinc-100"
-                      : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                  }`}
-                >
-                  <span
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: s.color }}
-                  />
-                  {s.name}
-                </button>
-              );
-            })}
-          </div>
+          <StaffPicker staff={staff} selectedStaffId={selectedStaffId} onPick={pickStaff} />
         </div>
       )}
 
@@ -289,55 +247,20 @@ export function AdminBookingForm({
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
             {staff.length > 0 ? "5" : "4"} · Godzina
           </p>
-          {timeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {timeFilters.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setActiveFilter(activeFilter === f.id ? null : f.id)}
-                  className={`rounded-full border px-3 py-0.5 text-xs transition-colors ${
-                    activeFilter === f.id
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <TimeFilterBar
+            filters={timeFilters}
+            activeId={activeFilter}
+            onToggle={(id) => setActiveFilter(activeFilter === id ? null : id)}
+          />
         </div>
 
-        {loadingSlots ? (
-          <p className="text-sm text-zinc-500">Ładowanie…</p>
-        ) : visibleSlots.length === 0 ? (
-          <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-4 text-sm text-zinc-400">
-            {slots.length === 0
-              ? "Brak wolnych terminów tego dnia."
-              : "Brak terminów w tym przedziale — spróbuj inny filtr."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
-            {visibleSlots.map((s) => {
-              const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;
-              return (
-                <button
-                  key={s.startsAtIso}
-                  type="button"
-                  onClick={() => setSelectedSlot(s)}
-                  className={`rounded-md border py-2 font-mono text-sm transition-colors ${
-                    isSelected
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950 font-semibold"
-                      : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <TimeSlotGrid
+          slots={visibleSlots}
+          selectedIso={selectedSlot?.startsAtIso ?? null}
+          onPick={setSelectedSlot}
+          loading={loadingSlots}
+          filtered={!!activeFilter && slots.length > 0}
+        />
         {err.startsAtIso && <p className="mt-2 text-xs text-red-400">{err.startsAtIso}</p>}
       </div>
 
