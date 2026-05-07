@@ -1,6 +1,10 @@
+"use client";
+
+import { useState, type MouseEvent } from "react";
 import { BookingManagementButton, type BookingForModal, type ServiceOption } from "@/components/booking-management-modal";
 import { formatWarsawTime } from "@/lib/slots";
 import type { BookingWithService } from "@/lib/db/bookings";
+import { QuickCreateBookingPopup } from "./quick-create-popup";
 
 const ROW_PX = 48;
 const SLOT_MIN = 30;
@@ -8,6 +12,8 @@ const SLOT_MIN = 30;
 type Staff = { id: string; name: string; color: string };
 
 type Props = {
+  /** YYYY-MM-DD — the viewed day. */
+  date: string;
   bookings: BookingWithService[];
   visibleStaff: Staff[];
   allStaff: Staff[];
@@ -16,6 +22,8 @@ type Props = {
   businessOpen: string | null;
   businessClose: string | null;
   closed: boolean;
+  /** "/admin/harmonogram?od=…&pracownik=…" so the create-action returns here. */
+  returnTo: string;
 };
 
 function parseHM(hm: string): number {
@@ -55,10 +63,13 @@ function toModalBooking(b: BookingWithService): BookingForModal {
 /**
  * Day-view timetable. Time runs vertically (30-min rows). Each staff member is
  * one column; bookings are absolute-positioned with top + height derived from
- * start time and duration. Sub-30-min durations render naturally as smaller
- * blocks (down to a 20px minimum so the customer name stays readable).
+ * start time and duration.
+ *
+ * Empty cells are clickable: click opens a quick-create-booking popup with
+ * the slot's start time and the column's staff pre-filled.
  */
 export function DayTimeline({
+  date,
   bookings,
   visibleStaff,
   allStaff,
@@ -66,6 +77,7 @@ export function DayTimeline({
   businessOpen,
   businessClose,
   closed,
+  returnTo,
 }: Props) {
   // Time range — start with business hours, expand outwards if any booking
   // sits outside them so it's never clipped.
@@ -113,6 +125,26 @@ export function DayTimeline({
             ? [{ id: "__none__", name: "Nieprzypisane", color: "#71717a", bookings: unassigned, isSpecial: true }]
             : []),
         ];
+
+  // ── Quick-create popup ───────────────────────────────────────────────────
+  const [popup, setPopup] = useState<{ open: boolean; start: string; staffId: string }>({
+    open: false, start: "09:00", staffId: "",
+  });
+  function openSlotAt(e: MouseEvent<HTMLButtonElement>, columnId: string) {
+    if (columnId === "__all__" || columnId === "__none__") return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const slotIdx = Math.max(0, Math.min(rowCount - 1, Math.floor(y / ROW_PX)));
+    const slotMin = firstMin + slotIdx * SLOT_MIN;
+    setPopup({ open: true, start: fmtMin(slotMin), staffId: columnId });
+  }
+
+  const conflictBookings = bookings.map((b) => ({
+    id: b.id,
+    staffId: b.staff_id,
+    startsAtIso: b.starts_at,
+    endsAtIso: b.ends_at,
+  }));
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-800/60">
@@ -176,6 +208,17 @@ export function DayTimeline({
               />
             ))}
 
+            {/* Click overlay — empty area triggers quick-create. Bookings sit
+                above this in z-index and intercept their own clicks. */}
+            {!c.isSpecial && (
+              <button
+                type="button"
+                aria-label="Dodaj rezerwację"
+                onClick={(e) => openSlotAt(e, c.id)}
+                className="absolute inset-0 z-0 cursor-cell hover:bg-zinc-800/30 focus:bg-zinc-800/30"
+              />
+            )}
+
             {/* Bookings — absolute-positioned wrappers around the modal button */}
             {c.bookings.map((b) => {
               const s = warsawMinutesOf(b.starts_at);
@@ -187,7 +230,7 @@ export function DayTimeline({
               return (
                 <div
                   key={b.id}
-                  className="absolute left-1 right-1"
+                  className="absolute left-1 right-1 z-10"
                   style={{ top, height }}
                 >
                   <BookingManagementButton
@@ -225,6 +268,18 @@ export function DayTimeline({
           </div>
         ))}
       </div>
+
+      <QuickCreateBookingPopup
+        open={popup.open}
+        onClose={() => setPopup((p) => ({ ...p, open: false }))}
+        date={date}
+        initialStart={popup.start}
+        initialStaffId={popup.staffId}
+        staff={visibleStaff.length === 0 ? allStaff : visibleStaff}
+        services={allServices}
+        bookingsToday={conflictBookings}
+        returnTo={returnTo}
+      />
     </div>
   );
 }

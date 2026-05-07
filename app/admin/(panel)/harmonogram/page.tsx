@@ -162,6 +162,7 @@ export default async function HarmonogramPage({
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
         <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
           <DayTimeline
+            date={baseDate}
             bookings={active}
             visibleStaff={visibleStaff}
             allStaff={allStaff}
@@ -169,6 +170,7 @@ export default async function HarmonogramPage({
             businessOpen={businessOpen}
             businessClose={businessClose}
             closed={closed}
+            returnTo={navUrl(baseDate)}
           />
         </div>
 

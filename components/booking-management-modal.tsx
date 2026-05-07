@@ -466,7 +466,7 @@ function BookingModal({
                   type="button"
                   onClick={handleCancel}
                   disabled={pending}
-                  className="rounded-full bg-red-700 px-4 py-1 text-xs font-medium text-zinc-100 hover:bg-red-600 disabled:opacity-50"
+                  className="rounded-full bg-red-700 px-4 py-1 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-50"
                 >
                   {pending ? "…" : "Anuluj rezerwację"}
                 </button>

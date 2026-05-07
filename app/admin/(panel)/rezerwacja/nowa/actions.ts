@@ -223,6 +223,9 @@ export async function createAdminBookingAction(
     }).catch(() => {});
   }
 
+  // Optional: caller can supply a returnTo path so the user lands back on the
+  // harmonogram day they were viewing instead of today's default.
+  const returnTo = formData.get("returnTo")?.toString();
   revalidatePath("/admin/harmonogram");
-  redirect("/admin/harmonogram");
+  redirect(returnTo && returnTo.startsWith("/admin/") ? returnTo : "/admin/harmonogram");
 }
