@@ -155,7 +155,7 @@ export function CalendarPicker({
           let cls = `flex h-9 items-center justify-center rounded-md ${cellText} font-medium transition-colors `;
           if (isSelected) cls += "bg-[var(--color-accent)] text-[var(--color-accent-fg)] ";
           else if (isCurrent) cls += "bg-zinc-800/40 text-zinc-200 hover:bg-zinc-800/70 ";
-          else cls += "text-zinc-300 hover:bg-zinc-800/60 ";
+          else cls += "text-zinc-300 hover:bg-zinc-800/35 ";
           return (
             <button
               key={m}
@@ -194,7 +194,7 @@ export function CalendarPicker({
             <button
               type="button"
               onClick={() => setPickerView((v) => (v === "days" ? "months" : "days"))}
-              className={`${headerLabel} flex items-center gap-1 rounded-md px-2 py-0.5 font-medium text-zinc-200 transition-colors hover:bg-zinc-800/60 hover:text-zinc-100`}
+              className={`${headerLabel} flex items-center gap-1 rounded-md px-2 py-0.5 font-medium text-zinc-200 transition-colors hover:bg-zinc-800/35 hover:text-zinc-100`}
             >
               {pickerView === "months" ? year : `${MONTH_PL[month - 1]} ${year}`}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${pickerView === "months" ? "rotate-180" : ""}`}>
@@ -256,33 +256,33 @@ export function CalendarPicker({
 
                 let cls =
                   `relative flex ${cellH} w-full items-center justify-center ${cellText} font-medium transition-colors `;
-                // Row tinting (least → most prominent)
-                if (isViewedWeek) {
+                // Row tinting priority (current > viewed > hovered > base):
+                //   - current week: strong accent fill (real "now" anchor)
+                //   - viewed week:  soft sidebar-style gray (the row you're navigating to)
+                //   - hovered:      slightly darker than viewed (preview)
+                if (isCurrentWeek) {
                   cls += "bg-[var(--color-accent)]/90 text-[var(--color-accent-fg)] ";
+                } else if (isViewedWeek) {
+                  cls += "bg-zinc-700/45 text-zinc-100 ";
                 } else if (isHoveredWeek) {
-                  cls += "bg-zinc-800/70 text-zinc-100 ";
-                } else if (isCurrentWeek) {
-                  cls += "bg-zinc-800/40 text-zinc-200 ";
+                  cls += "bg-zinc-800/35 text-zinc-200 ";
                 } else if (isCurrentMonth) {
                   cls += "text-zinc-300 ";
                 } else {
                   cls += "text-zinc-600 ";
                 }
 
-                // Today marker — pill in the cell, like booking selected day.
-                // Hidden when the row is the viewed-week (same accent, would just merge).
-                const todayPill = isToday && !isViewedWeek ? (
-                  <span className="absolute inset-y-0.5 inset-x-0.5 rounded-md bg-[var(--color-accent)]" />
+                // Today: small white dot under the cell number. Always visible —
+                // it's just a single-cell marker, no whole-row treatment.
+                const todayDot = isToday ? (
+                  <span className="pointer-events-none absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-white" />
                 ) : null;
-                const todayText = isToday && !isViewedWeek
-                  ? "relative z-[1] text-[var(--color-accent-fg)]"
-                  : "";
 
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
                 const cellInner = (
                   <>
-                    {todayPill}
-                    <span className={todayText}>{dayLabel}</span>
+                    {todayDot}
+                    <span>{dayLabel}</span>
                   </>
                 );
 

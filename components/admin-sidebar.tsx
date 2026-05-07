@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -140,11 +140,13 @@ function SidebarLink({
   expanded,
   pathname,
   onClick,
+  onHover,
 }: {
   item: NavItem;
   expanded: boolean;
   pathname: string;
   onClick?: () => void;
+  onHover?: (href: string | null) => void;
 }) {
   const active = item.exact
     ? pathname === item.href
@@ -154,16 +156,16 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onClick}
+      onMouseEnter={() => onHover?.(item.href)}
+      data-href={item.href}
+      data-active={active ? "true" : "false"}
       title={!expanded ? item.label : undefined}
       className={`relative flex h-10 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
         active
-          ? "bg-zinc-800 text-zinc-100"
-          : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+          ? "bg-zinc-800/70 text-zinc-100"
+          : "text-zinc-400 hover:bg-zinc-800/35 hover:text-zinc-100"
       }`}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-[var(--color-accent)]" />
-      )}
       <span className="shrink-0">{item.icon}</span>
       <span
         className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
@@ -173,6 +175,85 @@ function SidebarLink({
         {item.label}
       </span>
     </Link>
+  );
+}
+
+// ── Nav with the animated accent stripe ──────────────────────────────────
+
+function NavWithStripe({
+  expanded,
+  pathname,
+  onNavClick,
+}: {
+  expanded: boolean;
+  pathname: string;
+  onNavClick?: () => void;
+}) {
+  const navRef = useRef<HTMLElement>(null);
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null);
+  const [stripe, setStripe] = useState<{ y: number; visible: boolean }>({ y: 0, visible: false });
+
+  // Recompute the stripe position whenever the active or hovered item changes,
+  // and whenever the sidebar collapses/expands (icons-only changes geometry).
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const targetHref = hoveredHref;
+    const sel = targetHref
+      ? `[data-href="${targetHref}"]`
+      : `[data-active="true"]`;
+    const link = nav.querySelector(sel) as HTMLElement | null;
+    if (!link) {
+      setStripe((s) => ({ ...s, visible: false }));
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    const stripeHeight = 20;
+    setStripe({
+      y: linkRect.top - navRect.top + linkRect.height / 2 - stripeHeight / 2,
+      visible: true,
+    });
+  }, [hoveredHref, pathname, expanded]);
+
+  return (
+    <nav
+      ref={navRef}
+      onMouseLeave={() => setHoveredHref(null)}
+      className="relative flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-2 py-1"
+    >
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute left-0 h-5 w-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
+          stripe.visible ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ transform: `translateY(${stripe.y}px)` }}
+      />
+
+      {NAV_MAIN.map((item) => (
+        <SidebarLink
+          key={item.href}
+          item={item}
+          expanded={expanded}
+          pathname={pathname}
+          onClick={onNavClick}
+          onHover={setHoveredHref}
+        />
+      ))}
+
+      <div className="my-2 mx-1 border-t border-zinc-800/60" />
+
+      {NAV_MANAGE.map((item) => (
+        <SidebarLink
+          key={item.href}
+          item={item}
+          expanded={expanded}
+          pathname={pathname}
+          onClick={onNavClick}
+          onHover={setHoveredHref}
+        />
+      ))}
+    </nav>
   );
 }
 
@@ -261,18 +342,14 @@ function SidebarBody({
         </Link>
       </div>
 
-      {/* ── Main nav ── */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-2 py-1">
-        {NAV_MAIN.map((item) => (
-          <SidebarLink key={item.href} item={item} expanded={expanded} pathname={pathname} onClick={onNavClick} />
-        ))}
+      {/* ── Main nav (with animated accent stripe) ── */}
+      <NavWithStripe
+        expanded={expanded}
+        pathname={pathname}
+        onNavClick={onNavClick}
+      />
 
-        <div className="my-2 mx-1 border-t border-zinc-800/60" />
 
-        {NAV_MANAGE.map((item) => (
-          <SidebarLink key={item.href} item={item} expanded={expanded} pathname={pathname} onClick={onNavClick} />
-        ))}
-      </nav>
 
       {/* ── Bottom: notifications + logout ── */}
       <div className="shrink-0 border-t border-zinc-800/60 px-2 py-3 space-y-0.5">
@@ -287,7 +364,7 @@ function SidebarBody({
           <button
             type="submit"
             title={!expanded ? "Wyloguj" : undefined}
-            className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-300"
+            className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/35 hover:text-zinc-300"
           >
             <span className="shrink-0"><IcLogout /></span>
             <span
@@ -364,7 +441,7 @@ export function AdminSidebar({
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800/35 hover:text-zinc-100"
             aria-label="Menu"
           >
             <IcMenu />

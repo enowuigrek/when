@@ -57,13 +57,8 @@ export default async function GrafikPage({
 
   const selectedTimeOff = selectedStaff ? await getStaffTimeOff(selectedStaff.id) : [];
 
-  // ── Build week dates — skip closed business days ────────────────────────────
-  const weekDates = ORDERED_DAYS
-    .map((dow, i) => ({ dow, date: addDays(weekStart, i) }))
-    .filter(({ dow }) => {
-      const h = hours.find((h) => h.day_of_week === dow);
-      return !h?.closed;
-    });
+  // ── Build week dates — keep all 7 days, closed days render as a placeholder
+  const weekDates = ORDERED_DAYS.map((dow, i) => ({ dow, date: addDays(weekStart, i) }));
 
   function bizHours(dow: number) {
     const h = hours.find((h) => h.day_of_week === dow);
@@ -124,29 +119,36 @@ export default async function GrafikPage({
                 const isToday = date === today;
                 const [, m, d] = date.split("-");
                 return (
-                  <tr key={date} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
+                  <tr key={date} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"} ${biz.closed ? "opacity-60" : ""}`}>
                     <td className="px-4 py-5 align-top">
                       <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-200"}`}>
                         {dayLabels[dow]}
                       </p>
                       <p className="mt-0.5 font-mono text-xs text-zinc-500">{d}.{m}</p>
-                      {biz.closed && <p className="mt-1 text-[11px] text-zinc-700">wolne biznesu</p>}
-                      {!biz.closed && <p className="mt-1 font-mono text-[11px] text-zinc-600">{biz.open}–{biz.close}</p>}
+                      {biz.closed
+                        ? <p className="mt-1 text-[11px] uppercase tracking-wider text-zinc-600">Zamknięte</p>
+                        : <p className="mt-1 font-mono text-[11px] text-zinc-600">{biz.open}–{biz.close}</p>}
                     </td>
                     {visibleStaff.map((s) => (
                       <td key={s.id} className="px-2 py-3 align-top">
-                        <GrafikCell
-                          staffId={s.id}
-                          staffColor={s.color}
-                          dayOfWeek={dow}
-                          dateStr={date}
-                          scheduleRow={scheduleFor(s.id, dow)}
-                          timeOff={timeOffOn(s.id, date)}
-                          businessOpen={biz.open}
-                          businessClose={biz.close}
-                          allStaff={staff}
-                          allServices={allServices}
-                        />
+                        {biz.closed ? (
+                          <div className="flex h-9 w-full items-center justify-center rounded-lg border border-zinc-800/30 bg-transparent text-xs text-zinc-700">
+                            —
+                          </div>
+                        ) : (
+                          <GrafikCell
+                            staffId={s.id}
+                            staffColor={s.color}
+                            dayOfWeek={dow}
+                            dateStr={date}
+                            scheduleRow={scheduleFor(s.id, dow)}
+                            timeOff={timeOffOn(s.id, date)}
+                            businessOpen={biz.open}
+                            businessClose={biz.close}
+                            allStaff={staff}
+                            allServices={allServices}
+                          />
+                        )}
                       </td>
                     ))}
                   </tr>

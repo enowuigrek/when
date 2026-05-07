@@ -39,7 +39,7 @@ export function GrafikCell({ staffId, dayOfWeek, dateStr, scheduleRow, timeOff, 
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("schedule");
   const [pending, start] = useTransition();
-  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number } | null>(null);
+  const [popupStyle, setPopupStyle] = useState<{ top: number; left: number; openUp: boolean } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [timeOffState, timeOffAction, timeOffPending] = useActionState<AddTimeOffState, FormData>(
@@ -67,10 +67,27 @@ export function GrafikCell({ staffId, dayOfWeek, dateStr, scheduleRow, timeOff, 
   function handleToggle() {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      // Prefer left-aligned, but flip left if near right edge
-      const left = rect.left + rect.width / 2 + window.scrollX;
-      const top = rect.bottom + 4 + window.scrollY;
-      setPopupStyle({ top, left });
+      // Schedule popup is ~380px tall, time-off ~360. Use the bigger one for the
+      // viewport check so we never end up scrolling.
+      const POPUP_HEIGHT = 400;
+      const POPUP_WIDTH = 288; // w-72
+      const margin = 8;
+
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp = spaceBelow < POPUP_HEIGHT + margin;
+
+      // Center the popup horizontally on the button, but clamp to viewport.
+      const halfW = POPUP_WIDTH / 2;
+      const minLeft = halfW + margin;
+      const maxLeft = window.innerWidth - halfW - margin;
+      const rawLeft = rect.left + rect.width / 2;
+      const clamped = Math.max(minLeft, Math.min(maxLeft, rawLeft));
+
+      const top = openUp
+        ? rect.top - margin + window.scrollY
+        : rect.bottom + margin + window.scrollY;
+
+      setPopupStyle({ top, left: clamped + window.scrollX, openUp });
     }
     setTab("schedule");
     setOpen((v) => !v);
@@ -109,7 +126,11 @@ export function GrafikCell({ staffId, dayOfWeek, dateStr, scheduleRow, timeOff, 
       {open && !timeOff && popupStyle && (
         <div
           className="fixed z-[300] w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl"
-          style={{ top: popupStyle.top, left: popupStyle.left }}
+          style={{
+            top: popupStyle.top,
+            left: popupStyle.left,
+            transform: popupStyle.openUp ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+          }}
         >
           {/* Tab switcher */}
           <div className="mb-3 flex gap-1 rounded-md border border-zinc-800 p-0.5">
@@ -254,7 +275,11 @@ export function GrafikCell({ staffId, dayOfWeek, dateStr, scheduleRow, timeOff, 
       {open && timeOff && popupStyle && (
         <div
           className="fixed z-[300] w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl text-sm text-zinc-300"
-          style={{ top: popupStyle.top, left: popupStyle.left }}
+          style={{
+            top: popupStyle.top,
+            left: popupStyle.left,
+            transform: popupStyle.openUp ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+          }}
         >
           <p className="font-medium">{TYPE_LABELS[timeOff.type]}</p>
           <p className="mt-1 font-mono text-xs text-zinc-500">{timeOff.start_date} — {timeOff.end_date}</p>
