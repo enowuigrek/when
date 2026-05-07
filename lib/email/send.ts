@@ -16,6 +16,12 @@ type EmailPayload = {
 export async function sendEmail(payload: EmailPayload): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM ?? `when? <onboarding@resend.dev>`;
+  const emailEnabled = process.env.EMAIL_ENABLED === "true";
+
+  if (!emailEnabled) {
+    console.warn("[email] EMAIL_ENABLED=false — skipping email to", payload.to);
+    return { ok: true };
+  }
 
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY not set — skipping email to", payload.to);
