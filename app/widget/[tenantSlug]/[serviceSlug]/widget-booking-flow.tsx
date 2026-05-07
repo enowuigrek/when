@@ -112,7 +112,7 @@ export function WidgetBookingFlow({
               className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                 selectedStaffId === null
                   ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
               }`}
             >
               Dowolny
@@ -129,7 +129,7 @@ export function WidgetBookingFlow({
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
                       : unavailableToday
                       ? "border-zinc-800/60 text-zinc-600 opacity-50"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                      : "border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
                   }`}
                 >
                   <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color, opacity: unavailableToday ? 0.4 : 1 }} />

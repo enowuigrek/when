@@ -57,6 +57,13 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
   if (!service) notFound();
 
   const accent = settings.color_accent ?? "#d4a26a";
+  function accentFg(hex: string): string {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    return lum > 0.45 ? "#09090b" : "#ffffff";
+  }
   const today = warsawToday();
   const horizonEnd = addDays(today, settings.booking_horizon_days ?? 21);
 
@@ -81,7 +88,7 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ "--color-accent": accent, "--color-accent-hover": accent } as React.CSSProperties}
+      style={{ "--color-accent": accent, "--color-accent-hover": accent, "--color-accent-fg": accentFg(accent) } as React.CSSProperties}
     >
       {!isEmbed && <WidgetHeader settings={settings} tenantSlug={tenantSlug} />}
 
