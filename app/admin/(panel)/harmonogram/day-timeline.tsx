@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useState } from "react";
 import { BookingManagementButton, type BookingForModal, type ServiceOption } from "@/components/booking-management-modal";
 import { formatWarsawTime } from "@/lib/slots";
 import type { BookingWithService } from "@/lib/db/bookings";
@@ -127,16 +127,34 @@ export function DayTimeline({
         ];
 
   // ── Quick-create popup ───────────────────────────────────────────────────
-  const [popup, setPopup] = useState<{ open: boolean; start: string; staffId: string }>({
-    open: false, start: "09:00", staffId: "",
-  });
-  function openSlotAt(e: MouseEvent<HTMLButtonElement>, columnId: string) {
-    if (columnId === "__all__" || columnId === "__none__") return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const slotIdx = Math.max(0, Math.min(rowCount - 1, Math.floor(y / ROW_PX)));
-    const slotMin = firstMin + slotIdx * SLOT_MIN;
-    setPopup({ open: true, start: fmtMin(slotMin), staffId: columnId });
+  const [popup, setPopup] = useState<{
+    open: boolean;
+    start: string;
+    staffId: string;
+    maxDurationMin?: number;
+  }>({ open: false, start: "09:00", staffId: "" });
+
+  function openSlot(staffId: string, slotMin: number, maxDurationMin?: number) {
+    if (staffId === "__all__" || staffId === "__none__") return;
+    setPopup({ open: true, start: fmtMin(slotMin), staffId, maxDurationMin });
+  }
+
+  // Tight gaps between consecutive bookings on the same staff member —
+  // rendered as small green "free slot" blocks. Anything ≥ 30 min is
+  // accessible via the standard cell buttons, so we only highlight the
+  // sub-half-hour cracks (e.g. 11:00–11:10 between two bookings).
+  function gapsFor(bs: BookingWithService[]): { startMin: number; endMin: number }[] {
+    const sorted = [...bs].sort(
+      (a, b) => warsawMinutesOf(a.starts_at) - warsawMinutesOf(b.starts_at),
+    );
+    const out: { startMin: number; endMin: number }[] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const aEnd = warsawMinutesOf(sorted[i].ends_at);
+      const bStart = warsawMinutesOf(sorted[i + 1].starts_at);
+      const gap = bStart - aEnd;
+      if (gap > 0 && gap < SLOT_MIN) out.push({ startMin: aEnd, endMin: bStart });
+    }
+    return out;
   }
 
   const conflictBookings = bookings.map((b) => ({
@@ -208,16 +226,56 @@ export function DayTimeline({
               />
             ))}
 
-            {/* Click overlay — empty area triggers quick-create. Bookings sit
-                above this in z-index and intercept their own clicks. */}
-            {!c.isSpecial && (
-              <button
-                type="button"
-                aria-label="Dodaj rezerwację"
-                onClick={(e) => openSlotAt(e, c.id)}
-                className="absolute inset-0 z-0 cursor-cell hover:bg-zinc-800/30 focus:bg-zinc-800/30"
-              />
-            )}
+            {/* Per-cell click targets — each 30-min slot is its own button so
+                the hover lights up just that cell, not the whole column.
+                Bookings (z-10) and gap blocks (z-5) sit above and steal clicks. */}
+            {!c.isSpecial && Array.from({ length: rowCount }, (_, i) => {
+              const slotMin = firstMin + i * SLOT_MIN;
+              return (
+                <button
+                  key={`cell-${i}`}
+                  type="button"
+                  aria-label={`Dodaj rezerwację o ${fmtMin(slotMin)}`}
+                  onClick={() => openSlot(c.id, slotMin)}
+                  className="absolute inset-x-0 z-0 cursor-cell transition-colors hover:bg-zinc-800 focus:bg-zinc-800"
+                  style={{ top: i * ROW_PX, height: ROW_PX }}
+                />
+              );
+            })}
+
+            {/* Tight gaps — green "you can squeeze a short service in here"
+                blocks between consecutive bookings. */}
+            {!c.isSpecial && gapsFor(c.bookings).map((g) => {
+              const top = ((g.startMin - firstMin) / SLOT_MIN) * ROW_PX;
+              const height = ((g.endMin - g.startMin) / SLOT_MIN) * ROW_PX;
+              const dur = g.endMin - g.startMin;
+              return (
+                <div
+                  key={`gap-${g.startMin}`}
+                  className="absolute left-1 right-1 z-[5]"
+                  style={{ top, height }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => openSlot(c.id, g.startMin, dur)}
+                    aria-label={`Dodaj ${dur}-minutową usługę`}
+                    className="block h-full w-full overflow-hidden rounded-md text-left transition-opacity hover:opacity-80"
+                  >
+                    <div
+                      className="flex h-full items-center overflow-hidden px-2"
+                      style={{
+                        backgroundColor: "rgba(16, 185, 129, 0.15)",
+                        borderLeft: "2px solid rgb(16, 185, 129)",
+                      }}
+                    >
+                      <p className="font-mono text-[10px] leading-tight text-emerald-300">
+                        {fmtMin(g.startMin)}–{fmtMin(g.endMin)} · {dur} min
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
 
             {/* Bookings — absolute-positioned wrappers around the modal button */}
             {c.bookings.map((b) => {
@@ -275,6 +333,7 @@ export function DayTimeline({
         date={date}
         initialStart={popup.start}
         initialStaffId={popup.staffId}
+        maxDurationMin={popup.maxDurationMin}
         staff={visibleStaff.length === 0 ? allStaff : visibleStaff}
         services={allServices}
         bookingsToday={conflictBookings}

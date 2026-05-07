@@ -28,6 +28,12 @@ type Props = {
   initialStart: string;
   /** Preselected staff (from clicked column). "" = any. */
   initialStaffId: string;
+  /**
+   * Cap the available service list to those whose duration_min ≤ this value.
+   * Set when the user clicked a tight free-time gap (e.g. 10 min between two
+   * bookings) — only short services should appear in the dropdown.
+   */
+  maxDurationMin?: number;
   staff: Staff[];
   services: ServiceOption[];
   /** All bookings for this day — used to flag conflicts. */
@@ -71,13 +77,22 @@ export function QuickCreateBookingPopup({
   date,
   initialStart,
   initialStaffId,
+  maxDurationMin,
   staff,
   services,
   bookingsToday,
   returnTo,
 }: Props) {
+  // Optionally restrict the selectable services to those that fit a tight gap.
+  const availableServices = useMemo(
+    () => maxDurationMin
+      ? services.filter((s) => s.duration_min <= maxDurationMin)
+      : services,
+    [services, maxDurationMin],
+  );
+
   const [start, setStart] = useState(initialStart);
-  const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const [serviceId, setServiceId] = useState(availableServices[0]?.id ?? "");
   const [staffId, setStaffId] = useState(initialStaffId);
   const [endOverride, setEndOverride] = useState<string | null>(null);
 
@@ -95,7 +110,7 @@ export function QuickCreateBookingPopup({
     if (!open) return;
     setStart(initialStart);
     setStaffId(initialStaffId);
-    setServiceId(services[0]?.id ?? "");
+    setServiceId(availableServices[0]?.id ?? "");
     setEndOverride(null);
     setPhone("");
     setCustomerName("");
@@ -103,7 +118,7 @@ export function QuickCreateBookingPopup({
     setNotes("");
     setSuggestions([]);
     setShowSug(false);
-  }, [open, initialStart, initialStaffId, services]);
+  }, [open, initialStart, initialStaffId, availableServices]);
 
   // Phone search
   useEffect(() => {
@@ -133,8 +148,8 @@ export function QuickCreateBookingPopup({
   }
 
   const selectedService = useMemo(
-    () => services.find((s) => s.id === serviceId) ?? null,
-    [services, serviceId]
+    () => availableServices.find((s) => s.id === serviceId) ?? null,
+    [availableServices, serviceId]
   );
 
   // End time = start + service.duration_min unless user manually overrides.
@@ -232,19 +247,30 @@ export function QuickCreateBookingPopup({
 
           {/* Service */}
           <div>
-            <label className="mb-1 block text-xs text-zinc-500">Usługa</label>
-            <select
-              value={serviceId}
-              onChange={(e) => { setServiceId(e.target.value); setEndOverride(null); }}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-              required
-            >
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} · {s.duration_min} min · {s.price_pln} zł
-                </option>
-              ))}
-            </select>
+            <label className="mb-1 block text-xs text-zinc-500">
+              Usługa
+              {maxDurationMin && (
+                <span className="ml-1 text-emerald-400">· tylko ≤ {maxDurationMin} min</span>
+              )}
+            </label>
+            {availableServices.length === 0 ? (
+              <p className="rounded-md border border-amber-700/40 bg-amber-900/20 px-3 py-2 text-xs text-amber-300">
+                Brak usług, które mieszczą się w {maxDurationMin} min.
+              </p>
+            ) : (
+              <select
+                value={serviceId}
+                onChange={(e) => { setServiceId(e.target.value); setEndOverride(null); }}
+                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                required
+              >
+                {availableServices.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} · {s.duration_min} min · {s.price_pln} zł
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Staff */}
@@ -365,10 +391,10 @@ export function QuickCreateBookingPopup({
             </button>
             <button
               type="submit"
-              disabled={pending || !phone || !customerName}
-              className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-[var(--color-accent-fg)] disabled:opacity-50"
+              disabled={pending || !phone || !customerName || availableServices.length === 0}
+              className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
             >
-              {pending ? "Tworzenie…" : "Utwórz rezerwację"}
+              {pending ? "Rezerwuję…" : "Dodaj rezerwację"}
             </button>
           </div>
         </form>
