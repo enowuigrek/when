@@ -148,10 +148,10 @@ export function DayTimeline({
           {Array.from({ length: rowCount }, (_, i) => (
             <div
               key={i}
-              className="absolute inset-x-0 px-3 font-mono text-[11px] text-zinc-600"
+              className="absolute inset-x-0 px-3 pt-1 font-mono text-[11px] text-zinc-600"
               style={{ top: i * ROW_PX, height: ROW_PX }}
             >
-              <span className="-translate-y-1.5 inline-block">{fmtMin(firstMin + i * SLOT_MIN)}</span>
+              {fmtMin(firstMin + i * SLOT_MIN)}
             </div>
           ))}
         </div>
@@ -163,14 +163,16 @@ export function DayTimeline({
             className="relative border-r border-zinc-800/60 last:border-r-0"
             style={{ height: gridHeight }}
           >
-            {/* Background zebra rows */}
+            {/* Subtle dashed grid lines on every 30-min boundary */}
             {Array.from({ length: rowCount }, (_, i) => (
               <div
                 key={`bg-${i}`}
-                className={`absolute inset-x-0 border-b border-zinc-800/30 ${
-                  i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/15"
-                }`}
-                style={{ top: i * ROW_PX, height: ROW_PX }}
+                className="pointer-events-none absolute inset-x-0"
+                style={{
+                  top: i * ROW_PX,
+                  height: ROW_PX,
+                  borderTop: i === 0 ? undefined : "1px dashed rgba(63, 63, 70, 0.35)",
+                }}
               />
             ))}
 
@@ -210,7 +212,7 @@ export function DayTimeline({
                       <p className="truncate text-xs font-medium leading-tight text-zinc-100">
                         {b.customer_name}
                       </p>
-                      {b.service && height >= 56 && (
+                      {b.service && (
                         <p className="truncate text-[10px] leading-tight text-zinc-400">
                           {b.service.name}
                         </p>
