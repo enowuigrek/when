@@ -35,7 +35,7 @@ export function HoursSection({ hours }: { hours: BusinessHours[] }) {
     "rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-30 disabled:cursor-not-allowed w-24";
 
   return (
-    <form action={action} className="space-y-4">
+    <form id="hours-form" action={action} className="space-y-4">
       {state.status === "ok" && (
         <p className="rounded-lg border border-emerald-700/50 bg-emerald-900/30 px-4 py-3 text-sm text-emerald-300">
           Godziny zapisane.
@@ -92,15 +92,6 @@ export function HoursSection({ hours }: { hours: BusinessHours[] }) {
         })}
       </div>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-        >
-          {pending ? "Zapisuję…" : "Zapisz godziny"}
-        </button>
-      </div>
     </form>
   );
 }

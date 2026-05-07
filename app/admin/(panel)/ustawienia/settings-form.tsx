@@ -61,8 +61,13 @@ export function SettingsForm({
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 
+  function handleSubmit() {
+    const hoursForm = document.getElementById("hours-form") as HTMLFormElement | null;
+    hoursForm?.requestSubmit();
+  }
+
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} onSubmit={handleSubmit} className="space-y-6">
       {state.status === "ok" && (
         <p className="rounded-lg bg-emerald-900/30 border border-emerald-700/50 px-4 py-3 text-sm text-emerald-300">
           Zapisano pomyślnie.

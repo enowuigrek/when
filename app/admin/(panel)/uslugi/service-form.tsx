@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ServiceFormState } from "./actions";
 import type { Service, PaymentMode } from "@/lib/types";
+import { Toggle } from "@/components/ui/toggle";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 75, 90, 120];
 
@@ -111,21 +112,7 @@ export function ServiceForm({
             <span className="block text-sm font-medium text-zinc-200">Zajęcia grupowe</span>
             <span className="block text-xs text-zinc-500 mt-0.5">Wiele osób może zarezerwować ten sam termin</span>
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isGroup}
-            onClick={() => setIsGroup((v) => !v)}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-              isGroup ? "bg-[var(--color-accent)]" : "bg-zinc-700"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                isGroup ? "translate-x-5" : "translate-x-0.5"
-              }`}
-            />
-          </button>
+          <Toggle checked={isGroup} onChange={setIsGroup} label="Zajęcia grupowe" />
           <input type="hidden" name="is_group" value={isGroup ? "true" : "false"} />
         </label>
 
