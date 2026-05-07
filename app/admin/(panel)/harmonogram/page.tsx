@@ -5,6 +5,7 @@ import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { BookingManagementButton, type BookingForModal, type ServiceOption } from "@/components/booking-management-modal";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { StaffFilterBar, type StaffFilterChip } from "@/components/staff-filter-bar";
 import type { BookingWithService } from "@/lib/db/bookings";
 
 function toModalBooking(b: BookingWithService): BookingForModal {
@@ -173,42 +174,27 @@ export default async function HarmonogramPage({
         </div>
       </div>
 
-      {/* Staff filter tiles (merged with period summary) */}
-      {allStaff.length > 1 && (
-        <div className="mt-5 flex flex-wrap items-center gap-2.5">
-          <Link
-            href={navUrl(view, baseDate, null)}
-            aria-pressed={!selectedStaffId}
-            className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-colors ${
-              !selectedStaffId
-                ? "border-zinc-600 bg-zinc-800/60 text-zinc-100"
-                : "border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            }`}
-          >
-            <span className="text-sm font-medium">Wszyscy</span>
-            <span className="font-mono text-xs text-zinc-500">{totalCount}</span>
-          </Link>
-          {staffStats.map((s) => {
-            const isActive = selectedStaffId === s.id;
-            return (
-              <Link
-                key={s.id}
-                href={navUrl(view, baseDate, s.id)}
-                aria-pressed={isActive}
-                className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-colors ${
-                  isActive
-                    ? "border-zinc-600 bg-zinc-800/60 text-zinc-100"
-                    : "border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                }`}
-              >
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                <span className="text-sm font-medium">{s.name}</span>
-                <span className="font-mono text-xs text-zinc-500">{s.count}</span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      {/* Staff filter — single-select */}
+      {allStaff.length > 1 && (() => {
+        const chips: StaffFilterChip[] = [
+          {
+            id: "all",
+            label: "Wszyscy",
+            count: totalCount,
+            active: !selectedStaffId,
+            href: navUrl(view, baseDate, null),
+          },
+          ...staffStats.map((s) => ({
+            id: s.id,
+            label: s.name,
+            color: s.color,
+            count: s.count,
+            active: selectedStaffId === s.id,
+            href: navUrl(view, baseDate, s.id),
+          })),
+        ];
+        return <StaffFilterBar chips={chips} className="mt-5" />;
+      })()}
 
       <div className="mt-6">
         {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} allServices={allServices} hours={hours} today={today} />}

@@ -9,7 +9,7 @@ import { GrafikCell } from "./grafik-cell";
 import { TimeOffSection } from "../pracownicy/time-off-section";
 import { getStaffTimeOff } from "@/lib/db/staff-schedule";
 import { GrafikWeekPicker } from "./grafik-week-picker";
-import { StaffFilterBar } from "./staff-filter-bar";
+import { StaffFilterBar, type StaffFilterChip } from "@/components/staff-filter-bar";
 
 export const metadata = { title: "Grafik", robots: { index: false } };
 
@@ -92,9 +92,51 @@ export default async function GrafikPage({
       </div>
 
       {/* Staff filter chips — multi-select */}
-      {staff.length > 1 && (
-        <StaffFilterBar staff={staff} selectedIds={visibleStaffIds} />
-      )}
+      {staff.length > 1 && (() => {
+        const allActive = visibleStaffIds.length === 0;
+
+        // Build the URL representing "the state after toggling this chip".
+        function buildHref(nextIds: string[], nextPracownik: string | null) {
+          const params = new URLSearchParams();
+          params.set("tydzien", weekStart);
+          // Empty == "all" → drop the param. Full == "all" → also drop.
+          if (nextIds.length > 0 && nextIds.length < staff.length) {
+            params.set("pracownicy", nextIds.join(","));
+          }
+          if (nextPracownik) params.set("pracownik", nextPracownik);
+          return `/admin/grafik?${params.toString()}`;
+        }
+
+        const chips: StaffFilterChip[] = [
+          {
+            id: "all",
+            label: "Wszyscy",
+            count: staff.length,
+            active: allActive,
+            href: buildHref([], selectedStaff?.id ?? null),
+          },
+          ...staff.map((s) => {
+            const isSel = visibleStaffIds.includes(s.id);
+            const next = isSel
+              ? visibleStaffIds.filter((x) => x !== s.id)
+              : [...visibleStaffIds, s.id];
+            // Sidebar editor target: select new staff when adding; pick first
+            // remaining when removing the currently active one.
+            let nextPracownik: string | null;
+            if (!isSel) nextPracownik = s.id;
+            else if (selectedStaff?.id === s.id) nextPracownik = next[0] ?? null;
+            else nextPracownik = selectedStaff?.id ?? null;
+            return {
+              id: s.id,
+              label: s.name,
+              color: s.color,
+              active: isSel,
+              href: buildHref(next, nextPracownik),
+            };
+          }),
+        ];
+        return <StaffFilterBar chips={chips} className="mt-5" />;
+      })()}
 
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
         {/* ── Weekly schedule grid ─────────────────────────────────────── */}
