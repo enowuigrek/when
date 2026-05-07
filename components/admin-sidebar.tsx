@@ -92,6 +92,14 @@ function IcLogout() {
     </svg>
   );
 }
+function IcArrowLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
 function IcChevronRight() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -254,6 +262,7 @@ function SidebarBody({
   logoUrl,
   tenantId,
   logoutAction,
+  isDemo,
   onToggle,
   pathname,
   onNavClick,
@@ -263,6 +272,7 @@ function SidebarBody({
   logoUrl?: string;
   tenantId: string;
   logoutAction: () => Promise<void>;
+  isDemo?: boolean;
   onToggle: () => void;
   pathname: string;
   onNavClick?: () => void;
@@ -349,22 +359,39 @@ function SidebarBody({
           sidebarExpanded={expanded}
         />
 
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            title={!expanded ? "Wyloguj" : undefined}
+        {isDemo ? (
+          <Link
+            href="/"
+            title={!expanded ? "Strona główna" : undefined}
             className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
           >
-            <span className="shrink-0"><IcLogout /></span>
+            <span className="shrink-0"><IcArrowLeft /></span>
             <span
               className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
                 expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
-              Wyloguj
+              Strona główna
             </span>
-          </button>
-        </form>
+          </Link>
+        ) : (
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              title={!expanded ? "Wyloguj" : undefined}
+              className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+            >
+              <span className="shrink-0"><IcLogout /></span>
+              <span
+                className={`ml-3 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
+                  expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+                }`}
+              >
+                Wyloguj
+              </span>
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -377,11 +404,13 @@ export function AdminSidebar({
   businessName,
   logoUrl,
   logoutAction,
+  isDemo,
 }: {
   tenantId: string;
   businessName: string;
   logoUrl?: string;
   logoutAction: () => Promise<void>;
+  isDemo?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -418,6 +447,7 @@ export function AdminSidebar({
           logoUrl={logoUrl}
           tenantId={tenantId}
           logoutAction={logoutAction}
+          isDemo={isDemo}
           onToggle={toggleExpanded}
           pathname={pathname}
         />
@@ -472,6 +502,7 @@ export function AdminSidebar({
             logoUrl={logoUrl}
             tenantId={tenantId}
             logoutAction={logoutAction}
+            isDemo={isDemo}
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
             onNavClick={() => setMobileOpen(false)}

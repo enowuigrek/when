@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { logoutAction } from "./actions";
 import { getSettings } from "@/lib/db/settings";
-import { getAdminTenantId } from "@/lib/tenant";
+import { getAdminTenantId, getAdminTenantKind } from "@/lib/tenant";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
 import { AdminSidebar } from "@/components/admin-sidebar";
 
@@ -18,7 +18,11 @@ export default async function PanelLayout({
   if (!(await isAdminAuthenticated())) {
     redirect("/admin/login");
   }
-  const [s, tenantId] = await Promise.all([getSettings(), getAdminTenantId()]);
+  const [s, tenantId, tenantKind] = await Promise.all([
+    getSettings(),
+    getAdminTenantId(),
+    getAdminTenantKind(),
+  ]);
 
   return (
     <TenantThemeWrapper>
@@ -28,6 +32,7 @@ export default async function PanelLayout({
           businessName={s.business_name}
           logoUrl={s.logo_url ?? undefined}
           logoutAction={logoutAction}
+          isDemo={tenantKind === "demo"}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}
         <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">

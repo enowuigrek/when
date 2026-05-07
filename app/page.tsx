@@ -167,24 +167,13 @@ async function getOwnerBookingUrl(): Promise<string> {
   const ownerEmail = process.env.OWNER_EMAIL ?? CONTACT_EMAIL;
 
   const supabase = createAdminClient();
-  let { data: tenant } = await supabase
+  const { data: tenant } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, slug")
     .eq("email", ownerEmail)
     .maybeSingle();
 
-  if (!tenant) {
-    const { data: firstTenant } = await supabase
-      .from("tenants")
-      .select("id")
-      .neq("kind", "demo")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    tenant = firstTenant;
-  }
-
-  if (!tenant) return fallback;
+  if (!tenant?.slug) return fallback;
 
   const { data: svc } = await supabase
     .from("services")
@@ -195,7 +184,7 @@ async function getOwnerBookingUrl(): Promise<string> {
     .limit(1)
     .maybeSingle();
 
-  return svc ? `/rezerwacja/${svc.slug}` : fallback;
+  return svc ? `/widget/${tenant.slug}/${svc.slug}` : fallback;
 }
 
 export default async function StartPage() {

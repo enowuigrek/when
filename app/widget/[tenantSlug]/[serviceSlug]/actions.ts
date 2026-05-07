@@ -21,6 +21,7 @@ import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
 import { sendPushToTenant } from "@/lib/push";
 import { createTransaction, tpayConfigured } from "@/lib/tpay";
 import { recordBookingEvent } from "@/lib/db/booking-events";
+import { notifyStaff } from "@/lib/email/notify-staff";
 import type { Slot } from "@/lib/slots";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date");
@@ -278,6 +279,19 @@ export async function submitWidgetBooking(
       adminUrl: `${siteUrl}/admin/harmonogram`,
     });
     sendEmail({ to: settings.email, subject, html, text }).catch(() => {});
+  }
+
+  if (resolvedStaffId) {
+    notifyStaff({
+      staffId: resolvedStaffId,
+      type: parsed.data.staffId ? "booked" : "assigned",
+      customerName: parsed.data.customerName,
+      customerPhone: parsed.data.customerPhone,
+      serviceName: service.name,
+      startsAtIso: startsAt.toISOString(),
+      endsAtIso: endsAt.toISOString(),
+      tenantId,
+    }).catch(() => {});
   }
 
   // Push notification to owner's devices (fire-and-forget)

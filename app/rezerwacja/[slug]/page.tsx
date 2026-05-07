@@ -2,11 +2,16 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
 import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
-import { getActiveStaff } from "@/lib/db/staff";
-import { getSettings, getTimeFilters } from "@/lib/db/settings";
-import { getStaffUnavailableDatesMap } from "@/lib/db/staff-schedule";
+import { MAIN_TENANT_ID } from "@/lib/tenant";
+import {
+  getMainActiveStaff,
+  getMainBusinessHours,
+  getMainServiceBySlug,
+  getMainSettings,
+  getMainTimeFilters,
+} from "@/lib/db/main-tenant";
+import { getStaffUnavailableDatesMapForTenant } from "@/lib/db/for-tenant";
 import { BookingFlow } from "./booking-flow";
 import { getSlotsForDate } from "./actions";
 
@@ -14,7 +19,7 @@ type Params = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
-  const service = await getServiceBySlug(slug);
+  const service = await getMainServiceBySlug(slug);
   return {
     title: service ? `Rezerwacja — ${service.name}` : "Rezerwacja",
   };
@@ -22,14 +27,14 @@ export async function generateMetadata({ params }: { params: Params }) {
 
 export default async function BookingServicePage({ params }: { params: Params }) {
   const { slug } = await params;
-  const service = await getServiceBySlug(slug);
+  const service = await getMainServiceBySlug(slug);
   if (!service) notFound();
 
   const [hours, settings, timeFilters, activeStaff] = await Promise.all([
-    getBusinessHours(),
-    getSettings(),
-    getTimeFilters(),
-    getActiveStaff(),
+    getMainBusinessHours(),
+    getMainSettings(),
+    getMainTimeFilters(),
+    getMainActiveStaff(),
   ]);
 
   const today = warsawToday();
@@ -42,13 +47,14 @@ export default async function BookingServicePage({ params }: { params: Params })
   });
 
   const lastDate = days[days.length - 1]?.date ?? today;
-  const unavailableMap = await getStaffUnavailableDatesMap(
+  const unavailableMap = await getStaffUnavailableDatesMapForTenant(
     activeStaff.map((s) => s.id),
     today,
-    lastDate
+    lastDate,
+    MAIN_TENANT_ID
   );
   const staffUnavailable: Record<string, string[]> = {};
-  for (const [sid, set] of unavailableMap) staffUnavailable[sid] = Array.from(set);
+  for (const [sid, dates] of unavailableMap) staffUnavailable[sid] = dates;
 
   const initialDate = days.find((d) => !d.closed)?.date ?? today;
   const initialStaffId = !service.is_group && activeStaff.length === 1 ? activeStaff[0].id : null;

@@ -108,6 +108,14 @@ export async function resolveEffectivePricing(
   staffId: string | null
 ): Promise<{ price_pln: number; duration_min: number } | null> {
   const tenantId = await getAdminTenantId();
+  return resolveEffectivePricingForTenant(serviceId, staffId, tenantId);
+}
+
+export async function resolveEffectivePricingForTenant(
+  serviceId: string,
+  staffId: string | null,
+  tenantId: string
+): Promise<{ price_pln: number; duration_min: number } | null> {
   const supabase = createAdminClient();
   const { data: service } = await supabase
     .from("services")

@@ -52,6 +52,16 @@ export async function getActiveStaffForTenant(tenantId: string): Promise<Staff[]
   return (data ?? []) as Staff[];
 }
 
+export async function getStaffByIdForTenant(id: string, tenantId: string): Promise<Staff | null> {
+  const { data } = await createAdminClient()
+    .from("staff")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+  return data as Staff | null;
+}
+
 export async function getSettingsForTenant(tenantId: string): Promise<Settings> {
   const { data } = await createAdminClient()
     .from("settings")
@@ -119,6 +129,39 @@ export async function createBookingForTenant(
     return { ok: false, error: "db", message: error.message };
   }
   return { ok: true, id: (data as { id: string }).id };
+}
+
+export async function getGroupBookingCountForTenant(
+  serviceId: string,
+  startsAtIso: string,
+  endsAtIso: string,
+  tenantId: string
+): Promise<number> {
+  const { count } = await createAdminClient()
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("service_id", serviceId)
+    .eq("status", "confirmed")
+    .lt("starts_at", endsAtIso)
+    .gt("ends_at", startsAtIso);
+  return count ?? 0;
+}
+
+export async function getBusyStaffIdsForTenant(
+  startIso: string,
+  endIso: string,
+  tenantId: string
+): Promise<string[]> {
+  const { data } = await createAdminClient()
+    .from("bookings")
+    .select("staff_id")
+    .eq("tenant_id", tenantId)
+    .eq("status", "confirmed")
+    .not("staff_id", "is", null)
+    .lt("starts_at", endIso)
+    .gt("ends_at", startIso);
+  return (data ?? []).map((b) => b.staff_id as string);
 }
 
 export async function getStaffAvailabilityMapForTenant(

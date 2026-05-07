@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getServices } from "@/lib/db/services";
+import { getMainServices } from "@/lib/db/main-tenant";
 
 export const metadata = {
   title: "Rezerwacja",
@@ -21,7 +21,7 @@ export default async function ServicePickPage({
     redirect(`/rezerwacja/${service}`);
   }
 
-  const services = await getServices();
+  const services = await getMainServices();
 
   // Single service — skip the picker and go straight to booking
   if (services.length === 1) {

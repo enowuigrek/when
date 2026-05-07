@@ -73,6 +73,16 @@ export async function getAdminTenantSlug(): Promise<string> {
   return (data?.slug as string | undefined) ?? "main";
 }
 
+export async function getAdminTenantKind(): Promise<"main" | "demo" | "customer"> {
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("kind")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return (data?.kind as "main" | "demo" | "customer" | undefined) ?? "main";
+}
+
 export async function clearDemoCookie() {
   const jar = await cookies();
   jar.delete(DEMO_COOKIE);
