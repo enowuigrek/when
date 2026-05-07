@@ -51,7 +51,10 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
   ]);
 
   const accent = settings.color_accent ?? "#d4a26a";
-  const openHours = hours.filter((h) => !h.closed).sort((a, b) => a.day_of_week - b.day_of_week);
+  // All 7 days, Mon–Sun order (dow 1–6, then 0)
+  const ALL_DAYS = [1, 2, 3, 4, 5, 6, 0];
+  const hoursMap = new Map(hours.map((h) => [h.day_of_week, h]));
+  const allHours = ALL_DAYS.map((dow) => hoursMap.get(dow) ?? { day_of_week: dow, closed: true, open_time: null, close_time: null });
 
   return (
     <div
@@ -110,16 +113,19 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
           </div>
 
           {/* Hours */}
-          {openHours.length > 0 && (
+          {hours.length > 0 && (
             <div className="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-5 py-4">
               <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
                 Godziny otwarcia
               </p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-zinc-400 sm:grid-cols-4">
-                {openHours.map((h) => (
-                  <div key={h.day_of_week} className="flex justify-between">
-                    <span className="text-zinc-500">{DAY_SHORT[h.day_of_week]}</span>
-                    <span className="font-mono">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 sm:grid-cols-3 lg:grid-cols-4">
+                {allHours.map((h) => (
+                  <div key={h.day_of_week} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="w-5 shrink-0 text-zinc-500">{DAY_SHORT[h.day_of_week]}</span>
+                    {h.closed
+                      ? <span className="text-zinc-700 text-xs">Zamknięte</span>
+                      : <span className="font-mono text-zinc-400">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
+                    }
                   </div>
                 ))}
               </div>

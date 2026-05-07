@@ -122,7 +122,7 @@ export function CalendarPicker({
       </div>
 
       {/* Day grid */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((date) => {
           const isCurrentMonth = date.startsWith(currentMonthPrefix);
           const dayInfo = daysMap.get(date);

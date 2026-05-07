@@ -1,7 +1,7 @@
 export async function SiteFooter() {
   return (
     <footer className="border-t border-zinc-800/60 bg-zinc-950">
-      <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-zinc-500">
+      <div className="mx-auto max-w-3xl px-6 py-8 text-sm text-zinc-500">
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
           <a
             href="https://whenbooking.pl"

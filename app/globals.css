@@ -54,6 +54,8 @@ body {
   --accent: #b07d45;
   --accent-hover: #9a6c38;
   color-scheme: light;
+  background-color: #f4f4f5;
+  color: #18181b;
 }
 
 [data-theme="light"] body {
