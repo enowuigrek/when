@@ -111,7 +111,6 @@ export default async function GrafikPage({
           {
             id: "all",
             label: "Wszyscy",
-            count: staff.length,
             active: allActive,
             href: buildHref([], selectedStaff?.id ?? null),
           },
@@ -174,8 +173,8 @@ export default async function GrafikPage({
                     {visibleStaff.map((s) => (
                       <td key={s.id} className="px-2 py-3 align-top">
                         {biz.closed ? (
-                          <div className="flex h-9 w-full items-center justify-center rounded-lg border border-zinc-800/30 bg-transparent text-xs text-zinc-700">
-                            —
+                          <div className="flex h-9 w-full items-center justify-center rounded-lg border border-zinc-800/30 bg-transparent text-[11px] uppercase tracking-wider text-zinc-700">
+                            Zamknięte
                           </div>
                         ) : (
                           <GrafikCell
