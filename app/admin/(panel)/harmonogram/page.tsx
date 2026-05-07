@@ -313,7 +313,7 @@ function DayView({
                     ) : (
                       <Link
                         href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
-                        className="block h-7 w-full rounded hover:bg-zinc-800/40"
+                        className="block h-7 w-full rounded hover:bg-zinc-800"
                         aria-label={`Dodaj rezerwację ${slot.label}`}
                       />
                     )}
@@ -328,7 +328,7 @@ function DayView({
                     </div>
                   ))}
                   {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).length === 0 && (
-                    <Link href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
+                    <Link href={`/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800" />
                   )}
                 </td>
               )}

@@ -140,13 +140,11 @@ function SidebarLink({
   expanded,
   pathname,
   onClick,
-  onHover,
 }: {
   item: NavItem;
   expanded: boolean;
   pathname: string;
   onClick?: () => void;
-  onHover?: (href: string | null) => void;
 }) {
   const active = item.exact
     ? pathname === item.href
@@ -156,14 +154,13 @@ function SidebarLink({
     <Link
       href={item.href}
       onClick={onClick}
-      onMouseEnter={() => onHover?.(item.href)}
       data-href={item.href}
       data-active={active ? "true" : "false"}
       title={!expanded ? item.label : undefined}
       className={`relative flex h-10 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
         active
-          ? "bg-zinc-800/70 text-zinc-100"
-          : "text-zinc-400 hover:bg-zinc-800/35 hover:text-zinc-100"
+          ? "bg-zinc-800 text-zinc-100"
+          : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
       }`}
     >
       <span className="shrink-0">{item.icon}</span>
@@ -190,19 +187,14 @@ function NavWithStripe({
   onNavClick?: () => void;
 }) {
   const navRef = useRef<HTMLElement>(null);
-  const [hoveredHref, setHoveredHref] = useState<string | null>(null);
   const [stripe, setStripe] = useState<{ y: number; visible: boolean }>({ y: 0, visible: false });
 
-  // Recompute the stripe position whenever the active or hovered item changes,
-  // and whenever the sidebar collapses/expands (icons-only changes geometry).
+  // The stripe lives at the active item only and slides on route change.
+  // Recomputed when pathname or sidebar geometry changes.
   useLayoutEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
-    const targetHref = hoveredHref;
-    const sel = targetHref
-      ? `[data-href="${targetHref}"]`
-      : `[data-active="true"]`;
-    const link = nav.querySelector(sel) as HTMLElement | null;
+    const link = nav.querySelector('[data-active="true"]') as HTMLElement | null;
     if (!link) {
       setStripe((s) => ({ ...s, visible: false }));
       return;
@@ -214,12 +206,11 @@ function NavWithStripe({
       y: linkRect.top - navRect.top + linkRect.height / 2 - stripeHeight / 2,
       visible: true,
     });
-  }, [hoveredHref, pathname, expanded]);
+  }, [pathname, expanded]);
 
   return (
     <nav
       ref={navRef}
-      onMouseLeave={() => setHoveredHref(null)}
       className="relative flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-2 py-1"
     >
       <span
@@ -237,7 +228,6 @@ function NavWithStripe({
           expanded={expanded}
           pathname={pathname}
           onClick={onNavClick}
-          onHover={setHoveredHref}
         />
       ))}
 
@@ -250,7 +240,6 @@ function NavWithStripe({
           expanded={expanded}
           pathname={pathname}
           onClick={onNavClick}
-          onHover={setHoveredHref}
         />
       ))}
     </nav>
@@ -364,7 +353,7 @@ function SidebarBody({
           <button
             type="submit"
             title={!expanded ? "Wyloguj" : undefined}
-            className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/35 hover:text-zinc-300"
+            className="flex h-10 w-full items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
           >
             <span className="shrink-0"><IcLogout /></span>
             <span
@@ -441,7 +430,7 @@ export function AdminSidebar({
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800/35 hover:text-zinc-100"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
             aria-label="Menu"
           >
             <IcMenu />

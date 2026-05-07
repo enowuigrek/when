@@ -154,8 +154,8 @@ export function CalendarPicker({
           const isSelected = m === month;
           let cls = `flex h-9 items-center justify-center rounded-md ${cellText} font-medium transition-colors `;
           if (isSelected) cls += "bg-[var(--color-accent)] text-[var(--color-accent-fg)] ";
-          else if (isCurrent) cls += "bg-zinc-800/40 text-zinc-200 hover:bg-zinc-800/70 ";
-          else cls += "text-zinc-300 hover:bg-zinc-800/35 ";
+          else if (isCurrent) cls += "bg-zinc-800/50 text-zinc-200 hover:bg-zinc-800 ";
+          else cls += "text-zinc-300 hover:bg-zinc-800 ";
           return (
             <button
               key={m}
@@ -194,7 +194,7 @@ export function CalendarPicker({
             <button
               type="button"
               onClick={() => setPickerView((v) => (v === "days" ? "months" : "days"))}
-              className={`${headerLabel} flex items-center gap-1 rounded-md px-2 py-0.5 font-medium text-zinc-200 transition-colors hover:bg-zinc-800/35 hover:text-zinc-100`}
+              className={`${headerLabel} flex items-center gap-1 rounded-md px-2 py-0.5 font-medium text-zinc-200 transition-colors hover:bg-zinc-800 hover:text-zinc-100`}
             >
               {pickerView === "months" ? year : `${MONTH_PL[month - 1]} ${year}`}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${pickerView === "months" ? "rotate-180" : ""}`}>
@@ -263,9 +263,9 @@ export function CalendarPicker({
                 if (isCurrentWeek) {
                   cls += "bg-[var(--color-accent)]/90 text-[var(--color-accent-fg)] ";
                 } else if (isViewedWeek) {
-                  cls += "bg-zinc-700/45 text-zinc-100 ";
+                  cls += "bg-zinc-800 text-zinc-100 ";
                 } else if (isHoveredWeek) {
-                  cls += "bg-zinc-800/35 text-zinc-200 ";
+                  cls += "bg-zinc-800 text-zinc-100 ";
                 } else if (isCurrentMonth) {
                   cls += "text-zinc-300 ";
                 } else {

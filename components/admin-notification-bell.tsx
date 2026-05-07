@@ -238,7 +238,7 @@ export function AdminNotificationBell({
       type="button"
       onClick={openPanel}
       className={`flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium transition-colors ${
-        open ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800/35 hover:text-zinc-100"
+        open ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
       }`}
     >
       <span className="relative shrink-0">
@@ -262,7 +262,7 @@ export function AdminNotificationBell({
     <button
       type="button"
       onClick={openPanel}
-      className="relative rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800/35 hover:text-zinc-100"
+      className="relative rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
       aria-label="Powiadomienia"
     >
       <BellIcon />
