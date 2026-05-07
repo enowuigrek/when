@@ -517,28 +517,28 @@ function MonthView({
   const [y, m] = monthStart.split("-").map(Number);
   const count = daysInMonth(baseDate);
 
-  const countByDay = new Map<string, number>();
-  for (const b of active) {
-    const ds = warsawDate(b.starts_at);
-    countByDay.set(ds, (countByDay.get(ds) ?? 0) + 1);
+  // All days of the displayed month — every day is clickable in the month overview.
+  const days: { date: string; closed: boolean }[] = [];
+  const hrefMap: Record<string, string> = {};
+  for (let i = 0; i < count; i++) {
+    const d = addDays(monthStart, i);
+    days.push({ date: d, closed: false });
+    hrefMap[d] = navUrl("dzien", d);
   }
 
-  // All days of the displayed month — every day is clickable in the month overview.
-  const days = Array.from({ length: count }, (_, i) => ({
-    date: addDays(monthStart, i),
-    closed: false,
-  }));
+  const badges: Record<string, number> = {};
+  for (const b of active) {
+    const ds = warsawDate(b.starts_at);
+    badges[ds] = (badges[ds] ?? 0) + 1;
+  }
 
   return (
     <CalendarPicker
       days={days}
       today={today}
       displayYearMonth={{ year: y, month: m }}
-      getHref={(d) => navUrl("dzien", d)}
-      renderBadge={(d) => {
-        const c = countByDay.get(d) ?? 0;
-        return c > 0 ? c : null;
-      }}
+      hrefMap={hrefMap}
+      badges={badges}
     />
   );
 }

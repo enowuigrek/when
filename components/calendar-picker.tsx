@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 type Day = {
   date: string; // YYYY-MM-DD
@@ -57,10 +57,16 @@ type CalendarPickerProps = {
   today: string;
   /** Pick handler — used for client-side selection (e.g. booking flow). */
   onPick?: (date: string) => void;
-  /** Alternative to onPick: render cells as Next <Link>. Used by the harmonogram month view. */
-  getHref?: (date: string) => string;
-  /** Optional content rendered in the top-right of each available cell (e.g. booking count badge). */
-  renderBadge?: (date: string) => ReactNode;
+  /**
+   * Alternative to onPick: render available cells as Next <Link> using these URLs.
+   * Plain object so it can be passed across the server/client boundary.
+   */
+  hrefMap?: Record<string, string>;
+  /**
+   * Optional badge text per date (e.g. booking count). Rendered in the cell's
+   * top-right corner. Only entries with truthy values are rendered.
+   */
+  badges?: Record<string, string | number>;
   /**
    * Externally control which month is displayed. When set, the internal prev/next
    * header is hidden — the parent is expected to provide its own navigation.
@@ -73,8 +79,8 @@ export function CalendarPicker({
   selectedDate,
   today,
   onPick,
-  getHref,
-  renderBadge,
+  hrefMap,
+  badges,
   displayYearMonth,
 }: CalendarPickerProps) {
   const daysMap = new Map(days.map((d) => [d.date, d]));
@@ -152,7 +158,8 @@ export function CalendarPicker({
           const isToday = date === today;
           const isAvailable = !!dayInfo && !dayInfo.closed;
           const isClosed = !!dayInfo && dayInfo.closed;
-          const badge = isAvailable && renderBadge ? renderBadge(date) : null;
+          const badge = isAvailable && badges ? badges[date] : undefined;
+          const href = isAvailable && hrefMap ? hrefMap[date] : undefined;
 
           // Other-month days: invisible filler, no interaction
           if (!isCurrentMonth) {
@@ -190,9 +197,9 @@ export function CalendarPicker({
           ) : null;
 
           // Link mode (e.g. harmonogram month view)
-          if (isAvailable && getHref) {
+          if (href) {
             return (
-              <Link key={date} href={getHref(date)} className={cls}>
+              <Link key={date} href={href} className={cls}>
                 {todayDot}
                 {badgeNode}
                 {dayLabel}
