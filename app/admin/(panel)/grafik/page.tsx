@@ -107,7 +107,7 @@ export default async function GrafikPage({
           <table className="w-full min-w-[480px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-                <th className="w-28 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
+                <th className="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
                 {visibleStaff.map((s) => (
                   <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     <div className="flex items-center gap-1.5">
@@ -125,16 +125,16 @@ export default async function GrafikPage({
                 const [, m, d] = date.split("-");
                 return (
                   <tr key={date} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
-                    <td className="px-4 py-3 align-top">
-                      <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
+                    <td className="px-4 py-5 align-top">
+                      <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-200"}`}>
                         {dayLabels[dow]}
-                        <span className="ml-1.5 font-mono text-xs text-zinc-600">{d}.{m}</span>
                       </p>
-                      {biz.closed && <p className="text-xs text-zinc-700">wolne biznesu</p>}
-                      {!biz.closed && <p className="font-mono text-xs text-zinc-600">{biz.open}–{biz.close}</p>}
+                      <p className="mt-0.5 font-mono text-xs text-zinc-500">{d}.{m}</p>
+                      {biz.closed && <p className="mt-1 text-[11px] text-zinc-700">wolne biznesu</p>}
+                      {!biz.closed && <p className="mt-1 font-mono text-[11px] text-zinc-600">{biz.open}–{biz.close}</p>}
                     </td>
                     {visibleStaff.map((s) => (
-                      <td key={s.id} className="px-2 py-2 align-top">
+                      <td key={s.id} className="px-2 py-3 align-top">
                         <GrafikCell
                           staffId={s.id}
                           staffColor={s.color}

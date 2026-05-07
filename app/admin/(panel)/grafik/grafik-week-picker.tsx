@@ -57,29 +57,33 @@ export function GrafikWeekPicker({
         weekHrefFor={buildHref}
       />
 
-      {/* Prev / range / next / Today — under the calendar */}
-      <div className="flex items-center gap-1.5">
+      {/* Prev / range / next / Today — under the calendar (all h-8) */}
+      <div className="flex items-stretch gap-1.5">
         <Link
           href={buildHref(prev)}
           aria-label="Poprzedni tydzień"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
-          ←
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </Link>
-        <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900/40 px-2 py-1 text-center font-mono text-[11px] text-zinc-300">
-          {fmt(weekStart)} <span className="text-zinc-600">–</span> {fmt(weekEnd)}
+        <div className="flex h-8 flex-1 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/40 px-2 font-mono text-[11px] text-zinc-300">
+          {fmt(weekStart)} <span className="mx-1 text-zinc-600">–</span> {fmt(weekEnd)}
         </div>
         <Link
           href={buildHref(next)}
           aria-label="Następny tydzień"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
-          →
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </Link>
         {!isCurrent && (
           <Link
             href={buildHref(todayMonday)}
-            className="flex h-8 items-center rounded-lg border border-zinc-700 px-2.5 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+            className="flex h-8 shrink-0 items-center rounded-lg border border-zinc-700 px-2.5 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
           >
             Dziś
           </Link>
