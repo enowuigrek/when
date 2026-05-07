@@ -4,6 +4,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { BookingManagementButton, type BookingForModal, type ServiceOption } from "@/components/booking-management-modal";
+import { CalendarPicker } from "@/components/calendar-picker";
 import type { BookingWithService } from "@/lib/db/bookings";
 
 function toModalBooking(b: BookingWithService): BookingForModal {
@@ -515,8 +516,6 @@ function MonthView({
   const monthStart = startOfMonth(baseDate);
   const [y, m] = monthStart.split("-").map(Number);
   const count = daysInMonth(baseDate);
-  const firstDow = new Date(Date.UTC(y, m - 1, 1, 12)).getUTCDay();
-  const offset = firstDow === 0 ? 6 : firstDow - 1;
 
   const countByDay = new Map<string, number>();
   for (const b of active) {
@@ -524,69 +523,22 @@ function MonthView({
     countByDay.set(ds, (countByDay.get(ds) ?? 0) + 1);
   }
 
-  const cells: (string | null)[] = [
-    ...Array(offset).fill(null),
-    ...Array.from({ length: count }, (_, i) => addDays(monthStart, i)),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const weeks: (string | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-
-  const DOW_LABELS = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"];
+  // All days of the displayed month — every day is clickable in the month overview.
+  const days = Array.from({ length: count }, (_, i) => ({
+    date: addDays(monthStart, i),
+    closed: false,
+  }));
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 overflow-hidden">
-      <div className="grid grid-cols-7 border-b border-zinc-800/60 bg-zinc-900/60">
-        {DOW_LABELS.map((l) => (
-          <div key={l} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">{l}</div>
-        ))}
-      </div>
-
-      {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7 border-b border-zinc-800/30 last:border-0">
-          {week.map((d, di) => {
-            if (!d) return <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/50" />;
-            const cnt = countByDay.get(d) ?? 0;
-            const isToday = d === today;
-            const isCurrentMonth = d.slice(0, 7) === baseDate.slice(0, 7);
-            const dayNum = parseInt(d.split("-")[2]);
-
-            if (!isCurrentMonth) {
-              return (
-                <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/80 p-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium text-zinc-800">
-                    {dayNum}
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={di}
-                href={navUrl("dzien", d)}
-                className="group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30"
-              >
-                <div className="flex items-start justify-between">
-                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${
-                    isToday
-                      ? "bg-[var(--color-accent)] text-zinc-950"
-                      : "text-zinc-400 group-hover:text-zinc-200"
-                  }`}>
-                    {dayNum}
-                  </span>
-                  {cnt > 0 && (
-                    <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-                      {cnt}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </div>
+    <CalendarPicker
+      days={days}
+      today={today}
+      displayYearMonth={{ year: y, month: m }}
+      getHref={(d) => navUrl("dzien", d)}
+      renderBadge={(d) => {
+        const c = countByDay.get(d) ?? 0;
+        return c > 0 ? c : null;
+      }}
+    />
   );
 }
