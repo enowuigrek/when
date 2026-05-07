@@ -178,7 +178,7 @@ export function WidgetBookingFlow({
             {slots.length === 0 ? "Brak terminów tego dnia. Wybierz inny." : "Brak terminów w tym przedziale."}
           </p>
         ) : (
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
             {visibleSlots.map((s) => {
               const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;
               const isTaken = s.available === false;
@@ -192,7 +192,7 @@ export function WidgetBookingFlow({
                     isTaken
                       ? "cursor-not-allowed border-zinc-800/30 text-zinc-700 line-through"
                       : isSelected
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950 shadow-sm"
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm"
                       : "border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800/60"
                   }`}
                 >

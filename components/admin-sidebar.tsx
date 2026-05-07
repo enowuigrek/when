@@ -209,7 +209,7 @@ function SidebarBody({
           type="button"
           onClick={onToggle}
           title={expanded ? "Zwiń" : "Rozwiń"}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-800/60 hover:text-zinc-200"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-400"
         >
           {expanded ? <IcChevronLeft /> : <IcChevronRight />}
         </button>

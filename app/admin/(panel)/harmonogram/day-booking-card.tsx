@@ -21,7 +21,7 @@ export function DayBookingCard({ booking, allStaff, allServices, timeLabel, colo
       booking={booking}
       allStaff={allStaff}
       allServices={allServices}
-      className="block w-full rounded px-2 py-1.5 text-left transition-colors hover:brightness-125"
+      className="block w-full rounded px-2 py-1.5 text-left transition-opacity hover:opacity-75"
     >
       <div style={{ backgroundColor: `${color}20`, borderLeft: `2px solid ${color}`, padding: "2px 6px", borderRadius: 4 }}>
         <div className="flex items-start justify-between gap-1">

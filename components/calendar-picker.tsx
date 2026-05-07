@@ -146,7 +146,7 @@ export function CalendarPicker({
           let cls =
             "relative flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium transition-all ";
           if (isSelected) {
-            cls += "bg-[var(--color-accent)] text-zinc-950 shadow-sm cursor-pointer";
+            cls += "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
           } else if (isAvailable) {
             cls += "cal-day-available cursor-pointer";
           } else if (isClosed) {

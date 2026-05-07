@@ -15,16 +15,16 @@ export async function WidgetHeader({ settings, tenantSlug }: Props) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-900">
-      <div className="mx-auto flex h-20 max-w-3xl items-center px-6">
+      <div className="mx-auto flex h-[108px] max-w-3xl items-center px-6">
         <Link href={homeHref} className="hover:opacity-80 transition-opacity">
           {settings.logo_url ? (
-            <div className="h-12 w-48 overflow-hidden rounded-xl">
+            <div className="h-[88px] w-[210px] overflow-hidden rounded-2xl">
               <Image
                 src={settings.logo_url}
                 alt={settings.business_name}
-                width={192}
-                height={48}
-                className="w-full h-full object-cover object-center"
+                width={210}
+                height={88}
+                className="w-full h-full object-cover object-[center_58%]"
                 unoptimized
               />
             </div>
