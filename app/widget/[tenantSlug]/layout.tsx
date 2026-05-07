@@ -1,5 +1,6 @@
 import { getTenantIdBySlug } from "@/lib/tenant";
 import { getSettingsForTenant } from "@/lib/db/for-tenant";
+import { ThemeApplier } from "@/components/theme-applier";
 
 /**
  * Apply the WIDGET tenant's theme (not the cookie-based tenant's theme).
@@ -17,6 +18,7 @@ export default async function WidgetTenantLayout({ children, params }: any) {
 
   return (
     <div data-theme={theme}>
+      <ThemeApplier theme={theme} />
       {children}
     </div>
   );

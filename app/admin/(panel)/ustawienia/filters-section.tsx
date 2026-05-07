@@ -112,7 +112,7 @@ export function FiltersSection({ filters }: { filters: TimeFilter[] }) {
             <button
               type="submit"
               disabled={pending}
-              className="rounded-full bg-zinc-700 px-4 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-600 disabled:opacity-50"
+              className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] transition-opacity hover:opacity-85 disabled:opacity-50"
             >
               {pending ? "Dodaję…" : "+ Dodaj filtr"}
             </button>

@@ -1,4 +1,5 @@
 import { getSettings } from "@/lib/db/settings";
+import { ThemeApplier } from "./theme-applier";
 
 function accentFg(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -35,6 +36,7 @@ export async function TenantThemeWrapper({ children }: { children: React.ReactNo
         "--color-accent-fg": accentFg(accent),
       } as React.CSSProperties}
     >
+      <ThemeApplier theme={theme as "light" | "dark"} />
       {children}
     </div>
   );
