@@ -8,7 +8,7 @@ import { dayLabels } from "@/lib/business";
 import { GrafikCell } from "./grafik-cell";
 import { TimeOffSection } from "../pracownicy/time-off-section";
 import { getStaffTimeOff } from "@/lib/db/staff-schedule";
-import { WeekNav } from "./week-nav";
+import { GrafikWeekPicker } from "./grafik-week-picker";
 import { StaffFilterBar } from "./staff-filter-bar";
 
 export const metadata = { title: "Grafik", robots: { index: false } };
@@ -89,19 +89,11 @@ export default async function GrafikPage({
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Grafik</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Godziny pracy i nieobecności pracowników. Kliknij komórkę żeby edytować lub dodać urlop.
-          </p>
-        </div>
-        <WeekNav
-          weekStart={weekStart}
-          staffParam={selectedStaffId}
-          pracownicyParam={pracownicyParam}
-          todayMonday={todayMonday}
-        />
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Grafik</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Godziny pracy i nieobecności pracowników. Kliknij komórkę żeby edytować lub dodać urlop.
+        </p>
       </div>
 
       {/* Staff filter chips — multi-select */}
@@ -164,9 +156,16 @@ export default async function GrafikPage({
           </table>
         </div>
 
-        {/* ── Sidebar: selected staff time-off ─────────────────────────── */}
+        {/* ── Sidebar: week picker + selected staff time-off ─────────── */}
         {staff.length > 0 && selectedStaff && (
-          <div className="w-full lg:w-80 shrink-0">
+          <div className="w-full lg:w-80 shrink-0 space-y-4">
+            <GrafikWeekPicker
+              weekStart={weekStart}
+              todayMonday={todayMonday}
+              today={today}
+              staffParam={selectedStaffId}
+              pracownicyParam={pracownicyParam}
+            />
             <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-5">
               {/* Staff picker — highlights filtered staff */}
               <div className="mb-4 flex flex-wrap gap-2">
