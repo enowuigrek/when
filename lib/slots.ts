@@ -212,14 +212,26 @@ export function formatWarsawTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-/** Format a UTC ISO instant as Warsaw "DD MMMM YYYY". */
+/** Polish month names in the genitive case — "7 maja" not "7 maj". */
+const MONTH_PL_GENITIVE = [
+  "stycznia","lutego","marca","kwietnia","maja","czerwca",
+  "lipca","sierpnia","września","października","listopada","grudnia",
+];
+
+/** Format a UTC ISO instant as Warsaw "D MMMM YYYY" with the month in genitive. */
 export function formatWarsawDate(iso: string): string {
-  return new Intl.DateTimeFormat("pl-PL", {
+  // Pull day/month/year out of the Warsaw-local representation, then assemble
+  // manually so the month is always in genitive ("maja", not "maj"), regardless
+  // of the host ICU's pl-PL behaviour.
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: TZ,
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const y = get("year");
+  const m = get("month");
+  const d = get("day");
+  return `${d} ${MONTH_PL_GENITIVE[m - 1]} ${y}`;
 }
 
 /**
@@ -241,13 +253,8 @@ export function applyStaffHours(
   );
 }
 
-/** Format a YYYY-MM-DD as "DD MMM" in Polish. */
+/** Format a YYYY-MM-DD as "D MMMM" in Polish — month in genitive ("7 maja"). */
 export function formatShortDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const utc = warsawLocalToUtc(y, m, d, 12, 0);
-  return new Intl.DateTimeFormat("pl-PL", {
-    timeZone: TZ,
-    day: "numeric",
-    month: "short",
-  }).format(utc);
+  const [, m, d] = dateStr.split("-").map(Number);
+  return `${d} ${MONTH_PL_GENITIVE[m - 1]}`;
 }
