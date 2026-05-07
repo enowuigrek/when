@@ -169,6 +169,17 @@ export async function getStaffAvailabilityMapForTenant(
   return result;
 }
 
+/** Look up a tenant's slug by id — public booking pages use it to render
+ *  the booking's tenant branding regardless of the visitor's session cookie. */
+export async function getTenantSlugById(tenantId: string): Promise<string | null> {
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("slug")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return (data?.slug as string | undefined) ?? null;
+}
+
 /**
  * Fetch a booking by UUID without tenant scoping.
  * Safe because booking IDs are UUIDs (unguessable). Used by the public

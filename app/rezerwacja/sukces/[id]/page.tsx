@@ -1,12 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SiteHeader } from "@/components/site-header";
+import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getBookingByIdPublic, getSettingsForTenant } from "@/lib/db/for-tenant";
+import { ThemeApplier } from "@/components/theme-applier";
+import { getBookingByIdPublic, getSettingsForTenant, getTenantSlugById } from "@/lib/db/for-tenant";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import { fmtUtc } from "@/lib/ics";
+
+function accentFg(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum > 0.45 ? "#09090b" : "#ffffff";
+}
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { id } = await params;
@@ -36,9 +45,14 @@ export default async function SuccessPage({
 
   const booking = await getBookingByIdPublic(id);
   if (!booking) notFound();
-  const s = await getSettingsForTenant(booking.tenant_id);
+  const [s, tenantSlug] = await Promise.all([
+    getSettingsForTenant(booking.tenant_id),
+    getTenantSlugById(booking.tenant_id),
+  ]);
 
   const service = (booking as { service?: { name: string; price_pln: number } }).service;
+  const accent = s.color_accent ?? "#d4a26a";
+  const theme = (s.theme === "system" ? "dark" : s.theme) as "light" | "dark";
 
   const cancelToken = signBookingToken(id, "cancel");
   const rescheduleToken = signBookingToken(id, "reschedule");
@@ -62,8 +76,16 @@ export default async function SuccessPage({
   const icalUrl = `${siteUrl}/api/rezerwacja/${id}/event.ics`;
 
   return (
-    <>
-      {!isEmbed && <SiteHeader />}
+    <div
+      className="flex min-h-screen flex-col"
+      style={{
+        "--color-accent": accent,
+        "--color-accent-hover": accent,
+        "--color-accent-fg": accentFg(accent),
+      } as React.CSSProperties}
+    >
+      <ThemeApplier theme={theme} />
+      {!isEmbed && tenantSlug && <WidgetHeader settings={s} tenantSlug={tenantSlug} />}
       <main className="flex-1">
         <section className={`mx-auto max-w-xl px-6 ${isEmbed ? "py-10" : "py-16 md:py-24"}`}>
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-2xl text-[var(--color-accent)]">
@@ -164,9 +186,12 @@ export default async function SuccessPage({
             </div>
           )}
 
-          {!isEmbed && (
+          {!isEmbed && tenantSlug && (
             <div className="mt-8">
-              <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-200">
+              <Link
+                href={`/widget/${tenantSlug}`}
+                className="text-sm text-zinc-400 hover:text-zinc-200"
+              >
                 ← Wróć na stronę główną
               </Link>
             </div>
@@ -174,7 +199,7 @@ export default async function SuccessPage({
         </section>
       </main>
       {!isEmbed && <SiteFooter />}
-    </>
+    </div>
   );
 }
 
