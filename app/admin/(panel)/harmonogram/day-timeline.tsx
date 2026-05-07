@@ -237,7 +237,7 @@ export function DayTimeline({
                   type="button"
                   aria-label={`Dodaj rezerwację o ${fmtMin(slotMin)}`}
                   onClick={() => openSlot(c.id, slotMin)}
-                  className="absolute inset-x-0 z-0 cursor-cell transition-colors hover:bg-zinc-800 focus:bg-zinc-800"
+                  className="absolute inset-x-0 cursor-cell transition-colors hover:bg-zinc-800 focus:bg-zinc-800"
                   style={{ top: i * ROW_PX, height: ROW_PX }}
                 />
               );
@@ -252,7 +252,7 @@ export function DayTimeline({
               return (
                 <div
                   key={`gap-${g.startMin}`}
-                  className="absolute left-1 right-1 z-[5]"
+                  className="absolute left-1 right-1"
                   style={{ top, height }}
                 >
                   <button
@@ -288,7 +288,7 @@ export function DayTimeline({
               return (
                 <div
                   key={b.id}
-                  className="absolute left-1 right-1 z-10"
+                  className="absolute left-1 right-1"
                   style={{ top, height }}
                 >
                   <BookingManagementButton
