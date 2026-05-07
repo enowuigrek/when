@@ -81,6 +81,11 @@ type CalendarPickerProps = {
   // Layout
   displayYearMonth?: { year: number; month: number };
   size?: "md" | "sm";
+  /**
+   * Allow stepping into months before the current one (off by default).
+   * Booking flows lock to the present; admin browsing pages enable this.
+   */
+  allowPastNav?: boolean;
 };
 
 export function CalendarPicker({
@@ -96,6 +101,7 @@ export function CalendarPicker({
   weekHrefFor,
   displayYearMonth,
   size = "md",
+  allowPastNav = false,
 }: CalendarPickerProps) {
   const daysMap = new Map(days.map((d) => [d.date, d]));
   const todayYM = isoYM(today);
@@ -118,8 +124,8 @@ export function CalendarPicker({
   const year = controlled ? displayYearMonth!.year : calYear;
   const month = controlled ? displayYearMonth!.month : calMonth;
 
-  const canPrev = weekMode ? true : ymKey(year, month) > ymKey(todayYM.year, todayYM.month);
-  const canNext = weekMode ? true : ymKey(year, month) < ymKey(lastYM.year, lastYM.month);
+  const canPrev = weekMode || allowPastNav ? true : ymKey(year, month) > ymKey(todayYM.year, todayYM.month);
+  const canNext = weekMode || allowPastNav ? true : ymKey(year, month) < ymKey(lastYM.year, lastYM.month);
 
   function prevMonth() {
     if (controlled || !canPrev) return;
