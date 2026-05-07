@@ -273,20 +273,27 @@ export function QuickCreateBookingPopup({
             )}
           </div>
 
-          {/* Staff */}
-          <div>
-            <label className="mb-1 block text-xs text-zinc-500">Pracownik</label>
-            <select
-              value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-            >
-              <option value="">Dowolny</option>
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Staff — read-only. The slot already encodes who was clicked, and
+              this panel doesn't know other employees' availability, so an
+              actual picker would mislead. */}
+          {(() => {
+            const s = staff.find((x) => x.id === staffId);
+            return (
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Pracownik</label>
+                <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/40 px-2 py-1.5 text-sm text-zinc-300">
+                  {s ? (
+                    <>
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span>{s.name}</span>
+                    </>
+                  ) : (
+                    <span className="text-zinc-500">Dowolny</span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Conflict warning */}
           {conflict && (
