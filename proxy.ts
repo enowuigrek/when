@@ -3,16 +3,19 @@ import { type NextRequest, NextResponse } from "next/server";
 /**
  * Subdomain routing: *.whenbooking.pl → /widget/{subdomain}/...
  *
+ * Next.js 16 renamed the `middleware` file convention to `proxy`. The
+ * exported function name follows the file name. Lives at the project root
+ * (alongside `app/`).
+ *
  * Examples:
- *   brzytwa.whenbooking.pl/          → /widget/brzytwa
- *   brzytwa.whenbooking.pl/masaz     → /widget/brzytwa/masaz
- *   brzytwa.whenbooking.pl/masaz?embed=1 → /widget/brzytwa/masaz?embed=1
+ *   barbershop-tatarek.whenbooking.pl/         → /widget/barbershop-tatarek
+ *   barbershop-tatarek.whenbooking.pl/strzyz   → /widget/barbershop-tatarek/strzyz
  *
  * Not rewritten:
  *   www.whenbooking.pl, whenbooking.pl  (main marketing site)
  *   /admin/, /api/, /rezerwacja/        (internal routes)
  */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
   // Strip port (e.g. "example.com:3001" → "example.com")
   const hostname = host.split(":")[0].toLowerCase();

@@ -1,6 +1,7 @@
 import { whenOgImage, OG_SIZE } from "@/lib/og-when";
 
-export const runtime = "edge";
+// No `runtime = "edge"` — static text content lets Next.js generate this
+// image at build time instead of on every request.
 export const alt = "WHEN — system rezerwacji online";
 export const size = OG_SIZE;
 export const contentType = "image/png";
