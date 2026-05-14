@@ -140,15 +140,15 @@ export default async function GrafikPage({
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
         {/* ── Weekly schedule grid ─────────────────────────────────────── */}
         <div className="flex-1 overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-          <table className="w-full min-w-[480px] border-collapse text-sm">
+          <table className="w-full min-w-[360px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-                <th className="w-24 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
+                <th className="w-16 px-2 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 sm:w-24 sm:px-4">Dzień</th>
                 {visibleStaff.map((s) => (
-                  <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th key={s.id} className="px-2 py-3 text-left text-xs font-medium uppercase tracking-wider sm:px-3">
                     <div className="flex items-center gap-1.5">
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span style={{ color: s.color }}>{s.name}</span>
+                      <span className="truncate" style={{ color: s.color }}>{s.name}</span>
                     </div>
                   </th>
                 ))}

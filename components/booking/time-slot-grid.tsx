@@ -29,7 +29,7 @@ export function TimeSlotGrid({ slots, selectedIso, onPick, loading = false, filt
     );
   }
   return (
-    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-8">
       {slots.map((s) => {
         const isSelected = s.startsAtIso === selectedIso;
         const isTaken = s.available === false;
@@ -39,7 +39,7 @@ export function TimeSlotGrid({ slots, selectedIso, onPick, loading = false, filt
             type="button"
             disabled={isTaken}
             onClick={() => !isTaken && onPick(s)}
-            className={`rounded-md border py-2 font-mono text-sm transition-colors ${
+            className={`rounded-md border py-3 font-mono text-sm transition-colors ${
               isTaken
                 ? "cursor-not-allowed border-zinc-800/30 text-zinc-700 line-through"
                 : isSelected

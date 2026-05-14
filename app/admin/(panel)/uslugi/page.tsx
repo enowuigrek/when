@@ -58,9 +58,9 @@ export default async function ServicesPage() {
 
 function ServiceRow({ service: s }: { service: Service }) {
   return (
-    <div className={`flex items-center gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 ${!s.active ? "opacity-50" : ""}`}>
-      <div className="flex-1">
-        <div className="flex flex-wrap items-baseline gap-3">
+    <div className={`flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:flex-row sm:items-center sm:gap-4 ${!s.active ? "opacity-50" : ""}`}>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-medium text-zinc-100">{s.name}</span>
           {s.is_group && (
             <span className="rounded border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
@@ -75,10 +75,10 @@ function ServiceRow({ service: s }: { service: Service }) {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         <Link
           href={`/admin/uslugi/${s.id}`}
-          className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
+          className="flex min-h-[36px] items-center rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
           Edytuj
         </Link>
@@ -87,7 +87,7 @@ function ServiceRow({ service: s }: { service: Service }) {
           <input type="hidden" name="active" value={String(s.active)} />
           <button
             type="submit"
-            className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
+            className="flex min-h-[36px] items-center rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
           >
             {s.active ? "Ukryj" : "Pokaż"}
           </button>

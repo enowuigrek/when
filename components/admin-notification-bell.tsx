@@ -262,12 +262,12 @@ export function AdminNotificationBell({
     <button
       type="button"
       onClick={openPanel}
-      className="relative rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+      className="relative flex h-11 w-11 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
       aria-label="Powiadomienia"
     >
       <BellIcon />
       {unread > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[10px] font-bold text-zinc-950">
+        <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[10px] font-bold text-zinc-950">
           {unread > 9 ? "9+" : unread}
         </span>
       )}

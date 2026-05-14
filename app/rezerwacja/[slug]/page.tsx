@@ -65,9 +65,9 @@ export default async function BookingServicePage({ params }: { params: Params })
     <>
       <SiteHeader />
       <main className="flex-1">
-        <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+        <section className="mx-auto max-w-3xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
           {/* Stepper */}
-          <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
+          <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500">
             <Link href="/rezerwacja" className="hover:text-zinc-300">
               <span className="font-mono">01</span> Usługa
             </Link>
@@ -80,9 +80,9 @@ export default async function BookingServicePage({ params }: { params: Params })
           </div>
 
           {/* Service summary */}
-          <div className="mt-6 flex items-start justify-between gap-6 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{service.name}</h1>
+          <div className="mt-6 flex items-start justify-between gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:gap-6 sm:p-5">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{service.name}</h1>
               {service.description && (
                 <p className="mt-1 text-sm text-zinc-400">{service.description}</p>
               )}
@@ -90,8 +90,8 @@ export default async function BookingServicePage({ params }: { params: Params })
                 {service.duration_min} min
               </p>
             </div>
-            <div className="text-right">
-              <div className="font-mono text-xl font-semibold text-[var(--color-accent)]">
+            <div className="shrink-0 text-right">
+              <div className="whitespace-nowrap font-mono text-lg font-semibold text-[var(--color-accent)] sm:text-xl">
                 {service.price_pln} zł
               </div>
               <Link href="/rezerwacja" className="mt-1 inline-block text-xs text-zinc-500 hover:text-zinc-300">

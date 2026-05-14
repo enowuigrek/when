@@ -138,15 +138,17 @@ export function CalendarPicker({
     else setCalMonth(m => m + 1);
   }
 
-  // Sizing
+  // Sizing — bump up small mode on mobile (it's used in admin sidebars where
+  // 32px cells fall below comfortable tap targets). At sm: breakpoint we
+  // shrink back to the original compact size for desktop side panels.
   const isSm = size === "sm";
   const wrapperPad = isSm ? "p-3" : "p-4";
-  const cellH = isSm ? "h-8" : "h-10";
+  const cellH = isSm ? "h-11 sm:h-8" : "h-11 sm:h-10";
   const headerMb = isSm ? "mb-3" : "mb-4";
-  const headerBtn = isSm ? "h-7 w-7" : "h-8 w-8";
-  const headerLabel = isSm ? "text-xs" : "text-sm";
-  const dowPad = isSm ? "py-0.5 text-[10px]" : "py-1 text-xs";
-  const cellText = isSm ? "text-xs" : "text-sm";
+  const headerBtn = isSm ? "h-10 w-10 sm:h-7 sm:w-7" : "h-10 w-10 sm:h-8 sm:w-8";
+  const headerLabel = isSm ? "text-sm sm:text-xs" : "text-sm";
+  const dowPad = isSm ? "py-1 text-[11px] sm:py-0.5 sm:text-[10px]" : "py-1 text-xs";
+  const cellText = isSm ? "text-sm sm:text-xs" : "text-sm";
 
   const labelToggleable = !controlled;
 

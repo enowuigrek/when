@@ -17,13 +17,13 @@ export default async function ContactPage() {
     <TenantThemeWrapper settings={s}>
       <SiteHeader />
       <main className="flex-1">
-        <section className="mx-auto max-w-2xl px-6 py-16 md:py-24">
+        <section className="mx-auto max-w-2xl px-5 py-10 sm:px-6 sm:py-16 md:py-24">
           <p className="mb-2 font-mono text-xs uppercase tracking-widest text-[var(--color-accent)]">
             {s.business_name}
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight">Kontakt</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Kontakt</h1>
 
-          <div className="mt-10 space-y-4">
+          <div className="mt-8 space-y-3 sm:mt-10 sm:space-y-4">
             {/* Address */}
             {hasAddress && (
               <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4">

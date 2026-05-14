@@ -456,11 +456,11 @@ export function AdminSidebar({
       {/* ── Mobile: top bar + slide-in drawer ────────────────────── */}
       <div className="md:hidden">
         {/* Slim top bar */}
-        <div className="fixed left-0 right-0 top-0 z-[250] flex h-12 items-center justify-between border-b border-zinc-800/60 bg-zinc-900/95 px-3 backdrop-blur">
+        <div className="fixed left-0 right-0 top-0 z-[250] flex h-12 items-center justify-between border-b border-zinc-800/60 bg-zinc-900/95 px-2 backdrop-blur">
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
             aria-label="Menu"
           >
             <IcMenu />
@@ -470,12 +470,12 @@ export function AdminSidebar({
               <Image src={logoUrl} alt={businessName} width={112} height={36} className="w-full h-full object-cover object-center" unoptimized />
             </div>
           ) : (
-            <span className="text-sm font-semibold text-zinc-100">{businessName}</span>
+            <span className="truncate text-sm font-semibold text-zinc-100">{businessName}</span>
           )}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <Link
               href="/admin/rezerwacja/nowa"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
               aria-label="Nowa rezerwacja"
             >
               <IcPlus />
@@ -490,9 +490,10 @@ export function AdminSidebar({
           <div className="fixed inset-0 z-[260] bg-black/60" onClick={() => setMobileOpen(false)} />
         )}
 
-        {/* Drawer */}
+        {/* Drawer — overflow-y-auto so it scrolls when content exceeds viewport
+            (landscape phones, smaller devices) */}
         <aside
-          className={`fixed bottom-0 left-0 top-0 z-[270] w-[220px] bg-zinc-900 transition-transform duration-200 ease-in-out ${
+          className={`fixed bottom-0 left-0 top-0 z-[270] flex w-[260px] flex-col overflow-y-auto bg-zinc-900 transition-transform duration-200 ease-in-out ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >

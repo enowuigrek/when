@@ -50,10 +50,10 @@ export default async function DashboardPage() {
   const labelEvery = Math.ceil(s.chartData.length / 6);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-10 space-y-8">
+    <section className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 sm:py-10">
 
       {/* ── KPI tiles ─────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <KpiCard
           label="Rezerwacje — ten miesiąc"
           value={String(s.thisMonthBookings)}
@@ -302,10 +302,10 @@ function KpiCard({
   href?: string;
 }) {
   const inner = (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 h-full">
-      <p className="text-xs uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">{value}</p>
-      <p className="mt-1 text-xs text-zinc-600">{sub}</p>
+    <div className="h-full rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:p-5">
+      <p className="text-[10px] uppercase tracking-wider text-zinc-500 sm:text-xs">{label}</p>
+      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-zinc-100 sm:mt-2 sm:text-3xl">{value}</p>
+      <p className="mt-1 text-[11px] text-zinc-600 sm:text-xs">{sub}</p>
     </div>
   );
   if (href) {

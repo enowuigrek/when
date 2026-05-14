@@ -32,8 +32,9 @@ function formatDateLabel(dateStr: string): string {
   return `${dow} ${d.getUTCDate()}.${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+// text-base on mobile (16px) prevents iOS Safari auto-zoom on focus
 const inp =
-  "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50";
+  "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-base text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50 sm:text-sm";
 
 export function WidgetBookingFlow({
   tenantSlug,
@@ -157,6 +158,7 @@ export function WidgetBookingFlow({
           <Field
             label="Imię i nazwisko *"
             name="customerName"
+            autoComplete="name"
             required
             placeholder="Jan Kowalski"
             error={formState.status === "error" ? formState.fieldErrors?.customerName : undefined}
@@ -165,6 +167,8 @@ export function WidgetBookingFlow({
             label="Telefon *"
             name="customerPhone"
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             required
             placeholder="+48 600 000 000"
             error={formState.status === "error" ? formState.fieldErrors?.customerPhone : undefined}
@@ -173,11 +177,13 @@ export function WidgetBookingFlow({
             label="Email"
             name="customerEmail"
             type="email"
+            inputMode="email"
+            autoComplete="email"
             placeholder="opcjonalnie — do potwierdzenia"
             error={formState.status === "error" ? formState.fieldErrors?.customerEmail : undefined}
           />
           <div>
-            <label className="mb-1.5 block text-sm text-zinc-400">Uwagi</label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-300">Uwagi</label>
             <textarea name="notes" rows={2} className={inp} placeholder="Coś, co warto wiedzieć…" />
           </div>
 
@@ -207,6 +213,8 @@ function Field({
   required,
   placeholder,
   error,
+  inputMode,
+  autoComplete,
 }: {
   label: string;
   name: string;
@@ -214,11 +222,21 @@ function Field({
   required?: boolean;
   placeholder?: string;
   error?: string;
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "url" | "search" | "none";
+  autoComplete?: string;
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm text-zinc-400">{label}</label>
-      <input type={type} name={name} required={required} placeholder={placeholder} className={inp} />
+      <label className="mb-1.5 block text-sm font-medium text-zinc-300">{label}</label>
+      <input
+        type={type}
+        name={name}
+        required={required}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        className={inp}
+      />
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
   );

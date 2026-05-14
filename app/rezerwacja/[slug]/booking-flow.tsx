@@ -101,7 +101,7 @@ export function BookingFlow({
             <button
               type="button"
               onClick={() => pickStaff(null)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
+              className={`min-h-[40px] rounded-full border px-4 py-2 text-sm transition-colors ${
                 selectedStaffId === null
                   ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
                   : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -117,7 +117,7 @@ export function BookingFlow({
                   type="button"
                   onClick={() => pickStaff(s.id)}
                   title={unavailableToday ? "Niedostępny tego dnia" : undefined}
-                  className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                  className={`flex min-h-[40px] items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${
                     selectedStaffId === s.id
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
                       : unavailableToday
@@ -158,7 +158,7 @@ export function BookingFlow({
                   key={f.id}
                   type="button"
                   onClick={() => setActiveFilter(activeFilter === f.id ? null : f.id)}
-                  className={`rounded-full border px-3 py-0.5 text-xs transition-colors ${
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
                     activeFilter === f.id
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
                       : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -191,7 +191,7 @@ export function BookingFlow({
                   disabled={isTaken}
                   onClick={() => !isTaken && setSelectedSlot(s)}
                   title={isTaken ? (isGroup ? "Brak wolnych miejsc" : "Termin zajęty") : undefined}
-                  className={`rounded-md border transition-colors ${isGroup ? "px-3 py-2.5" : "py-2"} ${
+                  className={`rounded-md border transition-colors ${isGroup ? "px-3 py-3" : "py-3"} ${
                     isTaken
                       ? "cursor-not-allowed border-zinc-800/40 bg-zinc-900/20 text-zinc-600"
                       : isSelected
@@ -244,6 +244,7 @@ export function BookingFlow({
           <Field
             label="Imię i nazwisko"
             name="customerName"
+            autoComplete="name"
             required
             error={formState.status === "error" ? formState.fieldErrors?.customerName : undefined}
           />
@@ -251,6 +252,8 @@ export function BookingFlow({
             label="Telefon"
             name="customerPhone"
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             required
             error={formState.status === "error" ? formState.fieldErrors?.customerPhone : undefined}
           />
@@ -258,6 +261,8 @@ export function BookingFlow({
             label="Email"
             name="customerEmail"
             type="email"
+            inputMode="email"
+            autoComplete="email"
             hint="Opcjonalnie — wyślemy potwierdzenie."
             error={formState.status === "error" ? formState.fieldErrors?.customerEmail : undefined}
           />
@@ -272,7 +277,7 @@ export function BookingFlow({
           <button
             type="submit"
             disabled={formPending}
-            className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
+            className="flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-6 py-3.5 font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60 sm:w-auto"
           >
             {formPending ? "Rezerwuję…" : "Potwierdź rezerwację"}
           </button>
@@ -290,6 +295,8 @@ function Field({
   hint,
   error,
   as,
+  inputMode,
+  autoComplete,
 }: {
   label: string;
   name: string;
@@ -298,21 +305,31 @@ function Field({
   hint?: string;
   error?: string;
   as?: "textarea";
+  inputMode?: "text" | "tel" | "email" | "numeric" | "decimal" | "url" | "search" | "none";
+  autoComplete?: string;
 }) {
-  const base = "w-full rounded-md border bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2";
+  // text-base on mobile (16px) prevents iOS Safari from auto-zooming the viewport on focus
+  const base = "w-full rounded-md border bg-zinc-900/60 px-3 py-2.5 text-base text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 sm:text-sm";
   const state = error
     ? "border-red-700 focus:ring-red-700/50"
     : "border-zinc-800 focus:border-zinc-600 focus:ring-zinc-700/50";
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-zinc-300">
+      <span className="mb-1.5 block text-sm font-medium text-zinc-300">
         {label}
         {required && <span className="text-[var(--color-accent)]"> *</span>}
       </span>
       {as === "textarea" ? (
-        <textarea name={name} rows={3} className={`${base} ${state}`} />
+        <textarea name={name} rows={3} autoComplete={autoComplete} className={`${base} ${state}`} />
       ) : (
-        <input type={type} name={name} required={required} className={`${base} ${state}`} />
+        <input
+          type={type}
+          name={name}
+          required={required}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          className={`${base} ${state}`}
+        />
       )}
       {hint && !error && <span className="mt-1 block text-xs text-zinc-500">{hint}</span>}
       {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}

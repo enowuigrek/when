@@ -80,13 +80,13 @@ export default async function SuccessPage({
       <ThemeApplier theme={theme} />
       {!isEmbed && tenantSlug && <WidgetHeader settings={s} tenantSlug={tenantSlug} />}
       <main className="flex-1">
-        <section className={`mx-auto max-w-xl px-6 ${isEmbed ? "py-10" : "py-16 md:py-24"}`}>
+        <section className={`mx-auto max-w-xl px-5 sm:px-6 ${isEmbed ? "py-8" : "py-10 sm:py-16 md:py-24"}`}>
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-2xl text-[var(--color-accent)]">
             ✓
           </div>
           {booking.status === "pending_payment" ? (
             <>
-              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 Płatność w toku…
               </h1>
               <p className="mt-3 text-zinc-400">
@@ -95,7 +95,7 @@ export default async function SuccessPage({
             </>
           ) : (
             <>
-              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 Rezerwacja potwierdzona
               </h1>
               <p className="mt-3 text-zinc-400">
@@ -105,7 +105,7 @@ export default async function SuccessPage({
             </>
           )}
 
-          <dl className="mt-8 space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
+          <dl className="mt-8 space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 sm:space-y-4 sm:p-6">
             {service && (
               <Row label="Usługa" value={service.name} />
             )}
@@ -206,10 +206,10 @@ function Row({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="text-sm text-zinc-500">{label}</dt>
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+      <dt className="text-xs uppercase tracking-wider text-zinc-500 sm:text-sm sm:normal-case sm:tracking-normal">{label}</dt>
       <dd
-        className={`text-right text-zinc-100 ${mono ? "font-mono" : ""}`}
+        className={`text-zinc-100 sm:text-right ${mono ? "font-mono" : ""}`}
       >
         {value}
       </dd>

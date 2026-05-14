@@ -40,13 +40,13 @@ export default async function HoursPage() {
     <TenantThemeWrapper settings={settings}>
       <SiteHeader />
       <main className="flex-1">
-        <section className="mx-auto max-w-2xl px-6 py-16 md:py-24">
+        <section className="mx-auto max-w-2xl px-5 py-10 sm:px-6 sm:py-16 md:py-24">
           <p className="mb-2 font-mono text-xs uppercase tracking-widest text-[var(--color-accent)]">
             {settings.business_name}
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight">Godziny otwarcia</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Godziny otwarcia</h1>
 
-          <div className="mt-10 overflow-hidden rounded-xl border border-zinc-800/60">
+          <div className="mt-8 overflow-hidden rounded-xl border border-zinc-800/60 sm:mt-10">
             {sorted.map(({ dow, name, data }, i) => {
               const closed = !data || data.closed;
               const isLast = i === sorted.length - 1;

@@ -216,10 +216,17 @@ function BookingModal({
   const isPast = new Date(booking.startsAt).getTime() < Date.now();
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4 pb-4 pt-[72px]" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[400] flex items-stretch justify-center bg-black/70 sm:items-start sm:px-4 sm:pb-4 sm:pt-[72px]"
+      onClick={onClose}
+    >
       <div
-        className="flex w-full max-w-md flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
-        style={{ maxHeight: "calc(100vh - 96px)" }}
+        className="flex w-full flex-col border-zinc-800 bg-zinc-950 shadow-2xl sm:max-w-md sm:rounded-2xl sm:border"
+        style={{
+          maxHeight: "100dvh",
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -230,7 +237,13 @@ function BookingModal({
               <h2 className="mt-0.5 truncate text-lg font-semibold text-zinc-100">{booking.customerName}</h2>
               <p className="mt-0.5 font-mono text-xs text-zinc-500">{booking.customerPhone}</p>
             </div>
-            <button onClick={onClose} className="shrink-0 text-2xl leading-none text-zinc-600 hover:text-zinc-300">×</button>
+            <button
+              onClick={onClose}
+              aria-label="Zamknij"
+              className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-2xl leading-none text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            >
+              ×
+            </button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-mono text-zinc-300">{formatWarsawDate(booking.startsAt)} · {formatWarsawTime(booking.startsAt)}–{formatWarsawTime(booking.endsAt)}</span>
@@ -349,7 +362,7 @@ function BookingModal({
                         Brak wolnych terminów tego dnia.
                       </p>
                     ) : (
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                         {rescheduleSlots.map((s) => {
                           const isSelected = s.startsAtIso === rescheduleSelectedSlot?.startsAtIso;
                           return (
@@ -357,7 +370,7 @@ function BookingModal({
                               key={s.startsAtIso}
                               type="button"
                               onClick={() => setRescheduleSelectedSlot(s)}
-                              className={`rounded-md border py-2 font-mono text-sm transition-colors ${
+                              className={`rounded-md border py-3 font-mono text-sm transition-colors ${
                                 isSelected
                                   ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950 font-semibold"
                                   : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
