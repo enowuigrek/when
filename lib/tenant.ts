@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createAdminClient } from "./supabase/admin";
 import { getSessionTenantId } from "./auth/admin-session";
 
@@ -16,9 +16,27 @@ const DEMO_COOKIE = "when_demo";
 const DEMO_MAX_AGE_S = 60 * 60 * 24; // 24h, matches demo expires_at
 
 /**
- * Returns the demo tenant id from cookie, if present, valid, and not expired.
- * Reads tenants table to verify — keeps invariant that a stale cookie can't
- * point at a deleted tenant.
+ * Resolves a demo tenant id from a slug supplied via URL (`/demo/{slug}`).
+ * Validates against the DB so stale or guessed slugs can't impersonate an
+ * existing real tenant. Returns null when the tenant doesn't exist, isn't
+ * a demo, or has expired.
+ */
+export async function getDemoTenantIdBySlug(slug: string): Promise<string | null> {
+  if (!slug || !/^[a-z0-9-]+$/i.test(slug)) return null;
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("id, expires_at, kind")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!data || data.kind !== "demo") return null;
+  if (data.expires_at && new Date(data.expires_at as string).getTime() < Date.now()) return null;
+  return data.id as string;
+}
+
+/**
+ * @deprecated Cookie-based demos are being phased out — use URL-based
+ * `/demo/{slug}` paths instead. Kept temporarily so any pages that import
+ * it don't break; safe to remove once all references are gone.
  */
 export async function getDemoTenantId(): Promise<string | null> {
   const jar = await cookies();
@@ -38,14 +56,22 @@ export async function getDemoTenantId(): Promise<string | null> {
 
 /**
  * Tenant for admin panel.
- * Priority: admin session cookie → demo cookie → main tenant (fallback).
- * A logged-in real account always wins over any lingering demo cookie.
+ * Priority:
+ *   1. URL-based demo (`x-demo-slug` header set by proxy for /demo/{slug}/...)
+ *   2. Real admin session cookie
+ *   3. MAIN_TENANT_ID fallback
+ * Cookie-based demos are no longer accepted here — they would let a stale
+ * cookie hijack a real `/admin` visit.
  */
 export async function getAdminTenantId(): Promise<string> {
+  const h = await headers();
+  const demoSlug = h.get("x-demo-slug");
+  if (demoSlug) {
+    const id = await getDemoTenantIdBySlug(demoSlug);
+    if (id) return id;
+  }
   const session = await getSessionTenantId();
   if (session) return session;
-  const demo = await getDemoTenantId();
-  if (demo) return demo;
   return MAIN_TENANT_ID;
 }
 

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { getAllStaff } from "@/lib/db/staff";
 import { toggleStaffActiveAction } from "./actions";
 import { DeleteStaffButton } from "./delete-button";
@@ -18,19 +18,19 @@ export default async function PracownicyPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
+          <AdminLink
             href="/admin/pracownicy/grupy"
             className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
           >
             Grupy
-          </Link>
-          <Link
+          </AdminLink>
+          <AdminLink
             href="/admin/pracownicy/nowy"
             className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             <span className="hidden sm:inline">+ Dodaj</span>
             <span className="sm:hidden">+</span>
-          </Link>
+          </AdminLink>
         </div>
       </div>
 
@@ -59,12 +59,12 @@ export default async function PracownicyPage() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Link
+                <AdminLink
                   href={`/admin/pracownicy/${s.id}`}
                   className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
                 >
                   Edytuj
-                </Link>
+                </AdminLink>
                 <form action={toggleStaffActiveAction}>
                   <input type="hidden" name="id" value={s.id} />
                   <input type="hidden" name="active" value={String(s.active)} />

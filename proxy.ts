@@ -3,6 +3,10 @@ import { type NextRequest, NextResponse } from "next/server";
 /**
  * Subdomain routing: *.whenbooking.pl → /widget/{subdomain}/...
  *
+ * Demo routing: /demo/{slug}/... → /admin/... (internal rewrite)
+ *   with an `x-demo-slug` header so the admin layout knows to skip the
+ *   real-user auth gate and resolve tenant from the URL.
+ *
  * Next.js 16 renamed the `middleware` file convention to `proxy`. The
  * exported function name follows the file name. Lives at the project root
  * (alongside `app/`).
@@ -10,6 +14,8 @@ import { type NextRequest, NextResponse } from "next/server";
  * Examples:
  *   barbershop-tatarek.whenbooking.pl/         → /widget/barbershop-tatarek
  *   barbershop-tatarek.whenbooking.pl/strzyz   → /widget/barbershop-tatarek/strzyz
+ *   /demo/demo-barber-cqrjjy/                  → /admin/  (+ x-demo-slug header)
+ *   /demo/demo-barber-cqrjjy/harmonogram       → /admin/harmonogram
  *
  * Not rewritten:
  *   www.whenbooking.pl, whenbooking.pl  (main marketing site)
@@ -21,9 +27,29 @@ export function proxy(req: NextRequest) {
   const hostname = host.split(":")[0].toLowerCase();
   const pathname = req.nextUrl.pathname;
 
+  // ── Demo URLs: /demo/{slug}/* → /admin/* with x-demo-slug header ────────
+  // The admin layout reads this header to render the demo tenant without
+  // requiring a real admin session. Login is not exposed through demos.
+  if (pathname.startsWith("/demo/")) {
+    const match = pathname.match(/^\/demo\/([a-z0-9-]+)(\/.*)?$/i);
+    if (match) {
+      const [, demoSlug, rest] = match;
+      const subpath = rest ?? "";
+      // Demos never expose login or auth-related routes
+      if (subpath === "/login" || subpath.startsWith("/login/")) {
+        return NextResponse.redirect(new URL(`/demo/${demoSlug}`, req.url));
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = `/admin${subpath}`;
+      const res = NextResponse.rewrite(url);
+      res.headers.set("x-demo-slug", demoSlug);
+      return res;
+    }
+  }
+
   // Auto-clear stale demo cookie when a real admin session is present.
-  // Full session validation happens in server components; here we just check
-  // cookie co-existence so the real session always wins without needing crypto.
+  // Demo URL flow no longer sets `when_demo`, but legacy cookies may exist
+  // from the previous cookie-based flow.
   if (pathname.startsWith("/admin")) {
     const hasSession = req.cookies.has("when_admin");
     const hasDemo = req.cookies.has("when_demo");

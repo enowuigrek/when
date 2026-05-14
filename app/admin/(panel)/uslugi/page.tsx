@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
@@ -30,12 +31,12 @@ export default async function ServicesPage() {
           <h1 className="text-3xl font-semibold tracking-tight">Usługi</h1>
           <p className="mt-1 text-sm text-zinc-500">{active.length} aktywnych</p>
         </div>
-        <Link
+        <AdminLink
           href="/admin/uslugi/nowa"
           className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors"
         >
           + Dodaj usługę
-        </Link>
+        </AdminLink>
       </div>
 
       <div className="space-y-2">
@@ -76,12 +77,12 @@ function ServiceRow({ service: s }: { service: Service }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-        <Link
+        <AdminLink
           href={`/admin/uslugi/${s.id}`}
           className="flex min-h-[36px] items-center rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
           Edytuj
-        </Link>
+        </AdminLink>
         <form action={toggleServiceActiveAction}>
           <input type="hidden" name="id" value={s.id} />
           <input type="hidden" name="active" value={String(s.active)} />

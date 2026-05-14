@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { getDashboardStats } from "@/lib/db/stats";
 import { formatWarsawTime, formatWarsawDate } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
@@ -161,12 +162,12 @@ export default async function DashboardPage() {
               })}
             </ol>
           )}
-          <Link
+          <AdminLink
             href="/admin/uslugi"
             className="mt-4 inline-block text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
           >
             Zarządzaj usługami →
-          </Link>
+          </AdminLink>
         </div>
 
         {/* Top staff */}
@@ -206,12 +207,12 @@ export default async function DashboardPage() {
               })}
             </ol>
           )}
-          <Link
+          <AdminLink
             href="/admin/pracownicy"
             className="mt-4 inline-block text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
           >
             Zarządzaj pracownikami →
-          </Link>
+          </AdminLink>
         </div>
       </div>
 
@@ -221,12 +222,12 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-medium uppercase tracking-wider text-zinc-400">
             Ostatnie rezerwacje
           </h2>
-          <Link
+          <AdminLink
             href="/admin/harmonogram"
             className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
           >
             Pełny harmonogram →
-          </Link>
+          </AdminLink>
         </div>
 
         {s.recentBookings.length === 0 ? (
@@ -310,9 +311,9 @@ function KpiCard({
   );
   if (href) {
     return (
-      <Link href={href} className="block hover:opacity-80 transition-opacity">
+      <AdminLink href={href} className="block hover:opacity-80 transition-opacity">
         {inner}
-      </Link>
+      </AdminLink>
     );
   }
   return inner;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { getAllCustomersWithStats } from "@/lib/db/customers";
 import { formatWarsawDate } from "@/lib/slots";
 import { NewCustomerDialog } from "./new-customer-dialog";
@@ -47,13 +48,13 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
             { key: "wizyty", label: "Wizyty" },
             { key: "wydatki", label: "Wydatki" },
           ].map(({ key, label }) => (
-            <Link
+            <AdminLink
               key={key}
               href={`/admin/klienci?${q ? `q=${encodeURIComponent(q)}&` : ""}sort=${key}`}
               className={`rounded-md px-2.5 py-1.5 transition-colors ${sort === key ? "bg-zinc-800 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"}`}
             >
               {label}
-            </Link>
+            </AdminLink>
           ))}
         </div>
       </div>
@@ -65,7 +66,7 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
       ) : (
         <div className="divide-y divide-zinc-800/60 rounded-xl border border-zinc-800/60 bg-zinc-900/40">
           {customers.map((c) => (
-            <Link
+            <AdminLink
               key={c.id}
               href={`/admin/klienci/${c.id}`}
               className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-800/30 sm:gap-4 sm:px-5"
@@ -114,7 +115,7 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
               </div>
 
               <span className="text-zinc-600">›</span>
-            </Link>
+            </AdminLink>
           ))}
         </div>
       )}

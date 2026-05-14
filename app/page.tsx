@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
+import { ThemeApplier } from "@/components/theme-applier";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
@@ -192,6 +193,10 @@ export default async function StartPage() {
 
   return (
     <main className="min-h-screen text-zinc-100">
+      {/* Force dark theme on the landing — without this, a previous visit to
+          a light-themed demo (kosmetyka, joga) leaves `data-theme="light"` on
+          <html> and the landing inherits it after client-side navigation. */}
+      <ThemeApplier theme="dark" />
       {/* JSON-LD structured data for search engines */}
       <script
         type="application/ld+json"

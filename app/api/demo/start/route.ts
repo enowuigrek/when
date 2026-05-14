@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { setDemoCookie } from "@/lib/tenant";
-import { createAdminSession } from "@/lib/auth/admin-session";
 import { seedDemoTenant, type DemoVariant } from "@/lib/demo/seed";
 
 const DEMO_TTL_HOURS = 24;
 
+/**
+ * Creates a fresh demo tenant and redirects to its dedicated URL.
+ * Cookies are intentionally not set — the demo lives at `/demo/{slug}`
+ * and is resolved from the URL by the proxy, so it never collides with
+ * a real admin session at `/admin`.
+ */
 export async function GET(req: NextRequest) {
   const variantRaw = req.nextUrl.searchParams.get("wariant") ?? "barber";
   const variant: DemoVariant =
@@ -23,7 +27,7 @@ export async function GET(req: NextRequest) {
   const { data: tenant, error } = await supabase
     .from("tenants")
     .insert({ slug, name, kind: "demo", variant, expires_at: expiresAt })
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (error || !tenant) {
@@ -31,8 +35,6 @@ export async function GET(req: NextRequest) {
   }
 
   await seedDemoTenant(tenant.id as string, variant);
-  await setDemoCookie(tenant.id as string);
-  await createAdminSession(tenant.id as string);
 
-  return NextResponse.redirect(new URL("/admin", req.url));
+  return NextResponse.redirect(new URL(`/demo/${tenant.slug as string}`, req.url));
 }

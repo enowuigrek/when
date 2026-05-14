@@ -126,6 +126,18 @@ function IcMenu() {
 
 // ── Nav structure ─────────────────────────────────────────────────────────
 
+/**
+ * When rendered inside a /demo/{slug}/* URL, all `/admin/...` hrefs need
+ * to be rewritten to `/demo/{slug}/...` so navigation stays within the
+ * demo context. Returns the original href in real-admin mode.
+ */
+function rewriteAdminHref(href: string, demoSlug: string | null): string {
+  if (!demoSlug) return href;
+  if (href === "/admin") return `/demo/${demoSlug}`;
+  if (href.startsWith("/admin/")) return `/demo/${demoSlug}${href.slice(6)}`;
+  return href;
+}
+
 type NavItem = { href: string; label: string; icon: React.ReactNode; exact?: boolean };
 
 const NAV_MAIN: NavItem[] = [
@@ -148,21 +160,24 @@ function SidebarLink({
   expanded,
   pathname,
   onClick,
+  demoSlug,
 }: {
   item: NavItem;
   expanded: boolean;
   pathname: string;
   onClick?: () => void;
+  demoSlug: string | null;
 }) {
+  const href = rewriteAdminHref(item.href, demoSlug);
   const active = item.exact
-    ? pathname === item.href
-    : pathname.startsWith(item.href);
+    ? pathname === href
+    : pathname.startsWith(href);
 
   return (
     <Link
-      href={item.href}
+      href={href}
       onClick={onClick}
-      data-href={item.href}
+      data-href={href}
       data-active={active ? "true" : "false"}
       title={!expanded ? item.label : undefined}
       className={`relative flex h-10 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
@@ -189,10 +204,12 @@ function NavWithStripe({
   expanded,
   pathname,
   onNavClick,
+  demoSlug,
 }: {
   expanded: boolean;
   pathname: string;
   onNavClick?: () => void;
+  demoSlug: string | null;
 }) {
   const navRef = useRef<HTMLElement>(null);
   const [stripe, setStripe] = useState<{ y: number; visible: boolean }>({ y: 0, visible: false });
@@ -236,6 +253,7 @@ function NavWithStripe({
           expanded={expanded}
           pathname={pathname}
           onClick={onNavClick}
+          demoSlug={demoSlug}
         />
       ))}
 
@@ -248,6 +266,7 @@ function NavWithStripe({
           expanded={expanded}
           pathname={pathname}
           onClick={onNavClick}
+          demoSlug={demoSlug}
         />
       ))}
     </nav>
@@ -266,6 +285,7 @@ function SidebarBody({
   onToggle,
   pathname,
   onNavClick,
+  demoSlug,
 }: {
   expanded: boolean;
   businessName: string;
@@ -276,6 +296,7 @@ function SidebarBody({
   onToggle: () => void;
   pathname: string;
   onNavClick?: () => void;
+  demoSlug: string | null;
 }) {
   // Sidebar pixel width — used to position the notification side panel
   const sidebarPx = expanded ? 220 : 60;
@@ -329,7 +350,7 @@ function SidebarBody({
       {/* ── CTA: new booking ── */}
       <div className="shrink-0 px-3 py-3">
         <Link
-          href="/admin/rezerwacja/nowa"
+          href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
           onClick={onNavClick}
           title={!expanded ? "Nowa rezerwacja" : undefined}
           className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-[var(--color-accent-fg)] transition-opacity hover:opacity-85"
@@ -346,6 +367,7 @@ function SidebarBody({
         expanded={expanded}
         pathname={pathname}
         onNavClick={onNavClick}
+        demoSlug={demoSlug}
       />
 
 
@@ -415,6 +437,11 @@ export function AdminSidebar({
   const [expanded, setExpanded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  // Detect /demo/{slug}/* context so nav can rewrite hrefs and stay in the
+  // demo URL space instead of jumping to /admin (which would 404 with no
+  // real session).
+  const demoMatch = pathname.match(/^\/demo\/([^/]+)/);
+  const demoSlug = demoMatch?.[1] ?? null;
 
   // Hydrate from localStorage after mount (avoid SSR flash)
   useEffect(() => {
@@ -450,6 +477,7 @@ export function AdminSidebar({
           isDemo={isDemo}
           onToggle={toggleExpanded}
           pathname={pathname}
+          demoSlug={demoSlug}
         />
       </aside>
 
@@ -474,7 +502,7 @@ export function AdminSidebar({
           )}
           <div className="flex items-center gap-0.5">
             <Link
-              href="/admin/rezerwacja/nowa"
+              href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
               aria-label="Nowa rezerwacja"
             >
@@ -507,6 +535,7 @@ export function AdminSidebar({
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
             onNavClick={() => setMobileOpen(false)}
+            demoSlug={demoSlug}
           />
         </aside>
       </div>
