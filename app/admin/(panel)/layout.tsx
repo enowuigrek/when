@@ -4,7 +4,6 @@ import {
   isAdminAuthenticated,
   getOriginalTenantId,
   getSessionTenantId,
-  destroyAdminSession,
 } from "@/lib/auth/admin-session";
 import { isSessionSuperAdmin, listSwitchableTenants } from "@/lib/auth/super-admin";
 import { logoutAction } from "./actions";
@@ -65,8 +64,9 @@ export default async function PanelLayout({
   }
 
   // Migration safety: if a legacy admin cookie still points at a demo
-  // tenant (created during the cookie-based demo era), clear it and force
-  // a fresh login at /admin/login. Demos now live at /demo/{slug}.
+  // tenant (created during the cookie-based demo era), bounce to a route
+  // handler that can actually mutate the cookie (Server Components can't).
+  // Demos now live at /demo/{slug} — admin is real users only.
   const sessionTenantId = await getSessionTenantId();
   if (sessionTenantId) {
     const { data } = await createAdminClient()
@@ -75,8 +75,7 @@ export default async function PanelLayout({
       .eq("id", sessionTenantId)
       .maybeSingle();
     if (data?.kind === "demo") {
-      await destroyAdminSession();
-      redirect("/admin/login");
+      redirect("/api/admin/clear-stale-session");
     }
   }
 
