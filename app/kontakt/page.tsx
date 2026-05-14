@@ -1,20 +1,20 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
-import { getSettings } from "@/lib/db/settings";
+import { getMainSettings } from "@/lib/db/main-tenant";
 
 export async function generateMetadata() {
-  const s = await getSettings();
+  const s = await getMainSettings();
   return { title: `Kontakt — ${s.business_name}` };
 }
 
 export default async function ContactPage() {
-  const s = await getSettings();
+  const s = await getMainSettings();
 
   const hasAddress = s.address_street || s.address_city;
 
   return (
-    <TenantThemeWrapper>
+    <TenantThemeWrapper settings={s}>
       <SiteHeader />
       <main className="flex-1">
         <section className="mx-auto max-w-2xl px-6 py-16 md:py-24">

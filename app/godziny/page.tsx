@@ -1,11 +1,10 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
-import { getBusinessHours } from "@/lib/db/services";
-import { getSettings } from "@/lib/db/settings";
+import { getMainBusinessHours, getMainSettings } from "@/lib/db/main-tenant";
 
 export async function generateMetadata() {
-  const s = await getSettings();
+  const s = await getMainSettings();
   return { title: `Godziny otwarcia — ${s.business_name}` };
 }
 
@@ -29,7 +28,7 @@ function formatTime(t: string | null): string {
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export default async function HoursPage() {
-  const [hours, settings] = await Promise.all([getBusinessHours(), getSettings()]);
+  const [hours, settings] = await Promise.all([getMainBusinessHours(), getMainSettings()]);
 
   const sorted = DAY_ORDER.map((dow) => ({
     dow,
@@ -38,7 +37,7 @@ export default async function HoursPage() {
   }));
 
   return (
-    <TenantThemeWrapper>
+    <TenantThemeWrapper settings={settings}>
       <SiteHeader />
       <main className="flex-1">
         <section className="mx-auto max-w-2xl px-6 py-16 md:py-24">

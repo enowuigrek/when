@@ -16,6 +16,7 @@ import { WidgetPoweredBy } from "@/components/widget-powered-by";
 import { WidgetBookingFlow } from "./widget-booking-flow";
 import { getWidgetSlots } from "./actions";
 import { warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
+import { accentFg } from "@/lib/color-utils";
 
 type Props = {
   params: Promise<{ tenantSlug: string; serviceSlug: string }>;
@@ -57,13 +58,6 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
   if (!service) notFound();
 
   const accent = settings.color_accent ?? "#d4a26a";
-  function accentFg(hex: string): string {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    return lum > 0.45 ? "#09090b" : "#ffffff";
-  }
   const today = warsawToday();
   const horizonEnd = addDays(today, settings.booking_horizon_days ?? 21);
 

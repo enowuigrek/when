@@ -3,7 +3,15 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "./supabase/admin";
 import { getSessionTenantId } from "./auth/admin-session";
 
-export const MAIN_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+/**
+ * Tenant that owns the public marketing site at whenbooking.pl/* and
+ * non-subdomain routes (/rezerwacja, /godziny, /kontakt). Set via env var
+ * so different deployments (prod, preview, local) can target different
+ * tenants without code changes. Falls back to the production tenant id
+ * if unset.
+ */
+export const MAIN_TENANT_ID =
+  process.env.MAIN_TENANT_ID ?? "2624f888-8b6b-49cf-a3ff-5eecc77b5236";
 const DEMO_COOKIE = "when_demo";
 const DEMO_MAX_AGE_S = 60 * 60 * 24; // 24h, matches demo expires_at
 

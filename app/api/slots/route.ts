@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
-import { getActiveStaff } from "@/lib/db/staff";
-import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
-import { getSettings } from "@/lib/db/settings";
+import { MAIN_TENANT_ID } from "@/lib/tenant";
+import {
+  getServiceBySlugForTenant,
+  getBusinessHoursForTenant,
+  getActiveStaffForTenant,
+  getSettingsForTenant,
+  getBookingsInRangeForTenant,
+  getStaffAvailabilityMapForTenant,
+} from "@/lib/db/for-tenant";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -16,15 +20,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Niepoprawna data." }, { status: 400 });
   }
 
-  const service = await getServiceBySlug(serviceSlug);
+  const service = await getServiceBySlugForTenant(serviceSlug, MAIN_TENANT_ID);
   if (!service) {
     return NextResponse.json({ ok: false, message: "Usługa nie istnieje." }, { status: 404 });
   }
 
   const [hours, settings, activeStaff] = await Promise.all([
-    getBusinessHours(),
-    getSettings(),
-    getActiveStaff(),
+    getBusinessHoursForTenant(MAIN_TENANT_ID),
+    getSettingsForTenant(MAIN_TENANT_ID),
+    getActiveStaffForTenant(MAIN_TENANT_ID),
   ]);
 
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
@@ -32,7 +36,7 @@ export async function GET(req: Request) {
 
   // Group class: capacity-based slots
   if (service.is_group && service.max_participants) {
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, undefined, undefined);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
     const slots = computeAvailableSlots(
       dateStr, service.duration_min, hours, existing,
       settings.slot_granularity_min, 1, true, service.max_participants
@@ -40,13 +44,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, slots });
   }
 
-  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
+  const availMap = await getStaffAvailabilityMapForTenant(
+    activeStaff.map((s) => s.id),
+    dateStr,
+    MAIN_TENANT_ID
+  );
 
   if (staffId) {
     const avail = availMap.get(staffId);
     if (avail && !avail.available) return NextResponse.json({ ok: true, slots: [] });
     const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID, staffId);
     const slots = computeAvailableSlots(
       dateStr, service.duration_min, effectiveHours, existing,
       settings.slot_granularity_min, 1, true
@@ -56,7 +64,7 @@ export async function GET(req: Request) {
 
   const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
   const staffCount = Math.max(1, availableStaff.length);
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
   const slots = computeAvailableSlots(
     dateStr, service.duration_min, hours, existing,
     settings.slot_granularity_min, staffCount, true

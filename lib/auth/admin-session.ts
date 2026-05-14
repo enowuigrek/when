@@ -18,42 +18,61 @@ function safeEqualHex(a: string, b: string): boolean {
 }
 
 /**
- * Cookie format (new): "{tenantId}|{expIso}.{hmac(tenantId|expIso)}"
- * Cookie format (old): "{expIso}.{hmac(expIso)}"  ← backward compat, treated as MAIN_TENANT_ID
+ * Cookie formats (newest first):
+ *   "{tenantId}|{expIso}|{originalTenantId}.{hmac(payload)}" — impersonating
+ *   "{tenantId}|{expIso}.{hmac(payload)}"                   — normal session
+ *   "{expIso}.{hmac(payload)}"                               — legacy (pre-multi-tenant)
  */
-function buildValue(tenantId: string, exp: string): string {
-  const payload = `${tenantId}|${exp}`;
+type ParsedSession = {
+  tenantId: string;
+  originalTenantId: string | null;
+  valid: boolean;
+};
+
+function buildValue(tenantId: string, exp: string, originalTenantId?: string | null): string {
+  const payload = originalTenantId
+    ? `${tenantId}|${exp}|${originalTenantId}`
+    : `${tenantId}|${exp}`;
   return `${payload}.${sign(payload)}`;
 }
 
-function parseValue(raw: string): { tenantId: string; valid: boolean } {
-  // Detect old format: no pipe character before the dot
+function parseValue(raw: string): ParsedSession {
   const pipeIdx = raw.indexOf("|");
   const dotIdx = raw.lastIndexOf(".");
 
   if (pipeIdx < 0) {
-    // Old format: "{expIso}.{hmac}"
+    // Legacy: "{expIso}.{hmac}" — treat as MAIN_TENANT_ID, no impersonation
     const exp = raw.slice(0, dotIdx);
     const sig = raw.slice(dotIdx + 1);
-    if (!safeEqualHex(sig, sign(exp))) return { tenantId: MAIN_TENANT_ID, valid: false };
-    if (new Date(exp).getTime() < Date.now()) return { tenantId: MAIN_TENANT_ID, valid: false };
-    return { tenantId: MAIN_TENANT_ID, valid: true };
+    if (!safeEqualHex(sig, sign(exp))) return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: false };
+    if (new Date(exp).getTime() < Date.now()) return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: false };
+    return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: true };
   }
 
-  // New format: "{tenantId}|{expIso}.{hmac}"
   const payload = raw.slice(0, dotIdx);
   const sig = raw.slice(dotIdx + 1);
-  if (!safeEqualHex(sig, sign(payload))) return { tenantId: MAIN_TENANT_ID, valid: false };
-  const [tenantId, exp] = payload.split("|");
-  if (!tenantId || !exp) return { tenantId: MAIN_TENANT_ID, valid: false };
-  if (new Date(exp).getTime() < Date.now()) return { tenantId: MAIN_TENANT_ID, valid: false };
-  return { tenantId, valid: true };
+  if (!safeEqualHex(sig, sign(payload))) {
+    return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: false };
+  }
+  const parts = payload.split("|");
+  // [tenantId, expIso] or [tenantId, expIso, originalTenantId]
+  const tenantId = parts[0];
+  const exp = parts[1];
+  const originalTenantId = parts[2] ?? null;
+  if (!tenantId || !exp) return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: false };
+  if (new Date(exp).getTime() < Date.now()) {
+    return { tenantId: MAIN_TENANT_ID, originalTenantId: null, valid: false };
+  }
+  return { tenantId, originalTenantId, valid: true };
 }
 
-/** Issues a signed session cookie embedding tenantId. */
-export async function createAdminSession(tenantId: string = MAIN_TENANT_ID) {
+/** Issues a signed session cookie. `originalTenantId` marks impersonation. */
+export async function createAdminSession(
+  tenantId: string = MAIN_TENANT_ID,
+  originalTenantId?: string | null
+) {
   const exp = new Date(Date.now() + MAX_AGE_S * 1000).toISOString();
-  const value = buildValue(tenantId, exp);
+  const value = buildValue(tenantId, exp, originalTenantId ?? null);
   const jar = await cookies();
   jar.set(COOKIE_NAME, value, {
     httpOnly: true,
@@ -83,6 +102,18 @@ export async function getSessionTenantId(): Promise<string | null> {
   if (!raw) return null;
   const { tenantId, valid } = parseValue(raw);
   return valid ? tenantId : null;
+}
+
+/**
+ * Returns the original tenantId (who actually logged in) when impersonating,
+ * or null when this is a regular non-impersonated session.
+ */
+export async function getOriginalTenantId(): Promise<string | null> {
+  const jar = await cookies();
+  const raw = jar.get(COOKIE_NAME)?.value;
+  if (!raw) return null;
+  const { originalTenantId, valid } = parseValue(raw);
+  return valid ? originalTenantId : null;
 }
 
 export function verifyPassword(input: string): boolean {
