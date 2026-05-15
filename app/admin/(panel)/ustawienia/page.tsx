@@ -6,6 +6,7 @@ import { FiltersSection } from "./filters-section";
 import { HoursSection } from "./hours-section";
 import { EmbedSnippet } from "./embed-snippet";
 import { PushNotifyButton } from "@/components/push-notify-button";
+import { FeedbackForm } from "@/components/feedback-form";
 
 export const metadata = {
   title: "Ustawienia",
@@ -98,6 +99,21 @@ export default async function UstawieniaPage() {
                 <EmbedSnippet tenantSlug={tenantSlug} />
               </div>
             </details>
+          </div>
+        </>
+      )}
+
+      {!isDemo && (
+        <>
+          <hr className="my-10 border-zinc-800/60" />
+
+          <h2 className="text-lg font-semibold tracking-tight">Kontakt z WHEN</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Masz pytanie, pomysł lub napotkałeś błąd? Napisz do nas.
+          </p>
+
+          <div className="mt-6">
+            <FeedbackForm />
           </div>
         </>
       )}
