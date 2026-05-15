@@ -49,6 +49,7 @@ export default async function PanelLayout({
             logoUrl={settings.logo_url ?? undefined}
             logoutAction={logoutAction}
             isDemo
+            isSuperAdmin={false}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
             <main className="flex-1">{children}</main>
@@ -99,6 +100,7 @@ export default async function PanelLayout({
           logoUrl={s.logo_url ?? undefined}
           logoutAction={logoutAction}
           isDemo={tenantKind === "demo"}
+          isSuperAdmin={isSuperAdmin}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}
         <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
