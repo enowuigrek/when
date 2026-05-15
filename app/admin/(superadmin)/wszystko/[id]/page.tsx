@@ -1,8 +1,7 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { isSessionSuperAdmin } from "@/lib/auth/super-admin";
 import { getTenantDetail, getFeedbackForTenant } from "@/lib/db/super-admin";
-import { switchTenantAction } from "../../super-admin-actions";
+import { switchTenantAction } from "@/app/admin/(panel)/super-admin-actions";
 import { TenantNotesForm } from "./notes-form";
 import { formatWarsawDate } from "@/lib/slots";
 
@@ -11,8 +10,6 @@ export const metadata = { title: "Klient", robots: { index: false } };
 type Props = { params: Promise<{ id: string }> };
 
 export default async function TenantDetailPage({ params }: Props) {
-  if (!(await isSessionSuperAdmin())) redirect("/admin");
-
   const { id } = await params;
   const tenant = await getTenantDetail(id);
   if (!tenant) notFound();
@@ -39,7 +36,7 @@ export default async function TenantDetailPage({ params }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
+    <div className="mx-auto max-w-4xl">
       {/* Header */}
       <div className="mb-8">
         <Link
