@@ -79,14 +79,14 @@ function ServiceRow({ service: s }: { service: Service }) {
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         <AdminLink
           href={`/admin/uslugi/${s.id}`}
-          className={buttonClasses({ variant: "secondary", size: "sm", className: "min-h-[36px]" })}
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
           Edytuj
         </AdminLink>
         <form action={toggleServiceActiveAction}>
           <input type="hidden" name="id" value={s.id} />
           <input type="hidden" name="active" value={String(s.active)} />
-          <Button type="submit" variant="secondary" size="sm" className="min-h-[36px]">
+          <Button type="submit" variant="secondary" size="sm">
             {s.active ? "Ukryj" : "Pokaż"}
           </Button>
         </form>

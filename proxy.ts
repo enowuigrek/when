@@ -92,6 +92,7 @@ export function proxy(req: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/logo") ||
+    pathname.startsWith("/staff") ||
     pathname.startsWith("/og")
   ) {
     return NextResponse.next();
