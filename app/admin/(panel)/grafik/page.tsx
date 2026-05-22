@@ -10,6 +10,7 @@ import { TimeOffSection } from "../pracownicy/time-off-section";
 import { getStaffTimeOff } from "@/lib/db/staff-schedule";
 import { GrafikWeekPicker } from "./grafik-week-picker";
 import { StaffFilterBar, type StaffFilterChip } from "@/components/staff-filter-bar";
+import { StaffAvatar } from "@/components/ui/staff-avatar";
 
 export const metadata = { title: "Grafik", robots: { index: false } };
 
@@ -129,6 +130,7 @@ export default async function GrafikPage({
               id: s.id,
               label: s.name,
               color: s.color,
+              photoUrl: s.photo_url,
               active: isSel,
               href: buildHref(next, nextPracownik),
             };
@@ -147,7 +149,7 @@ export default async function GrafikPage({
                 {visibleStaff.map((s) => (
                   <th key={s.id} className="px-2 py-3 text-left text-xs font-medium uppercase tracking-wider sm:px-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={18} />
                       <span className="truncate" style={{ color: s.color }}>{s.name}</span>
                     </div>
                   </th>
@@ -227,7 +229,9 @@ export default async function GrafikPage({
                           : "border-zinc-800/40 text-zinc-700 hover:border-zinc-700 hover:text-zinc-500"
                       }`}
                     >
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${!isFiltered ? "opacity-30" : ""}`} style={{ backgroundColor: s.color }} />
+                      <span className={`flex items-center ${!isFiltered ? "opacity-30" : ""}`}>
+                        <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={16} />
+                      </span>
                       {s.name}
                     </Link>
                   );

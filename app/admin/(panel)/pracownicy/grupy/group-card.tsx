@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { renameGroupAction, deleteGroupAction, setGroupMembersAction } from "./actions";
 import type { StaffGroupWithMembers } from "@/lib/db/staff-groups";
+import { Button } from "@/components/ui/button";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -35,8 +36,8 @@ export function GroupCard({ group, allStaff }: { group: StaffGroupWithMembers; a
               autoFocus
               className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
             />
-            <button type="submit" className="rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-zinc-950">Zapisz</button>
-            <button type="button" onClick={() => setEditingName(false)} className="text-xs text-zinc-500">Anuluj</button>
+            <Button type="submit" variant="primary" size="sm" radius="full" className="py-1">Zapisz</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditingName(false)} className="px-0 text-zinc-500">Anuluj</Button>
           </form>
         ) : (
           <div className="flex-1">
@@ -46,14 +47,14 @@ export function GroupCard({ group, allStaff }: { group: StaffGroupWithMembers; a
         )}
         {!editingName && (
           <div className="flex items-center gap-2">
-            <button onClick={() => setEditingName(true)} className="rounded-md border border-zinc-700 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-500">Zmień nazwę</button>
+            <Button type="button" variant="secondary" size="sm" radius="md" onClick={() => setEditingName(true)} className="py-1">Zmień nazwę</Button>
             {!confirmDel ? (
-              <button onClick={() => setConfirmDel(true)} className="rounded-md border border-red-900/50 px-3 py-1 text-xs text-red-400 hover:border-red-700">Usuń</button>
+              <Button type="button" variant="danger" size="sm" radius="md" onClick={() => setConfirmDel(true)} className="py-1">Usuń</Button>
             ) : (
               <form action={deleteGroupAction} className="flex items-center gap-1.5">
                 <input type="hidden" name="id" value={group.id} />
-                <button type="submit" className="rounded-md bg-red-700 px-3 py-1 text-xs font-medium text-zinc-100">Tak, usuń</button>
-                <button type="button" onClick={() => setConfirmDel(false)} className="text-xs text-zinc-500">Anuluj</button>
+                <Button type="submit" variant="dangerSolid" size="sm" radius="md" className="py-1">Tak, usuń</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDel(false)} className="px-0 text-zinc-500">Anuluj</Button>
               </form>
             )}
           </div>
@@ -94,12 +95,9 @@ export function GroupCard({ group, allStaff }: { group: StaffGroupWithMembers; a
           </div>
         )}
         {dirty && (
-          <button
-            type="submit"
-            className="mt-3 rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950"
-          >
+          <Button type="submit" variant="primary" size="sm" radius="full" className="mt-3 px-4 py-1">
             Zapisz pracowników
-          </button>
+          </Button>
         )}
       </form>
     </div>

@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteServiceAction } from "./actions";
+import { Button } from "@/components/ui/button";
 
 export function DeleteServiceButton({ id, name }: { id: string; name: string }) {
   const [pending, start] = useTransition();
@@ -14,13 +15,8 @@ export function DeleteServiceButton({ id, name }: { id: string; name: string }) 
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={pending}
-      className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-red-500 hover:border-red-900 hover:bg-red-950/30 hover:text-red-400 transition-colors disabled:opacity-50"
-    >
+    <Button type="button" variant="danger" size="sm" onClick={handleClick} disabled={pending}>
       {pending ? "…" : "Usuń"}
-    </button>
+    </Button>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
-type StaffOption = { id: string; name: string; color: string };
+import { StaffAvatar } from "@/components/ui/staff-avatar";
+
+type StaffOption = { id: string; name: string; color: string; photo_url?: string | null };
 
 type Props = {
   staff: StaffOption[];
@@ -45,10 +47,9 @@ export function StaffPicker({ staff, selectedStaffId, onPick, unavailableForStaf
                 : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
             }`}
           >
-            <span
-              className="h-3 w-3 rounded-full shrink-0"
-              style={{ backgroundColor: s.color, opacity: dimmed ? 0.5 : 1 }}
-            />
+            <span style={{ opacity: dimmed ? 0.5 : 1 }} className="flex items-center">
+              <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={20} />
+            </span>
             {s.name}
           </button>
         );

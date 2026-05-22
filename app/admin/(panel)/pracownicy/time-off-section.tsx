@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { StaffTimeOff } from "@/lib/db/staff-schedule";
 import { addTimeOffAction, deleteTimeOffAction, type TimeOffState } from "./schedule-actions";
+import { Button } from "@/components/ui/button";
 
 const TYPE_LABELS: Record<StaffTimeOff["type"], string> = {
   sick: "L4",
@@ -78,13 +79,9 @@ export function TimeOffSection({
         </div>
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full border border-zinc-700 px-5 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-50"
-          >
+          <Button type="submit" variant="secondary" radius="full" disabled={pending} className="px-5 py-2">
             {pending ? "Dodaję…" : "+ Dodaj nieobecność"}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -108,13 +105,9 @@ export function TimeOffSection({
               <form action={deleteTimeOffAction}>
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="staffId" value={staffId} />
-                <button
-                  type="submit"
-                  className="text-zinc-600 hover:text-red-400 transition-colors"
-                  aria-label="Usuń"
-                >
+                <Button type="submit" variant="ghost" size="sm" aria-label="Usuń" className="px-0 text-zinc-600 hover:text-red-400">
                   ×
-                </button>
+                </Button>
               </form>
             </li>
           ))}

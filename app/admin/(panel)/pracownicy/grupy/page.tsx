@@ -3,6 +3,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffGroupsWithMembers } from "@/lib/db/staff-groups";
 import { createGroupAction } from "./actions";
 import { GroupCard } from "./group-card";
+import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Grupy pracowników", robots: { index: false } };
 
@@ -33,9 +34,9 @@ export default async function GroupsPage() {
           placeholder="Nazwa nowej grupy (np. Premium)"
           className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
         />
-        <button type="submit" className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950">
+        <Button type="submit" variant="primary" size="md" radius="full">
           + Dodaj grupę
-        </button>
+        </Button>
       </form>
 
       {groups.length === 0 ? (

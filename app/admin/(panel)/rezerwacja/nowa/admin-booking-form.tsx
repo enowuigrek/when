@@ -7,6 +7,7 @@ import type { Staff } from "@/lib/db/staff";
 import type { TimeFilter } from "@/lib/db/settings";
 import type { Customer } from "@/lib/db/customers";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { StaffPicker } from "@/components/booking/staff-picker";
 import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
 import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
@@ -303,30 +304,26 @@ export function AdminBookingForm({
           )}
 
           <div className="flex gap-3 pt-1">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              radius="full"
               disabled={formPending || !phone || !customerName}
-              className="rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
+              className="px-5 py-2.5"
             >
               {formPending ? "Rezerwuję…" : "Dodaj rezerwację"}
-            </button>
-            <a
-              href="/admin/harmonogram"
-              className="rounded-full border border-zinc-800 px-5 py-2.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
-            >
+            </Button>
+            <ButtonLink href="/admin/harmonogram" variant="secondary" radius="full" className="px-5 py-2.5">
               Anuluj
-            </a>
+            </ButtonLink>
           </div>
         </form>
       )}
 
       {!selectedSlot && (
-        <a
-          href="/admin"
-          className="inline-block rounded-full border border-zinc-800 px-5 py-2.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
-        >
+        <ButtonLink href="/admin" variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
-        </a>
+        </ButtonLink>
       )}
     </div>
   );

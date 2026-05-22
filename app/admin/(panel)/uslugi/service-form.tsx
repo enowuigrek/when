@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import type { ServiceFormState } from "./actions";
 import type { Service, PaymentMode } from "@/lib/types";
 import { Toggle } from "@/components/ui/toggle";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 75, 90, 120];
 
@@ -207,19 +208,12 @@ export function ServiceForm({
       )}
 
       <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-[var(--color-accent)] px-5 py-2.5 font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
-        >
+        <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-5 py-2.5">
           {pending ? "Zapisuję…" : service ? "Zapisz zmiany" : "Dodaj usługę"}
-        </button>
-        <a
-          href="/admin/uslugi"
-          className="rounded-full border border-zinc-800 px-5 py-2.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
-        >
+        </Button>
+        <ButtonLink href="/admin/uslugi" variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
-        </a>
+        </ButtonLink>
       </div>
     </form>
   );

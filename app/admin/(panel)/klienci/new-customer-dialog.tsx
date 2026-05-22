@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomerAction, type CreateCustomerState } from "./actions";
+import { Button } from "@/components/ui/button";
 
 const inp =
   "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
@@ -26,13 +27,15 @@ export function NewCustomerDialog() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="primary"
+        radius="full"
         onClick={() => setOpen(true)}
-        className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
+        className="py-1.5"
       >
         + Dodaj
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -55,20 +58,18 @@ export function NewCustomerDialog() {
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  radius="full"
                   onClick={() => setOpen(false)}
-                  className="rounded-full border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+                  className="py-1.5"
                 >
                   Anuluj
-                </button>
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-                >
+                </Button>
+                <Button type="submit" variant="primary" radius="full" disabled={pending} className="py-1.5">
                   {pending ? "Dodaję…" : "Dodaj klienta"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

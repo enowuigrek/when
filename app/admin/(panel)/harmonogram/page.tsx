@@ -150,6 +150,7 @@ export default async function HarmonogramPage({
             id: s.id,
             label: s.name,
             color: s.color,
+            photoUrl: s.photo_url,
             count: s.count,
             active: selectedStaffId === s.id,
             href: navUrl(baseDate, s.id),

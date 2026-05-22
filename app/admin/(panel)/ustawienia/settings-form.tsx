@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
+import { Button } from "@/components/ui/button";
 
 const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30];
 
@@ -251,13 +252,9 @@ export function SettingsForm({
       </div>
 
       <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-6 py-2.5">
           {pending ? "Zapisuję…" : "Zapisz ustawienia"}
-        </button>
+        </Button>
       </div>
     </form>
   );

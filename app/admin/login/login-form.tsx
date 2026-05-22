@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginState } from "./actions";
+import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(
@@ -45,13 +46,9 @@ export function LoginForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-full bg-[var(--color-accent)] px-4 py-2.5 font-medium text-zinc-950 transition-colors hover:opacity-90 disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" radius="full" disabled={pending} className="w-full py-2.5">
         {pending ? "Logowanie…" : "Zaloguj"}
-      </button>
+      </Button>
 
       <p className="text-center text-xs text-zinc-600">
         Nie masz konta?{" "}

@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Tailwind v4 changed the default <button> cursor to `default`.
+   Restore the expected pointer on all interactive controls app-wide. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 @theme inline {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);

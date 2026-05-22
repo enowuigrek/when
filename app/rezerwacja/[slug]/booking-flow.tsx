@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { StaffAvatar } from "@/components/ui/staff-avatar";
 import { submitBooking } from "./actions";
 import type { BookingFormState } from "./actions";
 
@@ -19,7 +20,7 @@ async function fetchSlots(
 }
 
 type Day = { date: string; closed: boolean };
-type StaffOption = { id: string; name: string; color: string };
+type StaffOption = { id: string; name: string; color: string; photo_url?: string | null };
 
 export function BookingFlow({
   serviceSlug,
@@ -125,10 +126,9 @@ export function BookingFlow({
                       : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
                   }`}
                 >
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: s.color, opacity: unavailableToday ? 0.4 : 1 }}
-                  />
+                  <span style={{ opacity: unavailableToday ? 0.4 : 1 }} className="flex items-center">
+                    <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={20} />
+                  </span>
                   {s.name}
                 </button>
               );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StaffAvatar } from "@/components/ui/staff-avatar";
 
 export type StaffFilterChip = {
   /** "all" for the "Wszyscy" chip, staff id otherwise. */
@@ -6,6 +7,8 @@ export type StaffFilterChip = {
   label: string;
   /** Color dot — omit for the "Wszyscy" chip. */
   color?: string;
+  /** Optional staff photo — shown as an avatar with a colored ring. */
+  photoUrl?: string | null;
   /** Optional count badge (e.g. number of bookings / staff members). */
   count?: number;
   active: boolean;
@@ -38,10 +41,7 @@ export function StaffFilterBar({ chips, className = "" }: Props) {
           }`}
         >
           {c.color && (
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: c.color }}
-            />
+            <StaffAvatar photoUrl={c.photoUrl} color={c.color} name={c.label} size={16} />
           )}
           <span>{c.label}</span>
           {typeof c.count === "number" && (

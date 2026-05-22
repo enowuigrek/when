@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { AdminLink } from "@/components/admin-link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
 import { DeleteServiceButton } from "./delete-service-button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import type { Service } from "@/lib/types";
 
 export const metadata = { title: "Usługi", robots: { index: false } };
@@ -33,7 +33,7 @@ export default async function ServicesPage() {
         </div>
         <AdminLink
           href="/admin/uslugi/nowa"
-          className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-[var(--color-accent-hover)] transition-colors"
+          className={buttonClasses({ variant: "primary", size: "md", radius: "full" })}
         >
           + Dodaj usługę
         </AdminLink>
@@ -79,19 +79,16 @@ function ServiceRow({ service: s }: { service: Service }) {
       <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
         <AdminLink
           href={`/admin/uslugi/${s.id}`}
-          className="flex min-h-[36px] items-center rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          className={buttonClasses({ variant: "secondary", size: "sm", className: "min-h-[36px]" })}
         >
           Edytuj
         </AdminLink>
         <form action={toggleServiceActiveAction}>
           <input type="hidden" name="id" value={s.id} />
           <input type="hidden" name="active" value={String(s.active)} />
-          <button
-            type="submit"
-            className="flex min-h-[36px] items-center rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
-          >
+          <Button type="submit" variant="secondary" size="sm" className="min-h-[36px]">
             {s.active ? "Ukryj" : "Pokaż"}
-          </button>
+          </Button>
         </form>
         <DeleteServiceButton id={s.id} name={s.name} />
       </div>

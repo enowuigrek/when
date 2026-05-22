@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useActionState } from "react";
 import { deleteCustomerAction, updateCustomerContactAction } from "../actions";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 export function CustomerActions({
   customerId,
@@ -27,46 +27,46 @@ export function CustomerActions({
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={newBookingHref}
-          className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
-        >
+        <ButtonLink href={newBookingHref} variant="primary" radius="full" className="py-1.5">
           + Rezerwacja
-        </Link>
+        </ButtonLink>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          radius="full"
           onClick={() => { setEditingContact((v) => !v); setConfirming(false); }}
-          className="rounded-full border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
+          className="py-1.5"
         >
           Edytuj kontakt
-        </button>
+        </Button>
 
         {!confirming ? (
-          <button
+          <Button
             type="button"
+            variant="danger"
+            radius="full"
             onClick={() => setConfirming(true)}
-            className="rounded-full border border-red-900/50 px-4 py-1.5 text-sm text-red-400 transition-colors hover:border-red-700 hover:bg-red-900/20"
+            className="py-1.5"
           >
             Usuń klienta
-          </button>
+          </Button>
         ) : (
           <form action={deleteCustomerAction} className="flex items-center gap-2">
             <input type="hidden" name="id" value={customerId} />
             <span className="text-sm text-zinc-400">Na pewno?</span>
-            <button
-              type="submit"
-              className="rounded-full bg-red-700 px-4 py-1.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-red-600"
-            >
+            <Button type="submit" variant="dangerSolid" radius="full" className="py-1.5">
               Tak, usuń
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
+              radius="full"
               onClick={() => setConfirming(false)}
-              className="rounded-full border border-zinc-700 px-4 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+              className="py-1.5"
             >
               Anuluj
-            </button>
+            </Button>
           </form>
         )}
       </div>
@@ -113,21 +113,26 @@ export function CustomerActions({
             <p className="mt-2 text-xs text-emerald-400">Zapisano.</p>
           )}
 
-          <div className="mt-3 flex justify-end gap-2">
-            <button
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setEditingContact(false)}
-              className="text-xs text-zinc-600 hover:text-zinc-400"
+              className="px-0 text-zinc-600 hover:text-zinc-400"
             >
               Zamknij
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
+              radius="full"
               disabled={contactPending}
-              className="rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
+              className="py-1"
             >
               {contactPending ? "…" : "Zapisz"}
-            </button>
+            </Button>
           </div>
         </form>
       )}

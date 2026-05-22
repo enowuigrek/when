@@ -107,7 +107,7 @@ export default async function BookingServicePage({ params }: { params: Params })
             initialSlots={initialSlots}
             timeFilters={timeFilters}
             today={today}
-            staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
+            staff={activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color, photo_url: s.photo_url }))}
             staffUnavailable={staffUnavailable}
             isGroup={service.is_group}
             initialStaffId={initialStaffId}

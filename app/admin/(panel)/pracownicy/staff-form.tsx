@@ -4,6 +4,8 @@ import { useActionState, useState } from "react";
 import type { Staff } from "@/lib/db/staff";
 import type { Service } from "@/lib/types";
 import type { StaffFormState } from "./actions";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { StaffAvatar } from "@/components/ui/staff-avatar";
 
 const COLORS = [
   "#d4a26a","#6ab0d4","#6ad4a2","#d46a6a",
@@ -33,6 +35,7 @@ export function StaffForm({
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
   const defaultColor = staff?.color ?? "#d4a26a";
   const [selectedColor, setSelectedColor] = useColorState(defaultColor);
+  const [photoUrl, setPhotoUrl] = useState(staff?.photo_url ?? "");
 
   return (
     <form action={formAction} className="space-y-6">
@@ -79,6 +82,28 @@ export function StaffForm({
             className={inp}
           />
           {err.email && <p className="mt-1 text-xs text-red-400">{err.email}</p>}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm text-zinc-400">
+            Zdjęcie (URL)
+            <span className="ml-2 text-xs text-zinc-600">— pokazywane jako awatar w kółku</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <StaffAvatar photoUrl={photoUrl} color={selectedColor} name={staff?.name ?? "?"} size={44} />
+            <input
+              type="url"
+              name="photo_url"
+              value={photoUrl}
+              onChange={(e) => setPhotoUrl(e.target.value)}
+              placeholder="https://… albo /staff/imie.jpg"
+              className={`${inp} flex-1`}
+            />
+          </div>
+          <span className="mt-1 block text-xs text-zinc-600">
+            Zostaw puste, żeby pokazać samo kółko w kolorze pracownika.
+          </span>
+          {err.photo_url && <p className="mt-1 text-xs text-red-400">{err.photo_url}</p>}
         </div>
 
         <div>
@@ -138,19 +163,12 @@ export function StaffForm({
       )}
 
       <div className="flex justify-end gap-3">
-        <a
-          href="/admin/pracownicy"
-          className="rounded-full border border-zinc-800 px-5 py-2.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
-        >
+        <ButtonLink href="/admin/pracownicy" variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
-        </a>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
-        >
+        </ButtonLink>
+        <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-6 py-2.5">
           {pending ? "Zapisuję…" : "Zapisz"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -50,6 +50,7 @@ export async function createStaff(input: {
   name: string;
   bio: string | null;
   email: string | null;
+  photo_url: string | null;
   color: string;
   sort_order: number;
 }): Promise<void> {
@@ -60,7 +61,7 @@ export async function createStaff(input: {
 
 export async function updateStaff(
   id: string,
-  input: { name: string; bio: string | null; email: string | null; color: string; sort_order: number }
+  input: { name: string; bio: string | null; email: string | null; photo_url: string | null; color: string; sort_order: number }
 ): Promise<void> {
   const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient()

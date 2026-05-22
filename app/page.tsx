@@ -228,7 +228,7 @@ export default async function StartPage() {
       <section className="relative overflow-hidden border-b border-zinc-800/60 bg-zinc-950">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,162,106,0.18),transparent_55%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,color-mix(in_srgb,var(--color-accent)_18%,transparent),transparent_55%)]"
         />
         <div className="relative mx-auto max-w-6xl px-6 py-24 sm:py-32">
           <p className="mb-4 text-sm uppercase tracking-widest text-[var(--color-accent)]">System rezerwacji online</p>
@@ -339,7 +339,7 @@ export default async function StartPage() {
       {/* Final CTA — transparent, shows grid */}
       <section data-section-reveal className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <h2 data-reveal className="text-4xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
+          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
           <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
           <div className="mt-8 flex justify-center">
             <DemoCTAs />
@@ -396,11 +396,17 @@ export default async function StartPage() {
             <img src="/logo.svg" alt="when" className="h-6 logo-adaptive" />
             <span className="text-zinc-300">— system rezerwacji online</span>
           </p>
-          <p>
-            © {new Date().getFullYear()} &nbsp;·&nbsp;{" "}
-            <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="text-zinc-100 hover:opacity-80 transition-opacity">
-              lukasznowak<span style={{ color: "var(--color-accent)" }}>.dev</span>
-            </a>
+          <p className="flex items-center gap-3">
+            <Link href="/polityka-prywatnosci" className="text-zinc-400 hover:text-zinc-100 transition-colors">
+              Polityka prywatności
+            </Link>
+            <span className="text-zinc-700">·</span>
+            <span>
+              © {new Date().getFullYear()} &nbsp;·&nbsp;{" "}
+              <a href="https://lukasznowak.dev" target="_blank" rel="noopener noreferrer" className="text-zinc-100 hover:opacity-80 transition-opacity">
+                lukasznowak<span style={{ color: "var(--color-accent)" }}>.dev</span>
+              </a>
+            </span>
           </p>
         </div>
       </footer>

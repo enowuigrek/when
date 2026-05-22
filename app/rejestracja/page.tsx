@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { registerAction, type RegisterState } from "./actions";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 function Field({
   label,
@@ -132,13 +133,9 @@ export default function RejestrPage() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={pending}
-              className="mt-2 w-full rounded-full bg-[var(--color-accent,#d4a26a)] px-4 py-2.5 font-semibold text-zinc-950 transition-colors hover:opacity-90 disabled:opacity-60"
-            >
+            <Button type="submit" variant="primary" radius="full" disabled={pending} className="mt-2 w-full py-2.5">
               {pending ? "Tworzenie konta…" : "Załóż konto →"}
-            </button>
+            </Button>
           </form>
         </div>
 

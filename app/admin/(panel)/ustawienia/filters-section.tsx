@@ -8,6 +8,7 @@ import {
   deleteFilterAction,
   type FilterFormState,
 } from "./actions";
+import { Button } from "@/components/ui/button";
 
 const HOURS = Array.from({ length: 25 }, (_, i) => i);
 
@@ -40,24 +41,24 @@ export function FiltersSection({ filters }: { filters: TimeFilter[] }) {
               <form action={toggleFilterActiveAction}>
                 <input type="hidden" name="id" value={f.id} />
                 <input type="hidden" name="active" value={String(f.active)} />
-                <button
-                  type="submit"
-                  className="rounded px-2 py-1 text-xs text-zinc-400 hover:text-zinc-100 border border-zinc-700 hover:border-zinc-500 transition-colors"
-                >
+                <Button type="submit" variant="secondary" size="sm" radius="md" className="px-2 py-1">
                   {f.active ? "Ukryj" : "Aktywuj"}
-                </button>
+                </Button>
               </form>
               <form action={deleteFilterAction}>
                 <input type="hidden" name="id" value={f.id} />
-                <button
+                <Button
                   type="submit"
-                  className="rounded px-2 py-1 text-xs text-red-500 hover:text-red-300 border border-red-900/60 hover:border-red-700/60 transition-colors"
+                  variant="danger"
+                  size="sm"
+                  radius="md"
+                  className="px-2 py-1"
                   onClick={(e) => {
                     if (!confirm(`Usuń filtr "${f.label}"?`)) e.preventDefault();
                   }}
                 >
                   Usuń
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -109,13 +110,9 @@ export function FiltersSection({ filters }: { filters: TimeFilter[] }) {
           <input type="hidden" name="sort_order" value={filters.length} />
 
           <div className="sm:col-span-4 flex justify-end">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] transition-opacity hover:opacity-85 disabled:opacity-50"
-            >
+            <Button type="submit" variant="primary" size="md" radius="full" disabled={pending}>
               {pending ? "Dodaję…" : "+ Dodaj filtr"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
