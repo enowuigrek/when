@@ -115,19 +115,34 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
           {/* Hours */}
           {hours.length > 0 && (
             <div className="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-5 py-4">
-              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+              <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
                 Godziny otwarcia
               </p>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 sm:grid-cols-3 lg:grid-cols-4">
-                {allHours.map((h) => (
-                  <div key={h.day_of_week} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="w-5 shrink-0 text-zinc-500">{DAY_SHORT[h.day_of_week]}</span>
-                    {h.closed
-                      ? <span className="text-zinc-700 text-xs">Zamknięte</span>
-                      : <span className="font-mono text-zinc-400">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
-                    }
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-0">
+                {/* Weekdays: Mon–Fri (dow 1–5) */}
+                <div className="space-y-2">
+                  {allHours.filter((h) => h.day_of_week >= 1 && h.day_of_week <= 5).map((h) => (
+                    <div key={h.day_of_week} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{DAY_SHORT[h.day_of_week]}</span>
+                      {h.closed
+                        ? <span className="font-mono text-xs text-zinc-600 line-through">nieczynne</span>
+                        : <span className="font-mono text-sm text-zinc-300">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
+                      }
+                    </div>
+                  ))}
+                </div>
+                {/* Weekend: Sat (6) + Sun (0) */}
+                <div className="space-y-2">
+                  {allHours.filter((h) => h.day_of_week === 6 || h.day_of_week === 0).map((h) => (
+                    <div key={h.day_of_week} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{DAY_SHORT[h.day_of_week]}</span>
+                      {h.closed
+                        ? <span className="font-mono text-xs text-zinc-600 line-through">nieczynne</span>
+                        : <span className="font-mono text-sm text-zinc-300">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
+                      }
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

@@ -93,7 +93,8 @@ export function proxy(req: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/logo") ||
     pathname.startsWith("/staff") ||
-    pathname.startsWith("/og")
+    pathname.startsWith("/og") ||
+    pathname.startsWith("/polityka-prywatnosci")
   ) {
     return NextResponse.next();
   }
