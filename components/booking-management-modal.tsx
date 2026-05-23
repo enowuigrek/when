@@ -222,9 +222,8 @@ function BookingModal({
       onClick={onClose}
     >
       <div
-        className="flex w-full flex-col border-zinc-800 bg-zinc-950 shadow-2xl sm:max-w-md sm:rounded-2xl sm:border"
+        className="flex w-full max-h-[100dvh] flex-col border-zinc-800 bg-zinc-950 shadow-2xl sm:max-w-md sm:max-h-[calc(100dvh-88px)] sm:rounded-2xl sm:border"
         style={{
-          maxHeight: "100dvh",
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
@@ -287,8 +286,8 @@ function BookingModal({
           </div>
         )}
 
-        {/* Body */}
-        <div className="overflow-y-auto px-5 py-4 text-sm">
+        {/* Body — flex-1 so it fills remaining height and scrolls */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 text-sm">
           {error && <p className="mb-3 rounded-md border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
           {(isCancelled || isPendingPayment || tab === "info") && (

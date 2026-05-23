@@ -9,7 +9,7 @@ export function WidgetPoweredBy() {
       >
         <span>Powered by</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="when" className="h-3.5 logo-adaptive opacity-60" />
+        <img src="/logo.svg" alt="when" className="h-5 logo-adaptive opacity-60" />
       </a>
     </footer>
   );

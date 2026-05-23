@@ -14,7 +14,7 @@ export async function SiteFooter() {
           >
             <span>Powered by</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="when" className="h-3 opacity-80" style={{ filter: "brightness(0) invert(1)" }} />
+            <img src="/logo.svg" alt="when" className="h-5 opacity-80" style={{ filter: "brightness(0) invert(1)" }} />
           </a>
           <div className="flex items-center gap-3 text-[11px] text-white/50">
             <a href="/polityka-prywatnosci" className="hover:text-white/80 transition-colors">
