@@ -17,6 +17,7 @@ import {
 import { CalendarPicker } from "@/components/calendar-picker";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import type { Slot } from "@/lib/slots";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Staff = { id: string; name: string; color: string };
 export type ServiceOption = { id: string; name: string; duration_min: number; price_pln: number };
@@ -255,18 +256,11 @@ function BookingModal({
               <span className="text-xs text-zinc-500">{booking.staffName}</span>
             </div>
           )}
-          {isCancelled && (
-            <p className="mt-2 inline-block rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-400">Anulowana</p>
-          )}
-          {isPendingPayment && (
-            <p className="mt-2 inline-block rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-400">⏳ Oczekuje na płatność</p>
-          )}
-          {booking.paymentStatus === "paid" && (
-            <p className="mt-2 inline-block rounded-full bg-emerald-900/30 px-2 py-0.5 text-[10px] font-medium text-emerald-400">✓ Opłacona</p>
-          )}
-          {booking.paymentStatus === "refunded" && (
-            <p className="mt-2 inline-block rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-400">Zwrócona</p>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <StatusBadge status={booking.status} />
+            {booking.paymentStatus === "paid" && <StatusBadge status="paid" />}
+            {booking.paymentStatus === "refunded" && <StatusBadge status="refunded" />}
+          </div>
         </div>
 
         {/* Tabs */}

@@ -5,22 +5,9 @@ import { formatWarsawTime, formatWarsawDate } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getServices } from "@/lib/db/services";
 import { BookingManagementButton, type ServiceOption } from "@/components/booking-management-modal";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
-
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: "potwierdzona",
-  completed: "zakończona",
-  cancelled: "anulowana",
-  no_show: "no-show",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  confirmed: "text-emerald-400",
-  completed: "text-zinc-400",
-  cancelled: "text-red-400",
-  no_show: "text-amber-400",
-};
 
 function formatPln(n: number) {
   return n.toLocaleString("pl-PL") + " zł";
@@ -225,9 +212,7 @@ export default async function DashboardPage() {
                   <span className="font-mono text-xs text-zinc-500 ml-auto">
                     {formatWarsawDate(b.startsAt)}, {formatWarsawTime(b.startsAt)}
                   </span>
-                  <span className={`text-xs font-medium ${STATUS_COLOR[b.status] ?? "text-zinc-500"}`}>
-                    {STATUS_LABEL[b.status] ?? b.status}
-                  </span>
+                  <StatusBadge status={b.status} />
                   {b.pricePln != null && (
                     <span className="font-mono text-xs text-zinc-500">{b.pricePln} zł</span>
                   )}

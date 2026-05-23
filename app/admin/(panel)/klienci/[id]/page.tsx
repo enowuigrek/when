@@ -7,6 +7,7 @@ import { getServices } from "@/lib/db/services";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { CustomerActions } from "./customer-actions";
 import { BookingManagementButton, type ServiceOption } from "@/components/booking-management-modal";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export const metadata = { title: "Profil klienta", robots: { index: false } };
 
@@ -34,11 +35,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
   const past = stats.bookings.filter((b) => b.starts_at < now || b.status === "no_show" || b.status === "cancelled");
 
   function statusBadge(status: string) {
-    if (status === "confirmed") return <span className="rounded-full bg-emerald-900/40 px-2 py-0.5 text-[10px] font-medium text-emerald-400">potwierdzona</span>;
-    if (status === "cancelled") return <span className="rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-400">anulowana</span>;
-    if (status === "no_show") return <span className="rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-400">nie przyszedł</span>;
-    if (status === "completed") return <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-400">zakończona</span>;
-    return null;
+    return <StatusBadge status={status} />;
   }
 
   return (
