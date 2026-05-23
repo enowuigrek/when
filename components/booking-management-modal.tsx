@@ -240,7 +240,7 @@ function BookingModal({
             <button
               onClick={onClose}
               aria-label="Zamknij"
-              className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-2xl leading-none text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+              className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-2xl leading-none text-zinc-500"
             >
               ×
             </button>
