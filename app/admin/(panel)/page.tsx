@@ -122,98 +122,49 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Top services + Top staff ──────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-
-        {/* Top services */}
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-400">
-            Top usługi — ten miesiąc
-          </h2>
-          {s.topServices.length === 0 ? (
-            <p className="text-sm text-zinc-600">Brak danych.</p>
-          ) : (
-            <ol className="space-y-2">
-              {s.topServices.map((svc, i) => {
-                const barPct = s.topServices[0]
-                  ? Math.round((svc.count / s.topServices[0].count) * 100)
-                  : 0;
-                return (
-                  <li key={svc.name}>
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="flex items-baseline gap-2 min-w-0">
-                        <span className="shrink-0 font-mono text-xs text-zinc-600">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span className="truncate text-zinc-200">{svc.name}</span>
+      {/* ── Top services ─────────────────────────────────────────────────── */}
+      <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-400">
+          Top usługi — ten miesiąc
+        </h2>
+        {s.topServices.length === 0 ? (
+          <p className="text-sm text-zinc-600">Brak danych.</p>
+        ) : (
+          <ol className="space-y-2">
+            {s.topServices.map((svc, i) => {
+              const barPct = s.topServices[0]
+                ? Math.round((svc.count / s.topServices[0].count) * 100)
+                : 0;
+              return (
+                <li key={svc.name}>
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="flex items-baseline gap-2 min-w-0">
+                      <span className="shrink-0 font-mono text-xs text-zinc-600">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                      <span className="shrink-0 font-mono text-xs text-zinc-400">
-                        {svc.count}×
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1 w-full rounded-full bg-zinc-800">
-                      <div
-                        className="h-1 rounded-full bg-[var(--color-accent)]"
-                        style={{ width: `${barPct}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          <AdminLink
-            href="/admin/uslugi"
-            className="mt-4 inline-block text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-          >
-            Zarządzaj usługami →
-          </AdminLink>
-        </div>
-
-        {/* Top staff */}
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-400">
-            Top pracownicy — ten miesiąc
-          </h2>
-          {s.topStaff.length === 0 ? (
-            <p className="text-sm text-zinc-600">Brak danych lub brak przypisanych pracowników.</p>
-          ) : (
-            <ol className="space-y-2">
-              {s.topStaff.map((st, i) => {
-                const barPct = s.topStaff[0]
-                  ? Math.round((st.count / s.topStaff[0].count) * 100)
-                  : 0;
-                return (
-                  <li key={st.name}>
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="flex items-baseline gap-2 min-w-0">
-                        <span className="shrink-0 font-mono text-xs text-zinc-600">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span className="truncate text-zinc-200">{st.name}</span>
-                      </span>
-                      <span className="shrink-0 font-mono text-xs text-zinc-400">
-                        {st.count} rez.
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1 w-full rounded-full bg-zinc-800">
-                      <div
-                        className="h-1 rounded-full bg-[var(--color-accent)]"
-                        style={{ width: `${barPct}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          <AdminLink
-            href="/admin/pracownicy"
-            className="mt-4 inline-block text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-          >
-            Zarządzaj pracownikami →
-          </AdminLink>
-        </div>
+                      <span className="truncate text-zinc-200">{svc.name}</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-xs text-zinc-400">
+                      {svc.count}×
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1 w-full rounded-full bg-zinc-800">
+                    <div
+                      className="h-1 rounded-full bg-[var(--color-accent)]"
+                      style={{ width: `${barPct}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        <AdminLink
+          href="/admin/uslugi"
+          className="mt-4 inline-block text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+        >
+          Zarządzaj usługami →
+        </AdminLink>
       </div>
 
       {/* ── Recent bookings ───────────────────────────────────────────────── */}
