@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   const variant: DemoVariant =
     variantRaw === "kosmetyka" ? "kosmetyka"
     : variantRaw === "joga" ? "joga"
+    : variantRaw === "taniec" ? "taniec"
     : "barber";
 
   const supabase = createAdminClient();
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
   const slug = `demo-${variant}-${Math.random().toString(36).slice(2, 8)}`;
   const name = variant === "kosmetyka" ? "Demo — Gabinet kosmetyczny"
     : variant === "joga" ? "Demo — Studio Jogi"
+    : variant === "taniec" ? "Demo — Studio Tańca"
     : "Demo — Barber Shop";
 
   const { data: tenant, error } = await supabase

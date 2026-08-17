@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type DemoVariant = "barber" | "kosmetyka" | "joga";
+export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec";
 
 type ServiceSeed = {
   slug: string; name: string; description: string;
@@ -70,6 +70,29 @@ const JOGA_STAFF: StaffSeed[] = [
 // Joga nie ma grup cenowych — każdy instruktor ta sama stawka
 const JOGA_GROUPS: GroupSeed[] = [];
 
+const TANIEC_SERVICES: ServiceSeed[] = [
+  { slug: "taneczny-mix", name: "Taneczny Mix (dzieci)", description: "Zajęcia taneczne dla dzieci 4–10 lat. Ruch, rytm, zabawa — bez stresu i oceniania.", duration_min: 45, price_pln: 40, sort_order: 1, is_group: true, max_participants: 14 },
+  { slug: "hip-hop", name: "Hip-Hop", description: "Dynamiczne zajęcia hip-hopowe dla młodzieży i dorosłych. Każdy poziom mile widziany.", duration_min: 60, price_pln: 45, sort_order: 2, is_group: true, max_participants: 16 },
+  { slug: "taniec-wspolczesny", name: "Taniec Współczesny", description: "Technika contemporary, improwizacja, praca z przestrzenią i ciałem.", duration_min: 60, price_pln: 45, sort_order: 3, is_group: true, max_participants: 14 },
+  { slug: "modern-jazz", name: "Modern / Jazz", description: "Fuzja jazzu i modern dance — technika, rytm i ekspresja sceniczna.", duration_min: 60, price_pln: 45, sort_order: 4, is_group: true, max_participants: 14 },
+  { slug: "taniec-towarzyski", name: "Taniec Towarzyski", description: "Walc, tango, foxtrot, quickstep — w parach lub solo. Poziomy od podstawowego.", duration_min: 60, price_pln: 50, sort_order: 5, is_group: true, max_participants: 12 },
+  { slug: "lekcja-indywidualna", name: "Lekcja indywidualna", description: "Prywatna godzina z instruktorem — Twoje tempo, Twój styl, konkretny postęp. Rezerwujesz online, bez dzwonienia.", duration_min: 60, price_pln: 120, sort_order: 6, is_group: false },
+];
+
+const TANIEC_STAFF: StaffSeed[] = [
+  { name: "Kamil", bio: "Instruktor hip-hopu i tańca współczesnego. 10 lat na parkiecie, 6 lat nauczania.", color: "#d4a26a", sort_order: 1 },
+  { name: "Liza", bio: "Choreografka, specjalizacja: modern jazz i taniec sceniczny.", color: "#e8a4b8", sort_order: 2 },
+  { name: "Vadim", bio: "Mistrz tańca towarzyskiego, trener par turniejowych.", color: "#6ab0d4", sort_order: 3 },
+  { name: "Patrycja W.", bio: "Instruktorka dzieci i młodzieży, pedagog ruchu.", color: "#a07fbf", sort_order: 4 },
+  { name: "Hubert", bio: "Tancerz i instruktor contemporary, breakdance.", color: "#7eb89a", sort_order: 5 },
+  { name: "Karolina", bio: "Taniec towarzyski, latino. Uczestniczka ogólnopolskich turniejów.", color: "#e8c46a", sort_order: 6 },
+  { name: "Mateusz S.", bio: "Hip-hop, waacking, voguing — specjalista od stylów ulicznych.", color: "#c76b9b", sort_order: 7 },
+  { name: "Natalia N.", bio: "Instruktorka tańca współczesnego i modern/jazz. Absolwentka PWST.", color: "#d4846a", sort_order: 8 },
+];
+
+// Szkoła tańca — każdy instruktor ta sama stawka bazowa
+const TANIEC_GROUPS: GroupSeed[] = [];
+
 const SETTINGS = {
   barber: {
     business_name: "Demo Barber",
@@ -113,6 +136,20 @@ const SETTINGS = {
     slot_granularity_min: 30,
     booking_horizon_days: 28,
   },
+  taniec: {
+    business_name: "Studio Tańca Estyma",
+    tagline: "Zapisz się online — bez dzwonienia.",
+    description: "Demo konto — wszystkie zmiany znikną po 24h. Sprawdź jak działa rezerwacja w szkole tańca.",
+    address_street: "ul. Okulickiego 116",
+    address_city: "Częstochowa",
+    address_postal: "42-200",
+    phone: "+48 34 300 00 00",
+    email: null,
+    color_accent: "#d4709a",
+    theme: "dark" as const,
+    slot_granularity_min: 30,
+    booking_horizon_days: 28,
+  },
 };
 
 const SAMPLE_NAMES = [
@@ -125,34 +162,57 @@ const SAMPLE_NAMES = [
 
 export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Promise<void> {
   const supabase = createAdminClient();
-  const services = variant === "barber" ? BARBER_SERVICES : variant === "kosmetyka" ? KOSMETYKA_SERVICES : JOGA_SERVICES;
-  const staff = variant === "barber" ? BARBER_STAFF : variant === "kosmetyka" ? KOSMETYKA_STAFF : JOGA_STAFF;
-  const groups = variant === "barber" ? BARBER_GROUPS : variant === "kosmetyka" ? KOSMETYKA_GROUPS : JOGA_GROUPS;
+  const services =
+    variant === "barber" ? BARBER_SERVICES
+    : variant === "kosmetyka" ? KOSMETYKA_SERVICES
+    : variant === "taniec" ? TANIEC_SERVICES
+    : JOGA_SERVICES;
+  const staff =
+    variant === "barber" ? BARBER_STAFF
+    : variant === "kosmetyka" ? KOSMETYKA_STAFF
+    : variant === "taniec" ? TANIEC_STAFF
+    : JOGA_STAFF;
+  const groups =
+    variant === "barber" ? BARBER_GROUPS
+    : variant === "kosmetyka" ? KOSMETYKA_GROUPS
+    : variant === "taniec" ? TANIEC_GROUPS
+    : JOGA_GROUPS;
   const settings = SETTINGS[variant];
 
   // Settings
   await supabase.from("settings").insert({ tenant_id: tenantId, ...settings });
 
   // Business hours
-  const hours = variant === "joga"
-    ? [
-        { day_of_week: 0, open_time: "08:00", close_time: "20:00", closed: false }, // Niedziela
-        { day_of_week: 1, open_time: "07:00", close_time: "21:00", closed: false },
-        { day_of_week: 2, open_time: "07:00", close_time: "21:00", closed: false },
-        { day_of_week: 3, open_time: "07:00", close_time: "21:00", closed: false },
-        { day_of_week: 4, open_time: "07:00", close_time: "21:00", closed: false },
-        { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
-        { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false }, // Sobota
-      ]
-    : [
-        { day_of_week: 0, open_time: null, close_time: null, closed: true },
-        { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
-        { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
-        { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
-        { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
-        { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
-        { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
-      ];
+  const hours =
+    variant === "joga"
+      ? [
+          { day_of_week: 0, open_time: "08:00", close_time: "20:00", closed: false },
+          { day_of_week: 1, open_time: "07:00", close_time: "21:00", closed: false },
+          { day_of_week: 2, open_time: "07:00", close_time: "21:00", closed: false },
+          { day_of_week: 3, open_time: "07:00", close_time: "21:00", closed: false },
+          { day_of_week: 4, open_time: "07:00", close_time: "21:00", closed: false },
+          { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
+          { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false },
+        ]
+    : variant === "taniec"
+      ? [
+          { day_of_week: 0, open_time: null, close_time: null, closed: true },
+          { day_of_week: 1, open_time: "10:00", close_time: "21:00", closed: false },
+          { day_of_week: 2, open_time: "10:00", close_time: "21:00", closed: false },
+          { day_of_week: 3, open_time: "10:00", close_time: "21:00", closed: false },
+          { day_of_week: 4, open_time: "10:00", close_time: "21:00", closed: false },
+          { day_of_week: 5, open_time: "10:00", close_time: "21:00", closed: false },
+          { day_of_week: 6, open_time: "09:00", close_time: "16:00", closed: false },
+        ]
+      : [
+          { day_of_week: 0, open_time: null, close_time: null, closed: true },
+          { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
+          { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
+          { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
+          { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
+          { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
+          { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
+        ];
   await supabase.from("business_hours").insert(hours.map((h) => ({ ...h, tenant_id: tenantId })));
 
   // Time filters
@@ -260,7 +320,170 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   const bookingRows: Array<Record<string, unknown>> = [];
   const today = new Date();
 
-  if (variant === "joga") {
+  if (variant === "taniec") {
+    // Dance school: mix of group classes + individual lessons (hero use-case).
+    // Spread across this month: past bookings + today + upcoming week.
+    const DANCE_CUSTOMERS = [
+      ["Zofia Kowalska",       "+48501100201", "zofia@example.com"],
+      ["Aleksandra Nowak",     "+48501100202", "ola@example.com"],
+      ["Marta Wiśniewska",     "+48501100203", null],
+      ["Jan Dąbrowski",        "+48501100204", "jan@example.com"],
+      ["Katarzyna Zielińska",  "+48501100205", null],
+      ["Piotr Lewandowski",    "+48501100206", "piotr@example.com"],
+      ["Monika Szymańska",     "+48501100207", null],
+      ["Tomasz Wójcik",        "+48501100208", "tomasz@example.com"],
+      ["Natalia Kamińska",     "+48501100209", null],
+      ["Paweł Kowalczyk",      "+48501100210", "pawel@example.com"],
+      ["Agnieszka Mazur",      "+48501100211", null],
+      ["Michał Piotrowska",    "+48501100212", "michal@example.com"],
+      ["Magdalena Grabowska",  "+48501100213", "magda@example.com"],
+      ["Robert Nowakowski",    "+48501100214", null],
+      ["Iwona Wiśniewska",     "+48501100215", "iwona@example.com"],
+    ] as const;
+
+    const staffIds = (insertedStaff ?? []).map((s) => s.id as string);
+    const indId = serviceByName.get("lekcja-indywidualna");
+    const hipHopId = serviceByName.get("hip-hop");
+    const modernJazzId = serviceByName.get("modern-jazz");
+    const towarzyskiId = serviceByName.get("taniec-towarzyski");
+    const mixId = serviceByName.get("taneczny-mix");
+
+    const indMeta = serviceMeta.get("lekcja-indywidualna")!;
+    const hipHopMeta = serviceMeta.get("hip-hop")!;
+    const modernJazzMeta = serviceMeta.get("modern-jazz")!;
+    const towarzyskiMeta = serviceMeta.get("taniec-towarzyski")!;
+    const mixMeta = serviceMeta.get("taneczny-mix")!;
+
+    // Helper to build UTC ISO for a date offset from today + hour/minute in Warsaw (UTC+2 in Aug)
+    function warsawSlot(dayOffset: number, hourWaw: number, minWaw = 0): { starts: string; ends: string; dur: number } {
+      const base = new Date(today);
+      base.setDate(base.getDate() + dayOffset);
+      const utcH = hourWaw - 2; // CEST = UTC+2
+      const starts = new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate(), utcH, minWaw, 0));
+      return {
+        starts: starts.toISOString(),
+        ends: new Date(starts.getTime() + indMeta.duration_min * 60_000).toISOString(),
+        dur: indMeta.duration_min,
+      };
+    }
+
+    function groupSlot(dayOffset: number, hourWaw: number, meta: typeof indMeta): { starts: string; ends: string } {
+      const base = new Date(today);
+      base.setDate(base.getDate() + dayOffset);
+      const utcH = hourWaw - 2;
+      const starts = new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate(), utcH, 0, 0));
+      const ends = new Date(starts.getTime() + meta.duration_min * 60_000);
+      return { starts: starts.toISOString(), ends: ends.toISOString() };
+    }
+
+    // ── Past individual lessons (this month, before today) ──────────────────
+    const pastInd = [
+      { dayOffset: -13, hour: 10, staffIdx: 0, custIdx: 0 },  // Kamil
+      { dayOffset: -12, hour: 11, staffIdx: 1, custIdx: 3 },  // Liza
+      { dayOffset:  -7, hour: 10, staffIdx: 2, custIdx: 2 },  // Vadim
+      { dayOffset:  -5, hour: 10, staffIdx: 3, custIdx: 1 },  // Patrycja W.
+      { dayOffset:  -3, hour: 18, staffIdx: 5, custIdx: 4 },  // Karolina
+    ];
+    for (const { dayOffset, hour, staffIdx, custIdx } of pastInd) {
+      const slot = warsawSlot(dayOffset, hour);
+      const cust = DANCE_CUSTOMERS[custIdx];
+      if (indId)
+        bookingRows.push({
+          tenant_id: tenantId, service_id: indId, staff_id: staffIds[staffIdx],
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: indMeta.price_pln, duration_min_snapshot: indMeta.duration_min,
+        });
+    }
+
+    // ── Past group classes ──────────────────────────────────────────────────
+    const pastGroups = [
+      { dayOffset: -10, hour: 17, meta: hipHopMeta, id: hipHopId,       custs: [6, 5, 8] },
+      { dayOffset:  -6, hour: 15, meta: towarzyskiMeta, id: towarzyskiId, custs: [9, 10] },
+      { dayOffset:  -3, hour: 16, meta: mixMeta, id: mixId,             custs: [12, 7] },
+    ];
+    for (const { dayOffset, hour, meta, id, custs } of pastGroups) {
+      if (!id) continue;
+      const slot = groupSlot(dayOffset, hour, meta);
+      for (const ci of custs) {
+        const cust = DANCE_CUSTOMERS[ci];
+        bookingRows.push({
+          tenant_id: tenantId, service_id: id, staff_id: null,
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: meta.price_pln, duration_min_snapshot: meta.duration_min,
+        });
+      }
+    }
+
+    // ── Today ───────────────────────────────────────────────────────────────
+    const todayInd = [
+      { hour: 10, staffIdx: 0, custIdx: 11 },  // Kamil
+      { hour: 12, staffIdx: 6, custIdx: 14 },  // Mateusz S.
+      { hour: 18, staffIdx: 4, custIdx: 13 },  // Hubert
+    ];
+    for (const { hour, staffIdx, custIdx } of todayInd) {
+      const slot = warsawSlot(0, hour);
+      const cust = DANCE_CUSTOMERS[custIdx];
+      if (indId)
+        bookingRows.push({
+          tenant_id: tenantId, service_id: indId, staff_id: staffIds[staffIdx],
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: indMeta.price_pln, duration_min_snapshot: indMeta.duration_min,
+        });
+    }
+    // Today group class: Modern/Jazz 17:00
+    if (modernJazzId) {
+      const slot = groupSlot(0, 17, modernJazzMeta);
+      for (const ci of [6, 5, 1]) {
+        const cust = DANCE_CUSTOMERS[ci];
+        bookingRows.push({
+          tenant_id: tenantId, service_id: modernJazzId, staff_id: null,
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: modernJazzMeta.price_pln, duration_min_snapshot: modernJazzMeta.duration_min,
+        });
+      }
+    }
+
+    // ── Upcoming (next 7 days) ───────────────────────────────────────────────
+    const upcomingInd = [
+      { dayOffset: 1, hour: 10, staffIdx: 1, custIdx: 0 },  // Liza
+      { dayOffset: 2, hour: 11, staffIdx: 7, custIdx: 3 },  // Natalia N.
+      { dayOffset: 3, hour: 10, staffIdx: 2, custIdx: 2 },  // Vadim
+    ];
+    for (const { dayOffset, hour, staffIdx, custIdx } of upcomingInd) {
+      const slot = warsawSlot(dayOffset, hour);
+      const cust = DANCE_CUSTOMERS[custIdx];
+      if (indId)
+        bookingRows.push({
+          tenant_id: tenantId, service_id: indId, staff_id: staffIds[staffIdx],
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: indMeta.price_pln, duration_min_snapshot: indMeta.duration_min,
+        });
+    }
+    // Upcoming group classes
+    const upcomingGroups = [
+      { dayOffset: 1, hour: 17, meta: hipHopMeta, id: hipHopId,         custs: [8, 10, 7] },
+      { dayOffset: 4, hour: 16, meta: towarzyskiMeta, id: towarzyskiId, custs: [9, 4] },
+      { dayOffset: 5, hour: 10, meta: mixMeta, id: mixId,               custs: [12, 11] },
+    ];
+    for (const { dayOffset, hour, meta, id, custs } of upcomingGroups) {
+      if (!id) continue;
+      const slot = groupSlot(dayOffset, hour, meta);
+      for (const ci of custs) {
+        const cust = DANCE_CUSTOMERS[ci];
+        bookingRows.push({
+          tenant_id: tenantId, service_id: id, staff_id: null,
+          customer_name: cust[0], customer_phone: cust[1], customer_email: cust[2] ?? null,
+          starts_at: slot.starts, ends_at: slot.ends, status: "confirmed",
+          price_pln_snapshot: meta.price_pln, duration_min_snapshot: meta.duration_min,
+        });
+      }
+    }
+  } else if (variant === "joga") {
     // Group bookings: multiple customers per slot
     // Typical yoga schedule: 7:00, 9:00, 17:00, 19:00
     const CLASS_HOURS = [7, 9, 17, 19];
