@@ -274,13 +274,53 @@ function DayView({
 
   const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
 
-  function bookingAtSlot(staffId: string, slotMin: number) {
-    return dayBookings.find((b) => {
-      if (b.staff_id !== staffId) return false;
-      const bStart = warsawMinutes(b.starts_at);
-      const bEnd = warsawMinutes(b.ends_at);
-      return bStart < slotMin + 30 && bEnd > slotMin;
+  /** Height of one 30-minute row, in px. Bookings are sized against this. */
+  const ROW_H = 36;
+
+  /**
+   * Where each booking sits in the grid.
+   *
+   * A booking claims the row containing its start plus every row it runs into,
+   * via rowSpan — so an hour-long lesson reads as one block covering 11:00
+   * through 12:00 instead of a card followed by a leftover stub. Within that
+   * cell the block is positioned from the real start and sized from the real
+   * duration, so a 45-minute service covers exactly a row and a half and a
+   * booking starting off the half-hour still lands in the right place.
+   */
+  type CellPlan =
+    | {
+        kind: "start";
+        booking: (typeof dayBookings)[number];
+        span: number;
+        offsetMin: number;
+        durationMin: number;
+      }
+    | { kind: "covered" };
+
+  const planKey = (staffId: string, slotMin: number) => `${staffId}@${slotMin}`;
+  const cellPlans = new Map<string, CellPlan>();
+
+  for (const b of dayBookings) {
+    if (!b.staff_id) continue;
+    // Clamp to opening hours so a booking spilling past close can't rowSpan
+    // beyond the last rendered row.
+    const bStart = Math.max(warsawMinutes(b.starts_at), startMin);
+    const bEnd = Math.min(warsawMinutes(b.ends_at), endMin);
+    if (bEnd <= bStart) continue;
+
+    const firstSlot = startMin + Math.floor((bStart - startMin) / 30) * 30;
+    const span = Math.max(1, Math.ceil((bEnd - firstSlot) / 30));
+
+    cellPlans.set(planKey(b.staff_id, firstSlot), {
+      kind: "start",
+      booking: b,
+      span,
+      offsetMin: bStart - firstSlot,
+      durationMin: bEnd - bStart,
     });
+    for (let k = 1; k < span; k++) {
+      cellPlans.set(planKey(b.staff_id, firstSlot + k * 30), { kind: "covered" });
+    }
   }
 
   const isToday = date === today;
@@ -310,31 +350,50 @@ function DayView({
         </thead>
         <tbody>
           {slots.map((slot, i) => (
-            <tr key={slot.label} className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}>
+            <tr
+              key={slot.label}
+              style={{ height: ROW_H }}
+              className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}
+            >
               <td className="px-3 py-1 align-top">
                 <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
               {visibleStaff.length > 0 ? visibleStaff.map((s) => {
-                const booking = bookingAtSlot(s.id, slot.min);
-                const isFirstSlot = booking && warsawMinutes(booking.starts_at) === slot.min;
+                const plan = cellPlans.get(planKey(s.id, slot.min));
+
+                // This row is inside a booking that started earlier — its cell
+                // was already consumed by that booking's rowSpan.
+                if (plan?.kind === "covered") return null;
+
+                if (plan?.kind === "start") {
+                  const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
+                  return (
+                    <td key={s.id} rowSpan={plan.span} className="relative align-top">
+                      <div
+                        className="absolute inset-x-2"
+                        style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
+                      >
+                        <DayBookingCard
+                          booking={toModalBooking(plan.booking)}
+                          allStaff={allStaff}
+                          timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
+                          color={s.color}
+                          // Under ~45 minutes the third line would be squeezed
+                          // to the point of being unreadable.
+                          compact={blockH < 44}
+                        />
+                      </div>
+                    </td>
+                  );
+                }
+
                 return (
                   <td key={s.id} className="px-2 py-1 align-top">
-                    {booking && isFirstSlot ? (
-                      <DayBookingCard
-                        booking={toModalBooking(booking)}
-                        allStaff={allStaff}
-                        timeLabel={formatWarsawTime(booking.starts_at)}
-                        color={s.color}
-                      />
-                    ) : booking ? (
-                      <div className="h-5" style={{ borderLeft: `2px solid ${s.color}40` }} />
-                    ) : (
-                      <Link
-                        href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
-                        className="block h-7 w-full rounded hover:bg-zinc-800/40"
-                        aria-label={`Dodaj rezerwację ${slot.label}`}
-                      />
-                    )}
+                    <Link
+                      href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
+                      className="block h-7 w-full rounded hover:bg-zinc-800/40"
+                      aria-label={`Dodaj rezerwację ${slot.label}`}
+                    />
                   </td>
                 );
               }) : (
