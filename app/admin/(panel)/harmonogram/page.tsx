@@ -165,10 +165,14 @@ export default async function HarmonogramPage({
     startOfMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))),
     daysInMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))) - 1
   );
+  // Nothing is marked closed here. In a booking flow that state stops you
+  // picking a day you cannot have; in the schedule a closed Sunday is still
+  // worth opening — there may be something on it, and you may just want to
+  // look. Greying them also made this calendar read differently from the
+  // week-mode one, which has no such notion.
   const calendarDays: { date: string; closed: boolean }[] = [];
   for (let d = calWindowStart; d <= calWindowEnd; d = addDays(d, 1)) {
-    const dh = hours.find((x) => x.day_of_week === warsawDayOfWeek(d));
-    calendarDays.push({ date: d, closed: !dh || dh.closed });
+    calendarDays.push({ date: d, closed: false });
   }
   // Hrefs are built here rather than passed as callbacks: functions cannot
   // cross from a server component into a client one.

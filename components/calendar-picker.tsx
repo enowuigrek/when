@@ -86,6 +86,16 @@ type CalendarPickerProps = {
    * Booking flows lock to the present; admin browsing pages enable this.
    */
   allowPastNav?: boolean;
+  /**
+   * How the picked day is marked.
+   *
+   * "solid" — filled accent. The booking flow's confirmation that this is the
+   *   date you chose.
+   * "soft"  — accent tint plus a ring, matching how week mode marks a week.
+   *   The ring is what a single cell needs and a seven-cell band does not:
+   *   the band is found by its shape, one tinted square is not.
+   */
+  selectionTone?: "solid" | "soft";
 };
 
 export function CalendarPicker({
@@ -102,6 +112,7 @@ export function CalendarPicker({
   displayYearMonth,
   size = "md",
   allowPastNav = false,
+  selectionTone = "solid",
 }: CalendarPickerProps) {
   const daysMap = new Map(days.map((d) => [d.date, d]));
   const todayYM = isoYM(today);
@@ -285,7 +296,9 @@ export function CalendarPicker({
                 // Today is ringed, matching day mode. The old white dot was
                 // hard-coded white to survive the solid accent fill, and against
                 // a coloured row it read as a stray mark.
-                if (isToday) cls += "ring-1 ring-inset ring-[var(--color-accent)] ";
+                const weekCellStyle = isToday
+                  ? ({ boxShadow: "inset 0 0 0 1.5px var(--color-accent)" } as const)
+                  : undefined;
                 const todayDot = null;
 
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
@@ -308,6 +321,7 @@ export function CalendarPicker({
                       key={date}
                       href={href}
                       className={cls}
+                      style={weekCellStyle}
                       onMouseEnter={() => setHoveredWeek(cellWeek)}
                       onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     >
@@ -320,6 +334,7 @@ export function CalendarPicker({
                     key={date}
                     type="button"
                     className={cls}
+                    style={weekCellStyle}
                     onMouseEnter={() => setHoveredWeek(cellWeek)}
                     onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     onClick={() => onPick?.(cellWeek)}
@@ -351,7 +366,9 @@ export function CalendarPicker({
               let cls =
                 `relative flex ${cellH} w-full items-center justify-center rounded-lg ${cellText} font-medium transition-all `;
               if (isSelected) {
-                cls += "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
+                cls += selectionTone === "soft"
+                  ? "bg-[var(--color-accent)]/15 text-[var(--color-accent)] cursor-pointer"
+                  : "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
               } else if (isAvailable) {
                 cls += "cal-day-available cursor-pointer";
               } else if (isClosed) {
@@ -363,7 +380,15 @@ export function CalendarPicker({
               // Today reads as a ring around the number rather than a dot:
               // at these cell sizes a dot competes with the badge for the same
               // few pixels and ends up looking like a smudge.
-              if (isToday && !isSelected) cls += " ring-1 ring-inset ring-[var(--color-accent)]";
+              // Inline box-shadow, not a ring utility: Tailwind is not
+              // generating ring-[var(--color-accent)] in this project, so the
+              // class silently fell back to the default grey and today looked
+              // like any other day.
+              const ACCENT_RING = { boxShadow: "inset 0 0 0 1.5px var(--color-accent)" } as const;
+              const cellStyle =
+                (isSelected && selectionTone === "soft") || (isToday && !isSelected)
+                  ? ACCENT_RING
+                  : undefined;
 
               // The count sits under the number, not in the corner. As a
               // corner pill it overlapped the digit in anything but the
@@ -385,7 +410,7 @@ export function CalendarPicker({
 
               if (href) {
                 return (
-                  <Link key={date} href={href} className={cls}>
+                  <Link key={date} href={href} className={cls} style={cellStyle}>
                     {cellInner}
                   </Link>
                 );
@@ -398,6 +423,7 @@ export function CalendarPicker({
                   disabled={!isAvailable}
                   onClick={() => isAvailable && onPick?.(date)}
                   className={cls}
+                  style={cellStyle}
                 >
                   {cellInner}
                 </button>
