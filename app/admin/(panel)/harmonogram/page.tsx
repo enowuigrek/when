@@ -287,12 +287,20 @@ function DayView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="border-collapse text-sm" style={{ tableLayout: "fixed", width: visibleStaff.length === 0 ? "100%" : undefined }}>
+      {/* width:100% + minWidth keeps both ends working: with many staff the
+          table exceeds the container and scrolls at ~180px per column; with
+          one or two it stretches to fill instead of leaving the page empty.
+          Staff columns carry no width so `table-layout: fixed` splits the
+          remaining space between them evenly. */}
+      <table
+        className="border-collapse text-sm"
+        style={{ tableLayout: "fixed", width: "100%", minWidth: 64 + visibleStaff.length * 180 }}
+      >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 64 }}>Godz.</th>
             {visibleStaff.length > 0 ? visibleStaff.map((s) => (
-              <th key={s.id} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color, width: 180 }}>
+              <th key={s.id} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>
                 {s.name}
               </th>
             )) : (
@@ -382,12 +390,16 @@ function WeekView({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-      <table className="border-collapse text-sm" style={{ tableLayout: "fixed", width: visibleStaff.length === 0 ? "100%" : undefined }}>
+      {/* See the day view above for why width/minWidth are paired this way. */}
+      <table
+        className="border-collapse text-sm"
+        style={{ tableLayout: "fixed", width: "100%", minWidth: 112 + visibleStaff.length * 200 }}
+      >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 112 }}>Dzień</th>
             {visibleStaff.map((s) => (
-              <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color, width: 200 }}>{s.name}</th>
+              <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
             {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>
