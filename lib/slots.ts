@@ -107,23 +107,17 @@ export type Slot = {
   endsAtIso: string;
   label: string; // "HH:MM" in Warsaw
   available?: boolean; // undefined / true = bookable; false = taken
-  /** Group classes only: how many spots are still free */
-  spotsLeft?: number;
-  /** Group classes only: max capacity of this slot */
-  maxParticipants?: number;
 };
 
 /**
  * Compute available slots for a given local date.
  *
- * @param dateStr         YYYY-MM-DD (Warsaw-local)
- * @param durationMin     Service duration
- * @param hours           business_hours rows
- * @param existing        confirmed bookings overlapping the day, [start, end) UTC ISO
- * @param granularityMin  slot step in minutes
- * @param staffCount      number of staff that can serve concurrently (default 1); ignored for group
- * @param includeUnavailable  include full/taken slots in result (shown as strikethrough)
- * @param maxParticipants if set, treat as group class: slot available when overlapCount < maxParticipants
+ * @param dateStr        YYYY-MM-DD (Warsaw-local)
+ * @param durationMin    Service duration
+ * @param hours          business_hours rows
+ * @param existing       confirmed bookings overlapping the day, [start, end) UTC ISO
+ * @param granularityMin slot step in minutes
+ * @param staffCount     number of staff that can serve concurrently (default 1)
  */
 export function computeAvailableSlots(
   dateStr: string,
@@ -132,8 +126,7 @@ export function computeAvailableSlots(
   existing: { startsAtIso: string; endsAtIso: string }[],
   granularityMin = 15,
   staffCount = 1,
-  includeUnavailable = false,
-  maxParticipants?: number
+  includeUnavailable = false
 ): Slot[] {
   const dow = warsawDayOfWeek(dateStr);
   const todayHours = hours.find((h) => h.day_of_week === dow);
@@ -163,10 +156,7 @@ export function computeAvailableSlots(
     if (t < now) continue; // skip past slots
     const end = t + durMs;
     const overlapCount = existingRanges.filter((r) => r.s < end && t < r.e).length;
-    const isGroup = maxParticipants != null;
-    const available = isGroup
-      ? overlapCount < maxParticipants!
-      : overlapCount < staffCount;
+    const available = overlapCount < staffCount;
     if (!available && !includeUnavailable) continue;
 
     const dtf = new Intl.DateTimeFormat("pl-PL", {
@@ -175,17 +165,12 @@ export function computeAvailableSlots(
       minute: "2-digit",
       hour12: false,
     });
-    const slot: Slot = {
+    slots.push({
       startsAtIso: new Date(t).toISOString(),
       endsAtIso: new Date(end).toISOString(),
       label: dtf.format(new Date(t)),
       available,
-    };
-    if (isGroup) {
-      slot.maxParticipants = maxParticipants!;
-      slot.spotsLeft = Math.max(0, maxParticipants! - overlapCount);
-    }
-    slots.push(slot);
+    });
   }
 
   return slots;
@@ -212,31 +197,19 @@ export function formatWarsawTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-/** Polish month names in the genitive case — "7 maja" not "7 maj". */
-const MONTH_PL_GENITIVE = [
-  "stycznia","lutego","marca","kwietnia","maja","czerwca",
-  "lipca","sierpnia","września","października","listopada","grudnia",
-];
-
-/** Format a UTC ISO instant as Warsaw "D MMMM YYYY" with the month in genitive. */
+/** Format a UTC ISO instant as Warsaw "DD MMMM YYYY". */
 export function formatWarsawDate(iso: string): string {
-  // Pull day/month/year out of the Warsaw-local representation, then assemble
-  // manually so the month is always in genitive ("maja", not "maj"), regardless
-  // of the host ICU's pl-PL behaviour.
-  const parts = new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("pl-PL", {
     timeZone: TZ,
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date(iso));
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
-  const y = get("year");
-  const m = get("month");
-  const d = get("day");
-  return `${d} ${MONTH_PL_GENITIVE[m - 1]} ${y}`;
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(iso));
 }
 
 /**
- * Override business hours for a specific day with a staff member's personal
- * schedule. A no-op when avail has no times (staff uses global hours).
+ * Overrides business hours for a specific date with staff-specific availability.
+ * If no staff availability is set for the date, returns hours unchanged.
  */
 export function applyStaffHours(
   hours: BusinessHours[],
@@ -253,8 +226,13 @@ export function applyStaffHours(
   );
 }
 
-/** Format a YYYY-MM-DD as "D MMMM" in Polish — month in genitive ("7 maja"). */
+/** Format a YYYY-MM-DD as "DD MMM" in Polish. */
 export function formatShortDate(dateStr: string): string {
-  const [, m, d] = dateStr.split("-").map(Number);
-  return `${d} ${MONTH_PL_GENITIVE[m - 1]}`;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const utc = warsawLocalToUtc(y, m, d, 12, 0);
+  return new Intl.DateTimeFormat("pl-PL", {
+    timeZone: TZ,
+    day: "numeric",
+    month: "short",
+  }).format(utc);
 }

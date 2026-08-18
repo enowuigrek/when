@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAdminTenantId } from "@/lib/tenant";
 
 export type Customer = {
   id: string;
@@ -14,11 +13,9 @@ export type Customer = {
 
 export async function searchCustomersByPhone(query: string): Promise<Customer[]> {
   if (query.length < 3) return [];
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("customers")
     .select("*")
-    .eq("tenant_id", tenantId)
     .ilike("phone", `%${query}%`)
     .order("updated_at", { ascending: false })
     .limit(6);
@@ -30,12 +27,11 @@ export async function upsertCustomer(data: {
   name: string;
   email: string | null;
 }): Promise<string> {
-  const tenantId = await getAdminTenantId();
   const { data: result, error } = await createAdminClient()
     .from("customers")
     .upsert(
-      { tenant_id: tenantId, phone: data.phone, name: data.name, email: data.email, updated_at: new Date().toISOString() },
-      { onConflict: "tenant_id,phone" }
+      { phone: data.phone, name: data.name, email: data.email, updated_at: new Date().toISOString() },
+      { onConflict: "phone" }
     )
     .select("id")
     .single();
@@ -44,11 +40,9 @@ export async function upsertCustomer(data: {
 }
 
 export async function getAllCustomers(): Promise<Customer[]> {
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("customers")
     .select("*")
-    .eq("tenant_id", tenantId)
     .order("updated_at", { ascending: false });
   return (data ?? []) as Customer[];
 }
@@ -61,15 +55,15 @@ export type CustomerSummary = Customer & {
 };
 
 export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
-  const tenantId = await getAdminTenantId();
-  const supabase = createAdminClient();
   const [customers, bookingsRaw] = await Promise.all([
-    supabase.from("customers").select("*").eq("tenant_id", tenantId).order("updated_at", { ascending: false }),
-    supabase.from("bookings").select("customer_phone, status, starts_at, price_pln_snapshot, service:services(price_pln)").eq("tenant_id", tenantId),
+    createAdminClient().from("customers").select("*").order("updated_at", { ascending: false }),
+    createAdminClient()
+      .from("bookings")
+      .select("customer_phone, status, starts_at, service:services(price_pln)"),
   ]);
 
   const now = new Date().toISOString();
-  type BookingRow = { customer_phone: string; status: string; starts_at: string; price_pln_snapshot: number | null; service: { price_pln: number } | null };
+  type BookingRow = { customer_phone: string; status: string; starts_at: string; service: { price_pln: number } | null };
   const bookings = (bookingsRaw.data ?? []) as unknown as BookingRow[];
 
   const byPhone = new Map<string, BookingRow[]>();
@@ -86,7 +80,7 @@ export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
     return {
       ...(c as Customer),
       visitCount: past.length,
-      totalSpent: past.reduce((s, b) => s + (b.price_pln_snapshot ?? b.service?.price_pln ?? 0), 0),
+      totalSpent: past.reduce((s, b) => s + (b.service?.price_pln ?? 0), 0),
       lastVisit,
       noShowCount: cBookings.filter((b) => b.status === "no_show").length,
     };
@@ -94,11 +88,9 @@ export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
 }
 
 export async function getCustomerByPhone(phone: string): Promise<Customer | null> {
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("customers")
     .select("*")
-    .eq("tenant_id", tenantId)
     .eq("phone", phone)
     .maybeSingle();
   return data as Customer | null;
@@ -111,8 +103,6 @@ export type CustomerBooking = {
   status: string;
   notes: string | null;
   staff_id: string | null;
-  service_id: string | null;
-  price_pln_snapshot: number | null;
   service: { name: string; price_pln: number; duration_min: number } | null;
   staff: { name: string; color: string } | null;
 };
@@ -130,11 +120,9 @@ export type CustomerStats = {
 };
 
 export async function getCustomerStats(phone: string): Promise<CustomerStats> {
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
-    .select("id, starts_at, ends_at, status, notes, staff_id, service_id, price_pln_snapshot, service:services(name, price_pln, duration_min), staff:staff(name, color)")
-    .eq("tenant_id", tenantId)
+    .select("id, starts_at, ends_at, status, notes, staff_id, service:services(name, price_pln, duration_min), staff:staff(name, color)")
     .eq("customer_phone", phone)
     .order("starts_at", { ascending: false });
 
@@ -145,12 +133,13 @@ export async function getCustomerStats(phone: string): Promise<CustomerStats> {
   const past = confirmed.filter((b) => b.starts_at < now);
   const future = confirmed.filter((b) => b.starts_at >= now);
 
-  const totalSpent = past.reduce((sum, b) => sum + (b.price_pln_snapshot ?? b.service?.price_pln ?? 0), 0);
+  const totalSpent = past.reduce((sum, b) => sum + (b.service?.price_pln ?? 0), 0);
   const cancelledCount = bookings.filter((b) => b.status === "cancelled").length;
   const noShowCount = bookings.filter((b) => b.status === "no_show").length;
   const lastVisit = past[0]?.starts_at ?? null;
   const nextVisit = future[future.length - 1]?.starts_at ?? null;
 
+  // Favorite service
   const serviceCounts = new Map<string, number>();
   for (const b of past) {
     if (b.service?.name) serviceCounts.set(b.service.name, (serviceCounts.get(b.service.name) ?? 0) + 1);
@@ -159,6 +148,7 @@ export async function getCustomerStats(phone: string): Promise<CustomerStats> {
     ? [...serviceCounts.entries()].sort((a, b) => b[1] - a[1])[0][0]
     : null;
 
+  // Avg days between visits
   let avgDaysBetweenVisits: number | null = null;
   const pastDates = past.map((b) => new Date(b.starts_at).getTime()).sort((a, b) => a - b);
   if (pastDates.length >= 2) {

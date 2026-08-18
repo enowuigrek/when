@@ -2,31 +2,36 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
+import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
+import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
+import { computeAvailableSlots, addDays } from "@/lib/slots";
+import { getActiveStaff } from "@/lib/db/staff";
+import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import type { Slot } from "@/lib/slots";
+import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
-import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
+import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
-import { MAIN_TENANT_ID } from "@/lib/tenant";
-import {
-  getMainActiveStaff,
-  getMainBusinessHours,
-  getMainServiceBySlug,
-  getMainSettings,
-} from "@/lib/db/main-tenant";
-import {
-  createBookingForTenant,
-  getBookingsInRangeForTenant,
-  getBusyStaffIdsForTenant,
-  getGroupBookingCountForTenant,
-  getStaffAvailabilityMapForTenant,
-} from "@/lib/db/for-tenant";
-import { resolveEffectivePricingForTenant } from "@/lib/db/staff-groups";
-import { notifyStaff } from "@/lib/email/notify-staff";
+import { resolveEffectivePricing } from "@/lib/db/staff-groups";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
+
+function applyStaffHours(
+  hours: BusinessHours[],
+  dateStr: string,
+  avail: { startTime: string | null; endTime: string | null } | null
+): BusinessHours[] {
+  if (!avail?.startTime || !avail?.endTime) return hours;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dayOfWeek = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+  return hours.map((h) =>
+    h.day_of_week === dayOfWeek
+      ? { ...h, open_time: avail.startTime! + ":00", close_time: avail.endTime! + ":00", closed: false }
+      : h
+  );
+}
 
 export async function getSlotsForDate(
   serviceSlug: string,
@@ -36,34 +41,14 @@ export async function getSlotsForDate(
   const dateRes = dateSchema.safeParse(dateStr);
   if (!dateRes.success) return { ok: false, message: "Niepoprawna data." };
 
-  const service = await getMainServiceBySlug(serviceSlug);
+  const service = await getServiceBySlug(serviceSlug);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
-  const [hours, settings, activeStaff] = await Promise.all([
-    getMainBusinessHours(),
-    getMainSettings(),
-    getMainActiveStaff(),
-  ]);
+  const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
 
-  // ── Group class: count all bookings for this service (not per-staff) ────────
-  if (service.is_group && service.max_participants) {
-    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
-    // Filter to this service only (getBookingsInRange returns all confirmed bookings)
-    // We need service-scoped count — use all bookings for now (conservative, safe)
-    const slots = computeAvailableSlots(
-      dateStr, service.duration_min, hours, existing,
-      settings.slot_granularity_min, 1, true, service.max_participants
-    );
-    return { ok: true, slots };
-  }
-
-  const availMap = await getStaffAvailabilityMapForTenant(
-    activeStaff.map((s) => s.id),
-    dateStr,
-    MAIN_TENANT_ID
-  );
+  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
 
   if (staffId) {
     const avail = availMap.get(staffId);
@@ -71,7 +56,7 @@ export async function getSlotsForDate(
 
     // Override business hours with this staff's personal schedule if set
     const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
-    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID, staffId);
+    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
     const slots = computeAvailableSlots(dateStr, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
     return { ok: true, slots };
   }
@@ -79,7 +64,7 @@ export async function getSlotsForDate(
   // "Dowolny" — count only staff available today
   const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
   const staffCount = Math.max(1, availableStaff.length);
-  const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
+  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
   const slots = computeAvailableSlots(dateStr, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount, true);
   return { ok: true, slots };
 }
@@ -135,152 +120,42 @@ export async function submitBooking(
     };
   }
 
-  // Destructure early so inner helpers have definite types (no `parsed.data` narrowing issue).
-  const {
-    serviceSlug: parsedServiceSlug,
-    startsAtIso,
-    staffId: parsedStaffId,
-    customerName,
-    customerPhone,
-    customerEmail,
-    notes,
-  } = parsed.data;
-
-  const [service, settings] = await Promise.all([
-    getMainServiceBySlug(parsedServiceSlug),
-    getMainSettings(),
-  ]);
+  const service = await getServiceBySlug(parsed.data.serviceSlug);
   if (!service) {
     return { status: "error", message: "Usługa nie istnieje." };
   }
 
-  const startsAt = new Date(startsAtIso);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const startsAt = new Date(parsed.data.startsAtIso);
 
-  function sendBookingEmails(
-    bookingId: string,
-    endsAt: Date,
-    pricePln: number,
-    staffName: string | null
-  ) {
-    if (customerEmail) {
-      const cancelToken = signBookingToken(bookingId, "cancel");
-      const rescheduleToken = signBookingToken(bookingId, "reschedule");
-      const { subject, html, text } = buildConfirmationEmail({
-        bookingId,
-        customerName,
-        serviceName: service!.name,
-        startsAtIso: startsAt.toISOString(),
-        endsAtIso: endsAt.toISOString(),
-        pricePln,
-        notes: notes ?? null,
-        business: {
-          name: settings.business_name,
-          logoUrl: settings.logo_url,
-          addressStreet: settings.address_street,
-          addressPostal: settings.address_postal,
-          addressCity: settings.address_city,
-          phone: settings.phone,
-        },
-        cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
-        rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
-      });
-      sendEmail({ to: customerEmail, subject, html, text }).catch(
-        (err) => console.error("[email] Failed to send confirmation:", err)
-      );
-    }
-    if (settings.email) {
-      const { subject, html, text } = buildOwnerNotificationEmail({
-        bookingId,
-        customerName,
-        customerPhone,
-        customerEmail: customerEmail ?? null,
-        serviceName: service!.name,
-        staffName,
-        startsAtIso: startsAt.toISOString(),
-        endsAtIso: endsAt.toISOString(),
-        pricePln,
-        notes: notes ?? null,
-        businessName: settings.business_name,
-        adminUrl: `${siteUrl}/admin/harmonogram`,
-      });
-      sendEmail({ to: settings.email, subject, html, text }).catch(() => {});
-    }
-  }
-
-  // ── Group class: server-side capacity check ──────────────────────────────────
-  if (service.is_group && service.max_participants) {
-    const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
-    const booked = await getGroupBookingCountForTenant(
-      service.id,
-      startsAt.toISOString(),
-      endsAt.toISOString(),
-      MAIN_TENANT_ID
-    );
-    if (booked >= service.max_participants) {
-      return { status: "error", message: "Brak wolnych miejsc w tym terminie. Wybierz inny." };
-    }
-    const result = await createBookingForTenant(
-      {
-        serviceId: service.id,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        customerEmail: customerEmail ?? null,
-        startsAtIso: startsAt.toISOString(),
-        endsAtIso: endsAt.toISOString(),
-        notes: notes ?? null,
-        staffId: null,
-        pricePlnSnapshot: service.price_pln,
-        durationMinSnapshot: service.duration_min,
-      },
-      MAIN_TENANT_ID
-    );
-    if (!result.ok) return { status: "error", message: result.message };
-    await recordBookingEvent({
-      bookingId: result.id,
-      eventType: "created",
-      source: "customer",
-      customerName: customerName,
-      serviceName: service.name,
-      startsAtIso: startsAt.toISOString(),
-      tenantId: MAIN_TENANT_ID,
-    });
-    sendBookingEmails(result.id, endsAt, service.price_pln, null);
-    redirect(`/rezerwacja/sukces/${result.id}`);
-  }
-
-  // ── Individual service ────────────────────────────────────────────────────────
-  let resolvedStaffId: string | null = parsedStaffId ?? null;
+  // Auto-assign staff when client selected "Dowolny"
+  let resolvedStaffId: string | null = parsed.data.staffId ?? null;
   if (!resolvedStaffId) {
     const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
     const [busyIds, allStaff] = await Promise.all([
-      getBusyStaffIdsForTenant(startsAt.toISOString(), fallbackEnd.toISOString(), MAIN_TENANT_ID),
-      getMainActiveStaff(),
+      getBusyStaffIds(startsAt.toISOString(), fallbackEnd.toISOString()),
+      getActiveStaff(),
     ]);
     const free = allStaff.filter((s) => !busyIds.includes(s.id));
     resolvedStaffId = free[0]?.id ?? null;
   }
 
-  const pricing = await resolveEffectivePricingForTenant(service.id, resolvedStaffId, MAIN_TENANT_ID);
+  const pricing = await resolveEffectivePricing(service.id, resolvedStaffId);
   const effectiveDuration = pricing?.duration_min ?? service.duration_min;
   const effectivePrice = pricing?.price_pln ?? service.price_pln;
   const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
-  const result = await createBookingForTenant(
-    {
-      serviceId: service.id,
-      customerName: customerName,
-      customerPhone: customerPhone,
-      customerEmail: customerEmail ?? null,
-      startsAtIso: startsAt.toISOString(),
-      endsAtIso: endsAt.toISOString(),
-      notes: notes ?? null,
-      staffId: resolvedStaffId,
-      pricePlnSnapshot: effectivePrice,
-      durationMinSnapshot: effectiveDuration,
-    },
-    MAIN_TENANT_ID
-  );
+  const result = await createBooking({
+    serviceId: service.id,
+    customerName: parsed.data.customerName,
+    customerPhone: parsed.data.customerPhone,
+    customerEmail: parsed.data.customerEmail ?? null,
+    startsAtIso: startsAt.toISOString(),
+    endsAtIso: endsAt.toISOString(),
+    notes: parsed.data.notes ?? null,
+    staffId: resolvedStaffId,
+    pricePlnSnapshot: effectivePrice,
+    durationMinSnapshot: effectiveDuration,
+  });
 
   if (!result.ok) {
     return { status: "error", message: result.message };
@@ -290,31 +165,38 @@ export async function submitBooking(
     bookingId: result.id,
     eventType: "created",
     source: "customer",
-    customerName: customerName,
+    customerName: parsed.data.customerName,
     serviceName: service.name,
     startsAtIso: startsAt.toISOString(),
-    tenantId: MAIN_TENANT_ID,
   });
 
-  const allStaffList = await getMainActiveStaff();
-  const staffName = resolvedStaffId
-    ? allStaffList.find((st) => st.id === resolvedStaffId)?.name ?? null
-    : null;
-  sendBookingEmails(result.id, endsAt, effectivePrice, staffName);
-
-  // Notify staff member — fire-and-forget
-  if (resolvedStaffId) {
-    notifyStaff({
-      staffId: resolvedStaffId,
-      // If client explicitly chose this staff → "booked", otherwise → "assigned" (auto-assigned)
-      type: parsedStaffId ? "booked" : "assigned",
-      customerName,
-      customerPhone,
-      serviceName: service!.name,
+  // Send confirmation email — fire-and-forget, never blocks booking.
+  if (parsed.data.customerEmail) {
+    const s = await getSettings();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    const cancelToken = signBookingToken(result.id, "cancel");
+    const rescheduleToken = signBookingToken(result.id, "reschedule");
+    const { subject, html, text } = buildConfirmationEmail({
+      bookingId: result.id,
+      customerName: parsed.data.customerName,
+      serviceName: service.name,
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
-      tenantId: MAIN_TENANT_ID,
-    }).catch(() => {});
+      pricePln: effectivePrice,
+      notes: parsed.data.notes ?? null,
+      business: {
+        name: s.business_name,
+        addressStreet: s.address_street,
+        addressPostal: s.address_postal,
+        addressCity: s.address_city,
+        phone: s.phone,
+      },
+      cancelUrl: `${siteUrl}/rezerwacja/anuluj/${cancelToken}`,
+      rescheduleUrl: `${siteUrl}/rezerwacja/zmien/${rescheduleToken}`,
+    });
+    sendEmail({ to: parsed.data.customerEmail, subject, html, text }).catch(
+      (err) => console.error("[email] Failed to send confirmation:", err)
+    );
   }
 
   redirect(`/rezerwacja/sukces/${result.id}`);

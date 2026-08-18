@@ -8,19 +8,10 @@ import {
   markNoShowAction,
   editBookingNotesAction,
   rescheduleBookingAction,
-  changeBookingServiceAction,
 } from "@/app/admin/(panel)/actions";
-import {
-  getAdminRescheduleSetup,
-  getAdminSlotsForDate,
-} from "@/app/admin/(panel)/rezerwacja/nowa/actions";
-import { CalendarPicker } from "@/components/calendar-picker";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
-import type { Slot } from "@/lib/slots";
-import { StatusBadge } from "@/components/ui/status-badge";
 
 type Staff = { id: string; name: string; color: string };
-export type ServiceOption = { id: string; name: string; duration_min: number; price_pln: number };
 
 export type BookingForModal = {
   id: string;
@@ -28,28 +19,31 @@ export type BookingForModal = {
   endsAt: string;
   customerName: string;
   customerPhone: string;
-  serviceId: string | null;
   serviceName: string | null;
   staffId: string | null;
   staffName: string | null;
   staffColor: string | null;
   notes: string | null;
-  status: "confirmed" | "cancelled" | "completed" | "no_show" | "pending_payment";
-  paymentStatus: "pending" | "paid" | "refunded" | null;
+  status: "confirmed" | "cancelled" | "completed" | "no_show";
 };
 
-type Tab = "info" | "reschedule" | "service" | "reassign" | "cancel";
+type Tab = "info" | "reschedule" | "reassign" | "cancel";
+
+function warsawDateStr(iso: string): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(iso));
+}
 
 export function BookingManagementButton({
   booking,
   allStaff,
-  allServices = [],
   className,
   children,
 }: {
   booking: BookingForModal;
   allStaff: Staff[];
-  allServices?: ServiceOption[];
   className?: string;
   children: ReactNode;
 }) {
@@ -59,7 +53,7 @@ export function BookingManagementButton({
       <button type="button" onClick={() => setOpen(true)} className={className}>
         {children}
       </button>
-      {open && <BookingModal booking={booking} allStaff={allStaff} allServices={allServices} onClose={() => setOpen(false)} />}
+      {open && <BookingModal booking={booking} allStaff={allStaff} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -67,12 +61,10 @@ export function BookingManagementButton({
 function BookingModal({
   booking,
   allStaff,
-  allServices,
   onClose,
 }: {
   booking: BookingForModal;
   allStaff: Staff[];
-  allServices: ServiceOption[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -81,17 +73,9 @@ function BookingModal({
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState(booking.notes ?? "");
   const [staffSel, setStaffSel] = useState(booking.staffId ?? "");
+  const [date, setDate] = useState(warsawDateStr(booking.startsAt));
+  const [time, setTime] = useState(formatWarsawTime(booking.startsAt));
   const [reason, setReason] = useState("");
-  const [serviceSel, setServiceSel] = useState(booking.serviceId ?? "");
-
-  // Reschedule — lazy-loaded calendar + slots
-  type RescheduleSetup = { days: { date: string; closed: boolean }[]; today: string; initialDate: string };
-  const [rescheduleSetup, setRescheduleSetup] = useState<RescheduleSetup | null>(null);
-  const [rescheduleLoading, setRescheduleLoading] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState<string>("");
-  const [rescheduleSlots, setRescheduleSlots] = useState<Slot[]>([]);
-  const [rescheduleSelectedSlot, setRescheduleSelectedSlot] = useState<Slot | null>(null);
-  const [slotsLoading, startSlotsLoad] = useTransition();
 
   useEffect(() => {
     function h(e: KeyboardEvent) {
@@ -103,32 +87,6 @@ function BookingModal({
 
   function refresh() {
     router.refresh();
-  }
-
-  async function switchTab(t: Tab) {
-    setTab(t);
-    setError(null);
-    if (t !== "reschedule") return;
-    if (rescheduleSetup || rescheduleLoading) return;
-    if (!booking.serviceId) return;
-    setRescheduleLoading(true);
-    const res = await getAdminRescheduleSetup(booking.serviceId, booking.staffId);
-    if (res.ok) {
-      setRescheduleSetup({ days: res.days, today: res.today, initialDate: res.initialDate });
-      setRescheduleDate(res.initialDate);
-      setRescheduleSlots(res.initialSlots);
-    }
-    setRescheduleLoading(false);
-  }
-
-  function pickRescheduleDate(date: string) {
-    setRescheduleDate(date);
-    setRescheduleSelectedSlot(null);
-    if (!booking.serviceId) return;
-    startSlotsLoad(async () => {
-      const res = await getAdminSlotsForDate(booking.serviceId!, date, booking.staffId ?? undefined);
-      setRescheduleSlots(res.ok ? res.slots : []);
-    });
   }
 
   async function handleSaveNotes() {
@@ -157,25 +115,12 @@ function BookingModal({
 
   async function handleReschedule() {
     setError(null);
-    if (!rescheduleSelectedSlot) return;
     const fd = new FormData();
     fd.set("id", booking.id);
-    fd.set("startsAtIso", rescheduleSelectedSlot.startsAtIso);
+    fd.set("date", date);
+    fd.set("time", time);
     start(async () => {
       const res = await rescheduleBookingAction(fd);
-      if (!res.ok) setError(res.message);
-      else { refresh(); onClose(); }
-    });
-  }
-
-  async function handleChangeService() {
-    setError(null);
-    if (!serviceSel || serviceSel === booking.serviceId) return;
-    const fd = new FormData();
-    fd.set("id", booking.id);
-    fd.set("serviceId", serviceSel);
-    start(async () => {
-      const res = await changeBookingServiceAction(fd);
       if (!res.ok) setError(res.message);
       else { refresh(); onClose(); }
     });
@@ -213,20 +158,12 @@ function BookingModal({
   }
 
   const isCancelled = booking.status === "cancelled";
-  const isPendingPayment = booking.status === "pending_payment";
   const isPast = new Date(booking.startsAt).getTime() < Date.now();
 
   return (
-    <div
-      className="fixed inset-0 z-[400] flex items-stretch justify-center bg-black/70 sm:items-start sm:px-4 sm:pb-4 sm:pt-[72px]"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="flex w-full max-h-[100dvh] flex-col border-zinc-800 bg-zinc-950 shadow-2xl sm:max-w-md sm:max-h-[calc(100dvh-88px)] sm:rounded-2xl sm:border"
-        style={{
-          paddingTop: "env(safe-area-inset-top)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -237,13 +174,7 @@ function BookingModal({
               <h2 className="mt-0.5 truncate text-lg font-semibold text-zinc-100">{booking.customerName}</h2>
               <p className="mt-0.5 font-mono text-xs text-zinc-500">{booking.customerPhone}</p>
             </div>
-            <button
-              onClick={onClose}
-              aria-label="Zamknij"
-              className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-2xl leading-none text-zinc-500"
-            >
-              ×
-            </button>
+            <button onClick={onClose} className="shrink-0 text-2xl leading-none text-zinc-600 hover:text-zinc-300">×</button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-mono text-zinc-300">{formatWarsawDate(booking.startsAt)} · {formatWarsawTime(booking.startsAt)}–{formatWarsawTime(booking.endsAt)}</span>
@@ -255,27 +186,24 @@ function BookingModal({
               <span className="text-xs text-zinc-500">{booking.staffName}</span>
             </div>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <StatusBadge status={booking.status} />
-            {booking.paymentStatus === "paid" && <StatusBadge status="paid" />}
-            {booking.paymentStatus === "refunded" && <StatusBadge status="refunded" />}
-          </div>
+          {isCancelled && (
+            <p className="mt-2 inline-block rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-400">Anulowana</p>
+          )}
         </div>
 
         {/* Tabs */}
-        {!isCancelled && !isPendingPayment && (
+        {!isCancelled && (
           <div className="flex gap-0.5 border-b border-zinc-800 bg-zinc-900/40 px-2 py-1.5 text-xs">
             {([
               ["info", "Notatki"],
               ["reschedule", "Przełóż"],
-              ["service", "Usługa"],
               ["reassign", "Pracownik"],
               ["cancel", "Anuluj"],
             ] as [Tab, string][]).map(([k, label]) => (
               <button
                 key={k}
                 type="button"
-                onClick={() => switchTab(k)}
+                onClick={() => { setTab(k); setError(null); }}
                 className={`flex-1 rounded px-2 py-1.5 transition-colors ${
                   tab === k ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
                 }`}
@@ -286,11 +214,11 @@ function BookingModal({
           </div>
         )}
 
-        {/* Body — flex-1 so it fills remaining height and scrolls */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 text-sm">
+        {/* Body */}
+        <div className="px-5 py-4 text-sm">
           {error && <p className="mb-3 rounded-md border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
-          {(isCancelled || isPendingPayment || tab === "info") && (
+          {(isCancelled || tab === "info") && (
             <div className="space-y-3">
               <label className="block text-xs uppercase tracking-wider text-zinc-500">Notatki</label>
               <textarea
@@ -301,7 +229,7 @@ function BookingModal({
                 placeholder="Dodaj uwagi do rezerwacji…"
                 className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60"
               />
-              {!isCancelled && !isPendingPayment && (
+              {!isCancelled && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   {isPast && (
                     <button
@@ -326,109 +254,43 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && !isPendingPayment && tab === "reschedule" && (
-            <div className="space-y-4">
-              <p className="text-xs text-zinc-500">Wybierz nowy termin. Czas trwania pozostaje bez zmian.</p>
-
-              {rescheduleLoading && (
-                <p className="text-sm text-zinc-500">Ładowanie kalendarza…</p>
-              )}
-
-              {!booking.serviceId && !rescheduleLoading && (
-                <p className="text-sm text-zinc-400">Nie można załadować terminów — brak przypisanej usługi.</p>
-              )}
-
-              {rescheduleSetup && (
-                <>
-                  <CalendarPicker
-                    days={rescheduleSetup.days}
-                    selectedDate={rescheduleDate}
-                    onPick={pickRescheduleDate}
-                    today={rescheduleSetup.today}
-                  />
-
-                  <div>
-                    {slotsLoading ? (
-                      <p className="text-sm text-zinc-500">Ładowanie godzin…</p>
-                    ) : rescheduleSlots.length === 0 ? (
-                      <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-3 text-sm text-zinc-400">
-                        Brak wolnych terminów tego dnia.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                        {rescheduleSlots.map((s) => {
-                          const isSelected = s.startsAtIso === rescheduleSelectedSlot?.startsAtIso;
-                          return (
-                            <button
-                              key={s.startsAtIso}
-                              type="button"
-                              onClick={() => setRescheduleSelectedSlot(s)}
-                              className={`rounded-md border py-3 font-mono text-sm transition-colors ${
-                                isSelected
-                                  ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-zinc-950 font-semibold"
-                                  : "border-zinc-800 bg-zinc-900/40 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
-                              }`}
-                            >
-                              {s.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {rescheduleSelectedSlot && (
-                    <p className="text-xs text-zinc-400">
-                      Wybrany termin:{" "}
-                      <span className="font-medium text-zinc-200">
-                        {formatWarsawDate(rescheduleSelectedSlot.startsAtIso)}, {formatWarsawTime(rescheduleSelectedSlot.startsAtIso)}
-                      </span>
-                    </p>
-                  )}
-
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleReschedule}
-                      disabled={pending || !rescheduleSelectedSlot}
-                      className="rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
-                    >
-                      {pending ? "…" : "Przełóż"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {!isCancelled && !isPendingPayment && tab === "service" && (
+          {!isCancelled && tab === "reschedule" && (
             <div className="space-y-3">
-              <p className="text-xs text-zinc-500">Zmień usługę. Czas trwania zostanie dopasowany — jeśli nowa usługa jest dłuższa i koliduje z inną rezerwacją, zobaczysz błąd.</p>
-              <select
-                value={serviceSel}
-                onChange={(e) => setServiceSel(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-              >
-                {allServices.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} · {s.duration_min} min · {s.price_pln} zł
-                  </option>
-                ))}
-              </select>
+              <p className="text-xs text-zinc-500">Wybierz nowy termin. Czas trwania pozostaje bez zmian.</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs text-zinc-500">Data</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs text-zinc-500">Godzina</label>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  />
+                </div>
+              </div>
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={handleChangeService}
-                  disabled={pending || !serviceSel || serviceSel === booking.serviceId}
+                  onClick={handleReschedule}
+                  disabled={pending}
                   className="rounded-full bg-[var(--color-accent)] px-4 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
                 >
-                  {pending ? "…" : "Zmień usługę"}
+                  {pending ? "…" : "Przełóż"}
                 </button>
               </div>
             </div>
           )}
 
-          {!isCancelled && !isPendingPayment && tab === "reassign" && (
+          {!isCancelled && tab === "reassign" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-500">Przepisz rezerwację na innego pracownika.</p>
               <select
@@ -454,7 +316,7 @@ function BookingModal({
             </div>
           )}
 
-          {!isCancelled && !isPendingPayment && tab === "cancel" && (
+          {!isCancelled && tab === "cancel" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-400">Anulowanie wyśle e-mail do klienta (jeśli ma adres).</p>
               <div>
@@ -472,7 +334,7 @@ function BookingModal({
                   type="button"
                   onClick={handleCancel}
                   disabled={pending}
-                  className="rounded-full bg-red-700 px-4 py-1 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                  className="rounded-full bg-red-700 px-4 py-1 text-xs font-medium text-zinc-100 hover:bg-red-600 disabled:opacity-50"
                 >
                   {pending ? "…" : "Anuluj rezerwację"}
                 </button>

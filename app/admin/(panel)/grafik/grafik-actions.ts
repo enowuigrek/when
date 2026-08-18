@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { upsertOneDaySchedule, addStaffTimeOff, deleteStaffTimeOff } from "@/lib/db/staff-schedule";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAdminTenantId } from "@/lib/tenant";
 import { warsawDayBoundsUtc } from "@/lib/slots";
 import type { BookingForModal } from "@/components/booking-management-modal";
 
@@ -52,11 +51,9 @@ export async function addTimeOffFromGrafikAction(
   const startIso = warsawDayBoundsUtc(startDate).startIso;
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
     .select("*, service:services(name), staff:staff(name, color)")
-    .eq("tenant_id", tenantId)
     .eq("staff_id", staffId)
     .eq("status", "confirmed")
     .gte("starts_at", startIso)
@@ -65,7 +62,7 @@ export async function addTimeOffFromGrafikAction(
 
   type Row = {
     id: string; starts_at: string; ends_at: string; customer_name: string; customer_phone: string;
-    notes: string | null; staff_id: string | null; service_id: string | null; status: "confirmed";
+    notes: string | null; staff_id: string | null; status: "confirmed";
     service: { name: string } | null; staff: { name: string; color: string } | null;
   };
   const conflicts: BookingForModal[] = ((data ?? []) as unknown as Row[]).map((b) => ({
@@ -74,14 +71,12 @@ export async function addTimeOffFromGrafikAction(
     endsAt: b.ends_at,
     customerName: b.customer_name,
     customerPhone: b.customer_phone,
-    serviceId: b.service_id,
     serviceName: b.service?.name ?? null,
     staffId: b.staff_id,
     staffName: b.staff?.name ?? null,
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
     status: b.status,
-    paymentStatus: null,
   }));
 
   revalidatePath("/admin/grafik");

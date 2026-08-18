@@ -1,7 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAdminTenantId } from "@/lib/tenant";
-import type { BookingStatus } from "@/lib/types";
 
 /**
  * Fetch confirmed bookings overlapping a UTC instant range.
@@ -13,12 +11,10 @@ export async function getBookingsInRange(
   staffId?: string,
   excludeBookingId?: string
 ): Promise<{ startsAtIso: string; endsAtIso: string }[]> {
-  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   let query = supabase
     .from("bookings")
     .select("starts_at, ends_at")
-    .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);
@@ -50,8 +46,6 @@ export type CreateBookingInput = {
   staffId?: string | null;
   pricePlnSnapshot?: number | null;
   durationMinSnapshot?: number | null;
-  /** Override initial status. Defaults to "confirmed". Use "pending_payment" for Tpay flow. */
-  status?: BookingStatus;
 };
 
 export type CreateBookingResult =
@@ -61,12 +55,10 @@ export type CreateBookingResult =
 export async function createBooking(
   input: CreateBookingInput
 ): Promise<CreateBookingResult> {
-  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("bookings")
     .insert({
-      tenant_id: tenantId,
       service_id: input.serviceId,
       customer_name: input.customerName,
       customer_phone: input.customerPhone,
@@ -74,7 +66,7 @@ export async function createBooking(
       starts_at: input.startsAtIso,
       ends_at: input.endsAtIso,
       notes: input.notes,
-      status: input.status ?? "confirmed",
+      status: "confirmed",
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
@@ -83,6 +75,7 @@ export async function createBooking(
     .single();
 
   if (error) {
+    // 23P01 = exclusion_violation (overlap constraint)
     if (error.code === "23P01") {
       return {
         ok: false,
@@ -104,8 +97,7 @@ export type BookingWithService = {
   customer_email: string | null;
   starts_at: string;
   ends_at: string;
-  status: BookingStatus;
-  payment_status: "pending" | "paid" | "refunded" | null;
+  status: "confirmed" | "cancelled" | "completed" | "no_show";
   notes: string | null;
   created_at: string;
   staff_id: string | null;
@@ -119,11 +111,10 @@ export async function getBookingsBetween(
   startIso: string,
   endIso: string
 ): Promise<BookingWithService[]> {
-  const tenantId = await getAdminTenantId();
-  const { data, error } = await createAdminClient()
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
     .from("bookings")
     .select("*, service:services(name, duration_min, price_pln), staff:staff(name, color)")
-    .eq("tenant_id", tenantId)
     .gte("starts_at", startIso)
     .lt("starts_at", endIso)
     .order("starts_at", { ascending: true });
@@ -132,33 +123,13 @@ export async function getBookingsBetween(
   return (data ?? []) as BookingWithService[];
 }
 
-/** Count confirmed bookings for a group service in a given time window (capacity check). */
-export async function getGroupBookingCount(
-  serviceId: string,
-  startsAtIso: string,
-  endsAtIso: string
-): Promise<number> {
-  const tenantId = await getAdminTenantId();
-  const { count } = await createAdminClient()
-    .from("bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .eq("service_id", serviceId)
-    .eq("status", "confirmed")
-    .lt("starts_at", endsAtIso)
-    .gt("ends_at", startsAtIso);
-  return count ?? 0;
-}
-
 export async function getBusyStaffIds(
   startIso: string,
   endIso: string
 ): Promise<string[]> {
-  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
     .select("staff_id")
-    .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
     .not("staff_id", "is", null)
     .lt("starts_at", endIso)
@@ -167,15 +138,13 @@ export async function getBusyStaffIds(
 }
 
 export async function getBookingById(id: string) {
-  const tenantId = await getAdminTenantId();
-  const { data, error } = await createAdminClient()
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
     .from("bookings")
     .select("*, service:services(name, slug, duration_min, price_pln)")
-    .eq("tenant_id", tenantId)
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw new Error(`Failed to load booking: ${error.message}`);
   return data;
 }
-

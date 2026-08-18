@@ -3,10 +3,9 @@ import Link from "next/link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { getActiveStaff } from "@/lib/db/staff";
-import { getServices } from "@/lib/db/services";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { CustomerActions } from "./customer-actions";
-import { BookingManagementButton, type ServiceOption } from "@/components/booking-management-modal";
+import { BookingManagementButton } from "@/components/booking-management-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 export const metadata = { title: "Profil klienta", robots: { index: false } };
@@ -21,14 +20,10 @@ export default async function CustomerProfilePage({ params }: { params: Params }
   const customer = all.find((c) => c.id === id);
   if (!customer) notFound();
 
-  const [stats, allStaff, allServicesRaw] = await Promise.all([
+  const [stats, allStaff] = await Promise.all([
     getCustomerStats(customer.phone),
     getActiveStaff(),
-    getServices(),
   ]);
-  const allServices: ServiceOption[] = allServicesRaw.map((s) => ({
-    id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln,
-  }));
   const now = new Date().toISOString();
 
   const upcoming = stats.bookings.filter((b) => (b.status === "confirmed") && b.starts_at >= now);
@@ -107,7 +102,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">Nadchodzące</h2>
           <ul className="space-y-2">
             {upcoming.map((b) => (
-              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} allServices={allServices} />
+              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} />
             ))}
           </ul>
         </div>
@@ -121,7 +116,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
         ) : (
           <ul className="space-y-2">
             {past.map((b) => (
-              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} allServices={allServices} />
+              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} />
             ))}
           </ul>
         )}
@@ -155,13 +150,11 @@ function BookingItem({
   badge,
   customer,
   allStaff,
-  allServices,
 }: {
   b: CustomerBooking;
   badge: React.ReactNode;
   customer: { name: string; phone: string };
   allStaff: { id: string; name: string; color: string }[];
-  allServices: ServiceOption[];
 }) {
   const status = (b.status === "confirmed" || b.status === "cancelled" || b.status === "completed" || b.status === "no_show")
     ? b.status
@@ -175,17 +168,14 @@ function BookingItem({
           endsAt: b.ends_at,
           customerName: customer.name,
           customerPhone: customer.phone,
-          serviceId: b.service_id,
           serviceName: b.service?.name ?? null,
           staffId: b.staff_id,
           staffName: b.staff?.name ?? null,
           staffColor: b.staff?.color ?? null,
           notes: b.notes,
           status,
-          paymentStatus: (b as { payment_status?: string | null }).payment_status as "pending" | "paid" | "refunded" | null ?? null,
         }}
         allStaff={allStaff}
-        allServices={allServices}
         className="flex w-full items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 px-4 py-3 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900/50"
       >
         <div className="shrink-0 text-right">
@@ -205,7 +195,7 @@ function BookingItem({
           )}
         </div>
         {b.service && (
-          <span className="shrink-0 font-mono text-sm text-zinc-400">{b.price_pln_snapshot ?? b.service.price_pln} zł</span>
+          <span className="shrink-0 font-mono text-sm text-zinc-400">{b.service.price_pln} zł</span>
         )}
       </BookingManagementButton>
     </li>

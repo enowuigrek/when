@@ -36,15 +36,6 @@ export async function GET(req: Request) {
   const dayStart = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEnd = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
 
-  if (service.is_group && service.max_participants) {
-    const existing = await getBookingsInRangeForTenant(dayStart, dayEnd, tenantId);
-    const slots = computeAvailableSlots(
-      dateStr, service.duration_min, hours, existing,
-      settings.slot_granularity_min, 1, true, service.max_participants
-    );
-    return NextResponse.json({ ok: true, slots });
-  }
-
   const availMap = await getStaffAvailabilityMapForTenant(activeStaff.map((s) => s.id), dateStr, tenantId);
 
   if (staffId) {

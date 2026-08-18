@@ -8,20 +8,22 @@ import { BookingManagementButton, type BookingForModal } from "@/components/book
 import type { BookingWithService } from "@/lib/db/bookings";
 
 function toModalBooking(b: BookingWithService): BookingForModal {
+  const status = (
+    b.status === "confirmed" || b.status === "cancelled" ||
+    b.status === "completed" || b.status === "no_show"
+  ) ? b.status : "confirmed";
   return {
     id: b.id,
     startsAt: b.starts_at,
     endsAt: b.ends_at,
     customerName: b.customer_name,
     customerPhone: b.customer_phone,
-    serviceId: b.service_id ?? null,
     serviceName: b.service?.name ?? null,
     staffId: b.staff_id,
     staffName: b.staff?.name ?? null,
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
-    status: b.status,
-    paymentStatus: b.payment_status ?? null,
+    status,
   };
 }
 import {

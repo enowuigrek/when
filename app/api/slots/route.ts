@@ -34,16 +34,6 @@ export async function GET(req: Request) {
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
 
-  // Group class: capacity-based slots
-  if (service.is_group && service.max_participants) {
-    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
-    const slots = computeAvailableSlots(
-      dateStr, service.duration_min, hours, existing,
-      settings.slot_granularity_min, 1, true, service.max_participants
-    );
-    return NextResponse.json({ ok: true, slots });
-  }
-
   const availMap = await getStaffAvailabilityMapForTenant(
     activeStaff.map((s) => s.id),
     dateStr,

@@ -200,21 +200,6 @@ export function BookingFlow({
                   }`}
                 >
                   <span className={`block font-mono text-sm ${isTaken && isGroup ? "line-through" : ""}`}>{s.label}</span>
-                  {isGroup && s.maxParticipants != null && (
-                    <span className={`mt-0.5 block text-xs ${
-                      isTaken
-                        ? "text-zinc-700"
-                        : isSelected
-                        ? "text-zinc-800"
-                        : s.spotsLeft != null && s.spotsLeft <= 3
-                        ? "text-amber-400"
-                        : "text-zinc-500"
-                    }`}>
-                      {isTaken
-                        ? "brak miejsc"
-                        : `${s.spotsLeft}/${s.maxParticipants} miejsc`}
-                    </span>
-                  )}
                 </button>
               );
             })}
