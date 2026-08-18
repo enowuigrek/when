@@ -220,7 +220,9 @@ export default async function HarmonogramPage({
             <Link
               key={v}
               href={navUrl(v, baseDate)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              // Same type size as the filter chips beside it — the box was
+              // already the same height, but text-xs made it read as smaller.
+              className={`rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
                 view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
@@ -373,8 +375,15 @@ function DayView({
 
   const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
 
-  /** Height of one 30-minute row, in px. Bookings are sized against this. */
-  const ROW_H = 36;
+  /**
+   * Height of one 30-minute row, in px. Bookings are sized against this.
+   *
+   * 52 rather than 36 so the shortest common booking — half an hour — still
+   * has room for time, name and service, the same three lines a longer one
+   * gets. At 36 a half-hour block was 30px, which fitted two lines only by
+   * putting the name beside the time and dropping the service entirely.
+   */
+  const ROW_H = 52;
 
   /**
    * Where each booking sits in the grid.
