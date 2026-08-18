@@ -207,49 +207,27 @@ export default async function HarmonogramPage({
           <p className="mt-1 text-sm text-zinc-500">{periodLabel}</p>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
-          <div className="flex items-center gap-1 self-start rounded-lg border border-zinc-800 p-1 sm:self-auto">
-            {(["dzien", "tydzien"] as View[]).map((v) => (
-              <Link
-                key={v}
-                href={navUrl(v, baseDate)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                {v === "dzien" ? "Dzień" : "Tydzień"}
-              </Link>
-            ))}
-          </div>
-
-        </div>
       </div>
 
-      {/* Two columns from lg up. The calendar used to sit in the header, which
-          left ~300px of dead space beside it and pushed the schedule past the
-          half-way line of the screen — on a page that is now the panel's
-          landing page. In a rail it costs the table some width, which it can
-          afford since it scrolls sideways anyway, and buys back the vertical. */}
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
-        <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
-          <ScheduleDatePicker
-            view={view}
-            today={today}
-            baseDate={baseDate}
-            weekStart={mondayOf(baseDate)}
-            todayWeekStart={mondayOf(today)}
-            dayHref={dayHrefMap}
-            weekHref={weekHrefMap}
-            todayHref={navUrl(view, today)}
-            badges={dayCounts}
-            days={calendarDays}
-          />
-          <div className="hidden lg:block">
-            <DaySummary bookings={active} view={view} now={new Date().toISOString()} />
-          </div>
-        </aside>
-
-        <div className="min-w-0 lg:order-1 lg:flex-1">
+      {/* View switcher and the staff filter share one line, and this row sits
+          above the split — so the calendar in the rail and the grid below it
+          start from the same edge instead of the rail floating higher by the
+          height of this row. The switcher stays visible on phones even though
+          the filter does not. */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-zinc-800 p-1">
+          {(["dzien", "tydzien"] as View[]).map((v) => (
+            <Link
+              key={v}
+              href={navUrl(v, baseDate)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {v === "dzien" ? "Dzień" : "Tydzień"}
+            </Link>
+          ))}
+        </div>
 
       {/*
         One row of toggles, replacing the old filter chips + a second row of
@@ -270,7 +248,7 @@ export default async function HarmonogramPage({
       */}
       {allStaff.length > 1 && (
         <div
-          className="mt-5 hidden items-center gap-2 overflow-x-auto pb-1 sm:flex sm:flex-wrap sm:overflow-x-visible sm:pb-0"
+          className="hidden items-center gap-2 sm:flex sm:flex-wrap"
           style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
         >
           <Link
@@ -315,8 +293,38 @@ export default async function HarmonogramPage({
           })}
         </div>
       )}
+      </div>
 
-          <div className="mt-6">
+      {/* Two columns from lg up. The calendar used to sit in the header, which
+          left ~300px of dead space beside it and pushed the schedule past the
+          half-way line of the screen — on a page that is now the panel's
+          landing page. In a rail it costs the table some width, which it can
+          afford since it scrolls sideways anyway, and buys back the vertical. */}
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
+        <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
+          <ScheduleDatePicker
+            view={view}
+            today={today}
+            baseDate={baseDate}
+            weekStart={mondayOf(baseDate)}
+            todayWeekStart={mondayOf(today)}
+            dayHref={dayHrefMap}
+            weekHref={weekHrefMap}
+            todayHref={navUrl(view, today)}
+            badges={dayCounts}
+            days={calendarDays}
+          />
+          <div className="hidden lg:block">
+            <DaySummary bookings={active} view={view} now={new Date().toISOString()} />
+          </div>
+        </aside>
+
+        <div className="min-w-0 lg:order-1 lg:flex-1">
+
+
+          {/* No top margin: the filter row moved above the split, so the grid
+              starts flush with the rail beside it. */}
+          <div>
             {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
             {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
           </div>
