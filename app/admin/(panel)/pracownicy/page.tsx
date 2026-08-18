@@ -2,8 +2,6 @@ import { AdminLink } from "@/components/admin-link";
 import { getAllStaff } from "@/lib/db/staff";
 import { toggleStaffActiveAction } from "./actions";
 import { DeleteStaffButton } from "./delete-button";
-import { Button, buttonClasses } from "@/components/ui/button";
-import { StaffAvatar } from "@/components/ui/staff-avatar";
 
 export const metadata = { title: "Pracownicy", robots: { index: false } };
 
@@ -22,13 +20,13 @@ export default async function PracownicyPage() {
         <div className="flex items-center gap-2">
           <AdminLink
             href="/admin/pracownicy/grupy"
-            className={buttonClasses({ variant: "secondary", size: "md", radius: "full" })}
+            className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
           >
             Grupy
           </AdminLink>
           <AdminLink
             href="/admin/pracownicy/nowy"
-            className={buttonClasses({ variant: "primary", size: "md", radius: "full" })}
+            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             <span className="hidden sm:inline">+ Dodaj</span>
             <span className="sm:hidden">+</span>
@@ -47,7 +45,10 @@ export default async function PracownicyPage() {
                 s.active ? "" : "opacity-50"
               }`}
             >
-              <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={40} />
+              <div
+                className="h-10 w-10 shrink-0 rounded-full"
+                style={{ backgroundColor: s.color }}
+              />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-zinc-100">{s.name}</p>
                 {s.bio && (
@@ -60,16 +61,19 @@ export default async function PracownicyPage() {
               <div className="flex items-center gap-2">
                 <AdminLink
                   href={`/admin/pracownicy/${s.id}`}
-                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                  className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
                 >
                   Edytuj
                 </AdminLink>
                 <form action={toggleStaffActiveAction}>
                   <input type="hidden" name="id" value={s.id} />
                   <input type="hidden" name="active" value={String(s.active)} />
-                  <Button type="submit" variant="secondary" size="sm">
+                  <button
+                    type="submit"
+                    className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+                  >
                     {s.active ? "Ukryj" : "Aktywuj"}
-                  </Button>
+                  </button>
                 </form>
                 <DeleteStaffButton id={s.id} name={s.name} />
               </div>
