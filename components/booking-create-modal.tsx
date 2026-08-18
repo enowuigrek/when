@@ -148,7 +148,15 @@ function NewBookingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div
+      // Anchored to the top, not centred. A centred dialog moves its own header
+      // and buttons whenever the body changes height — switching tabs, or the
+      // customer suggestions opening — so parts that did not change appear to
+      // drift. Pinned at the top it can only grow downwards.
+      className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4"
+      style={{ paddingTop: "6vh", paddingBottom: "4vh" }}
+      onClick={onClose}
+    >
       <div
         // maxHeight inline, not an arbitrary Tailwind class — those are not
         // reliably generated in this project.

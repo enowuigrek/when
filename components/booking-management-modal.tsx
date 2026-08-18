@@ -169,7 +169,15 @@ function BookingModal({
   const isPast = new Date(booking.startsAt).getTime() < Date.now();
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div
+      // Anchored to the top, not centred. A centred dialog moves its own header
+      // and buttons whenever the body changes height — switching tabs, or the
+      // customer suggestions opening — so parts that did not change appear to
+      // drift. Pinned at the top it can only grow downwards.
+      className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4"
+      style={{ paddingTop: "6vh", paddingBottom: "4vh" }}
+      onClick={onClose}
+    >
       <div
         className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
         style={{ maxHeight: "90vh" }}
