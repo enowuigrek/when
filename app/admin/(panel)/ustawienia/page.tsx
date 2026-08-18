@@ -21,7 +21,9 @@ export default async function UstawieniaPage() {
     getAdminTenantSlug(),
     getAdminTenantKind(),
   ]);
-  const isDemo = tenantKind === "demo";
+  // Trials hide the same sections as demos: the in-panel bell is the only
+  // notification channel before a prospect converts — no push, no owner email.
+  const isDemo = tenantKind === "demo" || tenantKind === "trial";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">

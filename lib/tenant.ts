@@ -16,10 +16,21 @@ const DEMO_COOKIE = "when_demo";
 const DEMO_MAX_AGE_S = 60 * 60 * 24; // 24h, matches demo expires_at
 
 /**
- * Resolves a demo tenant id from a slug supplied via URL (`/demo/{slug}`).
- * Validates against the DB so stale or guessed slugs can't impersonate an
- * existing real tenant. Returns null when the tenant doesn't exist, isn't
- * a demo, or has expired.
+ * Kinds reachable through a `/demo/{slug}` URL, where the slug itself is the
+ * credential — anyone holding the link gets the panel, there is no login.
+ *
+ *   demo  — throwaway from the landing page, deleted 24h after expires_at
+ *   trial — account pre-provisioned for a named prospect; never auto-deleted
+ *           (the cleanup cron filters on kind='demo'), so it is safe to hold
+ *           real bookings if the prospect starts using it before paying
+ */
+const URL_ADDRESSABLE_KINDS = new Set(["demo", "trial"]);
+
+/**
+ * Resolves a demo or trial tenant id from a slug supplied via URL
+ * (`/demo/{slug}`). Validates against the DB so stale or guessed slugs can't
+ * impersonate an existing real tenant. Returns null when the tenant doesn't
+ * exist, isn't URL-addressable, or has expired.
  */
 export async function getDemoTenantIdBySlug(slug: string): Promise<string | null> {
   if (!slug || !/^[a-z0-9-]+$/i.test(slug)) return null;
@@ -28,7 +39,7 @@ export async function getDemoTenantIdBySlug(slug: string): Promise<string | null
     .select("id, expires_at, kind")
     .eq("slug", slug)
     .maybeSingle();
-  if (!data || data.kind !== "demo") return null;
+  if (!data || !URL_ADDRESSABLE_KINDS.has(data.kind as string)) return null;
   if (data.expires_at && new Date(data.expires_at as string).getTime() < Date.now()) return null;
   return data.id as string;
 }
@@ -107,14 +118,16 @@ export async function getAdminTenantSlug(): Promise<string> {
   return (data?.slug as string | undefined) ?? "main";
 }
 
-export async function getAdminTenantKind(): Promise<"main" | "demo" | "customer"> {
+export type TenantKind = "main" | "demo" | "trial" | "customer";
+
+export async function getAdminTenantKind(): Promise<TenantKind> {
   const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("tenants")
     .select("kind")
     .eq("id", tenantId)
     .maybeSingle();
-  return (data?.kind as "main" | "demo" | "customer" | undefined) ?? "main";
+  return (data?.kind as TenantKind | undefined) ?? "main";
 }
 
 export async function clearDemoCookie() {

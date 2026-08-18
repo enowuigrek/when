@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
 type EventType = "created" | "rescheduled" | "cancelled";
@@ -32,7 +32,10 @@ type NotifItem = {
 
 type Toast = NotifItem;
 
-const POLL_MS = 30_000;
+// Short enough that a booking shows up while someone is watching the panel on
+// a second screen (where no focus event fires). Payload is a cursor-scoped
+// delta, usually empty, so the extra ticks are cheap.
+const POLL_MS = 10_000;
 
 function notifsKey(tenantId: string) { return `when_admin_notifs_v3_${tenantId}`; }
 function cursorKey(tenantId: string) { return `when_admin_cursor_v1_${tenantId}`; }
@@ -103,21 +106,28 @@ export function AdminNotificationBell({
   sidebarExpanded?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
   const initialLoad = useRef(true);
   const cursorRef = useRef<string | null>(null);
 
+  // In a demo/trial panel the request must carry the slug: this fetch doesn't
+  // go through the /demo rewrite, so the server has no other way to tell which
+  // tenant we are and would default to the real one.
+  const demoSlug = pathname.match(/^\/demo\/([^/]+)/)?.[1] ?? null;
+
   const unread = items.filter((i) => !i.read).length;
 
   const poll = useCallback(async () => {
     try {
       const since = cursorRef.current;
-      const url = since
-        ? `/api/admin/notifications?since=${encodeURIComponent(since)}`
-        : "/api/admin/notifications";
-      const res = await fetch(url);
+      const params = new URLSearchParams();
+      if (since) params.set("since", since);
+      if (demoSlug) params.set("demo", demoSlug);
+      const qs = params.toString();
+      const res = await fetch(`/api/admin/notifications${qs ? `?${qs}` : ""}`);
       if (!res.ok) return;
       const { events } = await res.json() as { events: RawEvent[] };
       if (events.length === 0) { initialLoad.current = false; return; }
@@ -161,7 +171,7 @@ export function AdminNotificationBell({
         return merged;
       });
     } catch { /* network error */ }
-  }, [tenantId]);
+  }, [tenantId, demoSlug]);
 
   useEffect(() => {
     cursorRef.current = loadCursor(tenantId);
@@ -170,6 +180,21 @@ export function AdminNotificationBell({
     const interval = setInterval(poll, POLL_MS);
     return () => clearInterval(interval);
   }, [poll, tenantId]);
+
+  // Refetch the moment the panel is looked at again. The common flow is
+  // booking on the phone (or another tab) and switching straight back — the
+  // 30 s tick would leave the panel looking empty exactly then.
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") poll();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", poll);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", poll);
+    };
+  }, [poll]);
 
   // Auto-dismiss toasts after 5 s
   useEffect(() => {

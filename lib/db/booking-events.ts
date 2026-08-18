@@ -42,7 +42,24 @@ export async function recordBookingEvent(input: {
 }
 
 export async function getRecentBookingEvents(limit = 30, sinceHours = 48, sinceIso?: string): Promise<BookingEvent[]> {
-  const tenantId = await getAdminTenantId();
+  return getRecentBookingEventsForTenant(await getAdminTenantId(), limit, sinceHours, sinceIso);
+}
+
+/**
+ * Same as `getRecentBookingEvents` but for an explicitly resolved tenant.
+ *
+ * The notification bell polls from the browser, and that request never passes
+ * through the `/demo/{slug}` rewrite — so `x-demo-slug` is absent and
+ * `getAdminTenantId()` would silently fall back to MAIN_TENANT_ID. Callers
+ * serving a demo/trial panel must resolve the tenant themselves (validating
+ * the slug) and pass it here.
+ */
+export async function getRecentBookingEventsForTenant(
+  tenantId: string,
+  limit = 30,
+  sinceHours = 48,
+  sinceIso?: string
+): Promise<BookingEvent[]> {
   const since = sinceIso ?? new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
   const { data, error } = await createAdminClient()
     .from("booking_events")
