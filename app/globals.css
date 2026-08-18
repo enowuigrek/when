@@ -378,3 +378,12 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .glow-card::before { transition: none; }
 }
+
+/* The page never scrolls sideways. Wide content — the schedule table with a
+   column per staff member — scrolls inside its own container; when it leaked
+   past that, the document scrolled instead and slid the sidebar off-screen,
+   with a range that changed depending on whether the sidebar was expanded. */
+html,
+body {
+  overflow-x: hidden;
+}

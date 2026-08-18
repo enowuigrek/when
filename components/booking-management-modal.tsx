@@ -82,7 +82,15 @@ function BookingModal({
       if (e.key === "Escape") onClose();
     }
     document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
+
+    // Freeze the page behind the dialog — see booking-create-modal.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", h);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [onClose]);
 
   function refresh() {
@@ -163,7 +171,8 @@ function BookingModal({
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl"
+        style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -215,7 +224,7 @@ function BookingModal({
         )}
 
         {/* Body */}
-        <div className="px-5 py-4 text-sm">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm">
           {error && <p className="mb-3 rounded-md border border-red-900/50 bg-red-900/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
           {(isCancelled || tab === "info") && (
