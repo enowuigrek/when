@@ -6,6 +6,7 @@ import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { DayStaffCarousel } from "./day-staff-carousel";
+import { WeekViewport } from "./week-viewport";
 import { ScheduleDatePicker } from "./schedule-date-picker";
 import { DaySummary } from "./day-summary";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
@@ -585,7 +586,7 @@ function WeekView({
   }
 
   return (
-    <div className="schedule-viewport overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+    <WeekViewport>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"
@@ -664,7 +665,7 @@ function WeekView({
           })}
         </tbody>
       </table>
-    </div>
+    </WeekViewport>
   );
 }
 

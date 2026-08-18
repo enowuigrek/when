@@ -217,12 +217,6 @@ body {
    Left alone below `lg` on purpose — nesting a vertical scroll inside a page
    scroll is awkward with a thumb, and the day view there is already a
    horizontal carousel. */
-@media (min-width: 1024px) {
-  .schedule-viewport {
-    max-height: calc(100vh - 14rem);
-    overflow-y: auto;
-  }
-}
 
 /* macOS hides overlay scrollbars until they move, so the only hint that the
    grid scrolls sideways was the gesture itself — no help on Windows, or to

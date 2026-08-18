@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useViewportFit } from "./use-viewport-fit";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -42,6 +43,7 @@ export function DayStaffCarousel({
   const [mobile, setMobile] = useState(false);
   const [colW, setColW] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(staff[0]?.id ?? null);
+  const fitH = useViewportFit(scrollRef);
 
   const measure = useCallback(() => {
     const el = scrollRef.current;
@@ -132,6 +134,8 @@ export function DayStaffCarousel({
           {
             scrollbarWidth: "thin",
             scrollbarColor: "#3f3f46 transparent",
+            maxHeight: fitH,
+            overflowY: fitH ? "auto" : undefined,
             scrollSnapType: mobile ? "x mandatory" : undefined,
             // Read by the table and its header cells; unset on desktop, where
             // the server-rendered widths apply as before.
