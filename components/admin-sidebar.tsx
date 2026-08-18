@@ -10,14 +10,6 @@ const STORAGE_KEY = "when_sidebar_expanded_v1";
 
 // ── Icons (18 × 18 inline SVG) ────────────────────────────────────────────
 
-function IcHome() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
 function IcCalendar() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -147,8 +139,10 @@ function rewriteAdminHref(href: string, demoSlug: string | null): string {
 
 type NavItem = { href: string; label: string; icon: React.ReactNode; exact?: boolean };
 
+// No Dashboard entry: that page was replaced by a redirect to the schedule,
+// so the item promised somewhere to go and then went somewhere else. The
+// schedule is the landing page now and carries the day's figures itself.
 const NAV_MAIN: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: <IcHome />, exact: true },
   { href: "/admin/harmonogram", label: "Harmonogram", icon: <IcCalendar /> },
   { href: "/admin/grafik", label: "Grafik", icon: <IcGrid /> },
 ];
