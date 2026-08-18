@@ -442,7 +442,7 @@ function DayView({
               // fault. z-20 keeps it above the absolutely positioned bookings.
               // Corner cell: frozen on both axes, so it must sit above both
               // the row gutter (z-20) and the header row (z-10).
-              className="sticky left-0 top-0 z-30 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="sticky left-0 top-0 z-30 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
               style={{ width: 64 }}
             >
               Godz.
@@ -451,7 +451,7 @@ function DayView({
               <th
                 key={s.id}
                 data-staff-id={s.id}
-                className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
                 // scrollMarginLeft keeps the snap point clear of the sticky
                 // hour gutter — without it the column lands underneath it.
                 style={{
@@ -476,13 +476,13 @@ function DayView({
               // it rendered as grey bars, and because later rows paint after
               // the row a booking starts in, those bars crossed the bookings
               // themselves. Dividing lines carry the rhythm on their own.
-              className="border-b border-zinc-800/30"
+              className="border-b border-dashed border-zinc-800/40"
             >
               <td
                 // One flat colour for the whole gutter rather than following
                 // the row stripes: any alpha at all lets a booking show through
                 // as it scrolls past.
-                className="sticky left-0 z-20 bg-zinc-950 px-3 py-1 align-top"
+                className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-3 py-1 align-top"
               >
                 <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
@@ -496,7 +496,7 @@ function DayView({
                 if (plan?.kind === "start") {
                   const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
                   return (
-                    <td key={s.id} rowSpan={plan.span} className="relative align-top">
+                    <td key={s.id} rowSpan={plan.span} className="relative border-r border-dashed border-zinc-800/40 align-top">
                       <div
                         className="absolute inset-x-2"
                         style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
@@ -516,7 +516,7 @@ function DayView({
                 }
 
                 return (
-                  <td key={s.id} className="relative p-0 align-top">
+                  <td key={s.id} className="relative border-r border-dashed border-zinc-800/40 p-0 align-top">
                     <NewBookingButton
                       services={services}
                       allStaff={allStaff}
@@ -599,13 +599,13 @@ function WeekView({
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th
-              className="sticky left-0 top-0 z-30 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="sticky left-0 top-0 z-30 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
               style={{ width: 112 }}
             >
               Dzień
             </th>
             {visibleStaff.map((s) => (
-              <th key={s.id} className="sticky top-0 z-10 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
+              <th key={s.id} className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
             {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>
@@ -618,8 +618,8 @@ function WeekView({
             const totalForDay = active.filter((b) => warsawDate(b.starts_at) === d).length;
 
             return (
-              <tr key={d} className="border-b border-zinc-800/60">
-                <td className="sticky left-0 z-20 bg-zinc-950 px-4 py-3 align-top">
+              <tr key={d} className="border-b border-dashed border-zinc-800/40">
+                <td className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-4 py-3 align-top">
                   <Link href={navUrl("dzien", d)} className="block hover:opacity-70">
                     <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>{dayLabels[dow]}</p>
                     <p className="font-mono text-xs text-zinc-600">{formatShortDate(d)}</p>
