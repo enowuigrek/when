@@ -642,36 +642,39 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
       ["Monika Zielińska",   "+48500100208", "monika@example.com"],
     ] as const;
 
+    // One booking per slot, each pinned to an instructor.
+    //
+    // This used to stack 40–75% of max_participants on a single slot with
+    // staff_id null, to look like a filled class. The exclusion constraint
+    // no_overlap_no_staff forbids that — two unassigned bookings may not
+    // share a range — so every joga demo shipped with an empty calendar.
+    // Per-slot capacity was removed in 410e545, so there is nothing to
+    // reinstate here; one booking per slot is what the schema supports.
     let custIdx = 0;
     for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
       const date = new Date(today);
       date.setDate(date.getDate() + dayOffset);
-      for (const hour of CLASS_HOURS) {
-        const sv = serviceList[(dayOffset * CLASS_HOURS.length + CLASS_HOURS.indexOf(hour)) % serviceList.length];
+      for (const [hourIdx, hour] of CLASS_HOURS.entries()) {
+        const sv = serviceList[(dayOffset * CLASS_HOURS.length + hourIdx) % serviceList.length];
         const meta = serviceMeta.get(sv.slug)!;
-        const maxSpots = meta.max_participants ?? 12;
-        // Fill 40–75% of spots
-        const spots = Math.max(2, Math.round(maxSpots * (0.4 + Math.random() * 0.35)));
+        const cust = GROUP_NAMES[custIdx % GROUP_NAMES.length];
+        custIdx++;
         const starts = new Date(date);
         starts.setHours(hour, 0, 0, 0);
-        const ends = new Date(starts.getTime() + meta.duration_min * 60_000);
-        for (let p = 0; p < spots; p++) {
-          const cust = GROUP_NAMES[custIdx % GROUP_NAMES.length];
-          custIdx++;
-          bookingRows.push({
-            tenant_id: tenantId,
-            service_id: sv.id,
-            staff_id: null, // group classes: no staff per booking
-            customer_name: cust[0],
-            customer_phone: cust[1],
-            customer_email: cust[2] ?? null,
-            starts_at: starts.toISOString(),
-            ends_at: ends.toISOString(),
-            status: "confirmed",
-            price_pln_snapshot: meta.price_pln,
-            duration_min_snapshot: meta.duration_min,
-          });
-        }
+        bookingRows.push({
+          tenant_id: tenantId,
+          service_id: sv.id,
+          // Rotate instructors so the week view shows every column in use.
+          staff_id: staffIds[custIdx % staffIds.length],
+          customer_name: cust[0],
+          customer_phone: cust[1],
+          customer_email: cust[2] ?? null,
+          starts_at: starts.toISOString(),
+          ends_at: new Date(starts.getTime() + meta.duration_min * 60_000).toISOString(),
+          status: "confirmed",
+          price_pln_snapshot: meta.price_pln,
+          duration_min_snapshot: meta.duration_min,
+        });
       }
     }
   } else {
@@ -710,5 +713,18 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
     }
   }
 
-  if (bookingRows.length) await supabase.from("bookings").insert(bookingRows);
+  if (bookingRows.length) {
+    const { error } = await supabase.from("bookings").insert(bookingRows);
+    // The insert is atomic, so one bad row empties the whole demo calendar.
+    // This went unnoticed for months on the joga variant: it stacked several
+    // participants on one slot with staff_id null, which the exclusion
+    // constraint no_overlap_no_staff rejects (23P01), and the demo shipped
+    // with an empty schedule. Never swallow this again.
+    if (error) {
+      console.error(
+        `[demo-seed] bookings insert failed for variant "${variant}" — the demo will have an empty calendar:`,
+        error.message
+      );
+    }
+  }
 }
