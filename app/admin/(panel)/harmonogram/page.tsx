@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { getBookingsBetween } from "@/lib/db/bookings";
+import { getBookingsBetween, getBookingCountsByDay } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { DayStaffCarousel } from "./day-staff-carousel";
+import { ScheduleDatePicker } from "./schedule-date-picker";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -40,7 +41,7 @@ import { dayLabels } from "@/lib/business";
 
 export const metadata = { title: "Harmonogram", robots: { index: false } };
 
-type View = "dzien" | "tydzien" | "miesiac";
+type View = "dzien" | "tydzien";
 
 function startOfMonth(dateStr: string): string {
   return dateStr.slice(0, 7) + "-01";
@@ -49,6 +50,13 @@ function startOfMonth(dateStr: string): string {
 function daysInMonth(dateStr: string): number {
   const [y, m] = dateStr.split("-").map(Number);
   return new Date(y, m, 0).getDate();
+}
+
+/** Monday of the week containing a Warsaw date. */
+function mondayOf(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dow = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7; // Mon = 0
+  return addDays(dateStr, -dow);
 }
 
 /** Warsaw-local "HH:MM" → minutes since midnight, derived from UTC instant. */
@@ -78,7 +86,9 @@ export default async function HarmonogramPage({
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
   const { widok, od, pracownik, pracownicy } = await searchParams;
-  const view: View = widok === "dzien" || widok === "miesiac" ? widok : "tydzien";
+  // Day is the operational view — the panel root already redirects here,
+  // so week-as-fallback was an inconsistency rather than a choice.
+  const view: View = widok === "tydzien" ? "tydzien" : "dzien";
   const today = warsawToday();
   const baseDate = od && /^\d{4}-\d{2}-\d{2}$/.test(od) ? od : today;
 
@@ -89,13 +99,12 @@ export default async function HarmonogramPage({
   if (view === "dzien") {
     startDate = baseDate;
     endDate = baseDate;
-  } else if (view === "miesiac") {
-    startDate = startOfMonth(baseDate);
-    const count = daysInMonth(baseDate);
-    endDate = addDays(startDate, count - 1);
   } else {
-    startDate = baseDate;
-    endDate = addDays(baseDate, 6);
+    // Monday-aligned rather than seven days from whatever was clicked: the
+    // calendar picks whole weeks, and Grafik already works this way, so a
+    // rolling window would highlight a different week than the table shows.
+    startDate = mondayOf(baseDate);
+    endDate = addDays(startDate, 6);
   }
 
   const startIso = warsawDayBoundsUtc(startDate).startIso;
@@ -144,23 +153,37 @@ export default async function HarmonogramPage({
     return navUrl(view, baseDate, next);
   }
 
-  const prevDate = view === "dzien"
-    ? addDays(baseDate, -1)
-    : view === "miesiac"
-    ? addDays(startOfMonth(baseDate), -1).slice(0, 7) + "-01"
-    : addDays(baseDate, -7);
-
-  const nextDate = view === "dzien"
-    ? addDays(baseDate, 1)
-    : view === "miesiac"
-    ? addDays(addDays(startOfMonth(baseDate), daysInMonth(baseDate)), 0)
-    : addDays(baseDate, 7);
-
   const periodLabel = view === "dzien"
     ? `${dayLabels[warsawDayOfWeek(baseDate)]}, ${formatShortDate(baseDate)}`
-    : view === "miesiac"
-    ? new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(new Date(baseDate + "T12:00:00Z"))
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
+
+  // Days the calendar can reach without another round trip: the month either
+  // side of what is selected, which is as far as one step of month navigation
+  // gets you. Closed days come from business hours so they read as greyed out.
+  const calWindowStart = startOfMonth(addDays(startOfMonth(baseDate), -1));
+  const calWindowEnd = addDays(
+    startOfMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))),
+    daysInMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))) - 1
+  );
+  const calendarDays: { date: string; closed: boolean }[] = [];
+  for (let d = calWindowStart; d <= calWindowEnd; d = addDays(d, 1)) {
+    const dh = hours.find((x) => x.day_of_week === warsawDayOfWeek(d));
+    calendarDays.push({ date: d, closed: !dh || dh.closed });
+  }
+  // Hrefs are built here rather than passed as callbacks: functions cannot
+  // cross from a server component into a client one.
+  const dayHrefMap: Record<string, string> = {};
+  const weekHrefMap: Record<string, string> = {};
+  for (const { date } of calendarDays) {
+    dayHrefMap[date] = navUrl("dzien", date);
+    const monday = mondayOf(date);
+    if (!weekHrefMap[monday]) weekHrefMap[monday] = navUrl("tydzien", monday);
+  }
+
+  const dayCounts = await getBookingCountsByDay(
+    warsawDayBoundsUtc(calWindowStart).startIso,
+    warsawDayBoundsUtc(calWindowEnd).endIso
+  );
 
   // Counts come from activeAll, not `active`, so a tile keeps showing its own
   // number while it is filtered out.
@@ -180,27 +203,33 @@ export default async function HarmonogramPage({
 
         {/* View tabs */}
         <div className="flex items-center gap-1 rounded-lg border border-zinc-800 p-1">
-          {(["dzien", "tydzien", "miesiac"] as View[]).map((v) => (
+          {(["dzien", "tydzien"] as View[]).map((v) => (
             <Link
               key={v}
-              href={navUrl(v, view === "miesiac" && v !== "miesiac" ? today : baseDate)}
+              href={navUrl(v, baseDate)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 view === v
                   ? "bg-zinc-800 text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
-              {v === "dzien" ? "Dzień" : v === "tydzien" ? "Tydzień" : "Miesiąc"}
+              {v === "dzien" ? "Dzień" : "Tydzień"}
             </Link>
           ))}
         </div>
 
-        {/* Prev / Today / Next */}
-        <div className="flex items-center gap-2">
-          <Link href={navUrl(view, prevDate)} className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200">←</Link>
-          <Link href={navUrl(view, today)} className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200">Dziś</Link>
-          <Link href={navUrl(view, nextDate)} className="rounded-md border border-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200">→</Link>
-        </div>
+        <ScheduleDatePicker
+          view={view}
+          today={today}
+          baseDate={baseDate}
+          weekStart={mondayOf(baseDate)}
+          todayWeekStart={mondayOf(today)}
+          dayHref={dayHrefMap}
+          weekHref={weekHrefMap}
+          todayHref={navUrl(view, today)}
+          badges={dayCounts}
+          days={calendarDays}
+        />
       </div>
 
       {/*
@@ -271,7 +300,6 @@ export default async function HarmonogramPage({
       <div className="mt-6">
         {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
         {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
-        {view === "miesiac" && <MonthView baseDate={baseDate} active={active} today={today} navUrl={navUrl} />}
       </div>
     </section>
   );
@@ -607,93 +635,3 @@ function WeekView({
   );
 }
 
-// ── Month view ────────────────────────────────────────────────────────────────
-function MonthView({
-  baseDate,
-  active,
-  today,
-  navUrl,
-}: {
-  baseDate: string;
-  active: Awaited<ReturnType<typeof getBookingsBetween>>;
-  today: string;
-  navUrl: (v: View, d: string) => string;
-}) {
-  const monthStart = startOfMonth(baseDate);
-  const [y, m] = monthStart.split("-").map(Number);
-  const count = daysInMonth(baseDate);
-  const firstDow = new Date(Date.UTC(y, m - 1, 1, 12)).getUTCDay();
-  const offset = firstDow === 0 ? 6 : firstDow - 1;
-
-  const countByDay = new Map<string, number>();
-  for (const b of active) {
-    const ds = warsawDate(b.starts_at);
-    countByDay.set(ds, (countByDay.get(ds) ?? 0) + 1);
-  }
-
-  const cells: (string | null)[] = [
-    ...Array(offset).fill(null),
-    ...Array.from({ length: count }, (_, i) => addDays(monthStart, i)),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const weeks: (string | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-
-  const DOW_LABELS = ["Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd"];
-
-  return (
-    <div className="rounded-xl border border-zinc-800/60 overflow-hidden">
-      <div className="grid grid-cols-7 border-b border-zinc-800/60 bg-zinc-900/60">
-        {DOW_LABELS.map((l) => (
-          <div key={l} className="py-2 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">{l}</div>
-        ))}
-      </div>
-
-      {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7 border-b border-zinc-800/30 last:border-0">
-          {week.map((d, di) => {
-            if (!d) return <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/50" />;
-            const cnt = countByDay.get(d) ?? 0;
-            const isToday = d === today;
-            const isCurrentMonth = d.slice(0, 7) === baseDate.slice(0, 7);
-            const dayNum = parseInt(d.split("-")[2]);
-
-            if (!isCurrentMonth) {
-              return (
-                <div key={di} className="min-h-[64px] border-r border-zinc-800/30 last:border-0 bg-zinc-950/80 p-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium text-zinc-800">
-                    {dayNum}
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={di}
-                href={navUrl("dzien", d)}
-                className="group min-h-[64px] border-r border-zinc-800/30 last:border-0 p-2 transition-colors hover:bg-zinc-800/30"
-              >
-                <div className="flex items-start justify-between">
-                  <span className={`flex h-6 w-6 items-center justify-center rounded-full text-sm font-medium ${
-                    isToday
-                      ? "bg-[var(--color-accent)] text-zinc-950"
-                      : "text-zinc-400 group-hover:text-zinc-200"
-                  }`}>
-                    {dayNum}
-                  </span>
-                  {cnt > 0 && (
-                    <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
-                      {cnt}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}

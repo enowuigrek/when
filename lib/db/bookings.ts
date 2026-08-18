@@ -159,3 +159,42 @@ export async function getBookingById(id: string) {
   if (error) throw new Error(`Failed to load booking: ${error.message}`);
   return data;
 }
+
+
+/**
+ * Bookings per Warsaw day across a range, for the schedule's calendar badges.
+ *
+ * Selects only starts_at rather than reusing getBookingsBetween: the calendar
+ * spans a few months, and pulling joined rows for all of it to end up with a
+ * handful of counts would be wasteful. Bucketing happens in JS because the
+ * day boundary is Warsaw-local, not UTC.
+ */
+export async function getBookingCountsByDay(
+  startIso: string,
+  endIso: string
+): Promise<Record<string, number>> {
+  const tenantId = await getAdminTenantId();
+  const { data, error } = await createAdminClient()
+    .from("bookings")
+    .select("starts_at")
+    .eq("tenant_id", tenantId)
+    .in("status", ["confirmed", "completed"])
+    .gte("starts_at", startIso)
+    .lt("starts_at", endIso);
+
+  if (error) {
+    console.error("[bookings] counts by day failed:", error.message);
+    return {};
+  }
+
+  const fmt = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const out: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const day = fmt.format(new Date(row.starts_at as string));
+    out[day] = (out[day] ?? 0) + 1;
+  }
+  return out;
+}
