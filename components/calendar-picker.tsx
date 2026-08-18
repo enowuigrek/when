@@ -87,15 +87,19 @@ type CalendarPickerProps = {
    */
   allowPastNav?: boolean;
   /**
-   * How the picked day is marked.
+   * What the calendar is for, which decides how much every cell has to say.
    *
-   * "solid" — filled accent. The booking flow's confirmation that this is the
-   *   date you chose.
-   * "soft"  — accent tint plus a ring, matching how week mode marks a week.
-   *   The ring is what a single cell needs and a seven-cell band does not:
-   *   the band is found by its shape, one tinted square is not.
+   * "picker" — choosing a date to book. Bookable days get a raised plate and
+   *   closed ones are dimmed, because there the difference is a constraint.
+   *   The chosen day is filled solid: confirmation that this is the one.
+   *
+   * "browse" — moving around the schedule. Every day is openable, so plates
+   *   distinguish nothing and only add noise; cells stay flat and lift on
+   *   hover. The current day is tinted like week mode's band, plus a ring —
+   *   which a seven-cell band does not need, since it is found by its shape
+   *   while one tinted square is not.
    */
-  selectionTone?: "solid" | "soft";
+  variant?: "picker" | "browse";
 };
 
 export function CalendarPicker({
@@ -112,7 +116,7 @@ export function CalendarPicker({
   displayYearMonth,
   size = "md",
   allowPastNav = false,
-  selectionTone = "solid",
+  variant = "picker",
 }: CalendarPickerProps) {
   const daysMap = new Map(days.map((d) => [d.date, d]));
   const todayYM = isoYM(today);
@@ -366,11 +370,13 @@ export function CalendarPicker({
               let cls =
                 `relative flex ${cellH} w-full items-center justify-center rounded-lg ${cellText} font-medium transition-all `;
               if (isSelected) {
-                cls += selectionTone === "soft"
+                cls += variant === "browse"
                   ? "bg-[var(--color-accent)]/15 text-[var(--color-accent)] cursor-pointer"
                   : "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
               } else if (isAvailable) {
-                cls += "cal-day-available cursor-pointer";
+                cls += variant === "browse"
+                  ? "text-zinc-300 hover:bg-zinc-800/60 cursor-pointer"
+                  : "cal-day-available cursor-pointer";
               } else if (isClosed) {
                 cls += "text-zinc-700 cursor-not-allowed opacity-40";
               } else {
@@ -386,7 +392,7 @@ export function CalendarPicker({
               // like any other day.
               const ACCENT_RING = { boxShadow: "inset 0 0 0 1.5px var(--color-accent)" } as const;
               const cellStyle =
-                (isSelected && selectionTone === "soft") || (isToday && !isSelected)
+                (isSelected && variant === "browse") || (isToday && !isSelected)
                   ? ACCENT_RING
                   : undefined;
 

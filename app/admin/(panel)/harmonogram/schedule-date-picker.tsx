@@ -66,7 +66,7 @@ export function ScheduleDatePicker({
       badges={badges}
       size={size}
       allowPastNav
-      selectionTone="soft"
+      variant="browse"
       {...(view === "tydzien"
         ? {
             weekMode: true,
