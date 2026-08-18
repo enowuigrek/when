@@ -436,7 +436,10 @@ function DayView({
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th
-              className="sticky left-0 z-10 bg-zinc-900/60 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              // Opaque, not bg-zinc-900/60: a frozen column that lets the
+              // columns slide visibly underneath it looks like a rendering
+              // fault. z-20 keeps it above the absolutely positioned bookings.
+              className="sticky left-0 z-20 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
               style={{ width: 64 }}
             >
               Godz.
@@ -469,7 +472,10 @@ function DayView({
               className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}
             >
               <td
-                className={`sticky left-0 z-10 px-3 py-1 align-top ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/95"}`}
+                // One flat colour for the whole gutter rather than following
+                // the row stripes: any alpha at all lets a booking show through
+                // as it scrolls past.
+                className="sticky left-0 z-20 bg-zinc-950 px-3 py-1 align-top"
               >
                 <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
@@ -585,7 +591,12 @@ function WeekView({
       >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 112 }}>Dzień</th>
+            <th
+              className="sticky left-0 z-20 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              style={{ width: 112 }}
+            >
+              Dzień
+            </th>
             {visibleStaff.map((s) => (
               <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
@@ -601,7 +612,7 @@ function WeekView({
 
             return (
               <tr key={d} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
-                <td className="px-4 py-3 align-top">
+                <td className="sticky left-0 z-20 bg-zinc-950 px-4 py-3 align-top">
                   <Link href={navUrl("dzien", d)} className="block hover:opacity-70">
                     <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>{dayLabels[dow]}</p>
                     <p className="font-mono text-xs text-zinc-600">{formatShortDate(d)}</p>
