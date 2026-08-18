@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
 import { upsertOneDaySchedule, addStaffTimeOff, deleteStaffTimeOff } from "@/lib/db/staff-schedule";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminTenantId } from "@/lib/tenant";
 import { warsawDayBoundsUtc } from "@/lib/slots";
 import type { BookingForModal } from "@/components/booking-management-modal";
 
@@ -51,9 +52,11 @@ export async function addTimeOffFromGrafikAction(
   const startIso = warsawDayBoundsUtc(startDate).startIso;
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
+  const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
     .select("*, service:services(name), staff:staff(name, color)")
+    .eq("tenant_id", tenantId)
     .eq("staff_id", staffId)
     .eq("status", "confirmed")
     .gte("starts_at", startIso)

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { getAdminBasePath } from "@/lib/tenant";
 import {
   createStaff,
   updateStaff,
@@ -62,7 +63,7 @@ export async function createStaffAction(
   }
 
   revalidatePath("/admin/pracownicy");
-  redirect("/admin/pracownicy");
+  redirect(`${await getAdminBasePath()}/pracownicy`);
 }
 
 export async function updateStaffAction(

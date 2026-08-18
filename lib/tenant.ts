@@ -121,3 +121,19 @@ export async function clearDemoCookie() {
   const jar = await cookies();
   jar.delete(DEMO_COOKIE);
 }
+
+/**
+ * URL prefix the admin panel is mounted under for this request:
+ * `/demo/{slug}` when the proxy rewrote us from a demo URL, `/admin` otherwise.
+ *
+ * Use it for `redirect()` inside server actions — a bare `redirect("/admin/...")`
+ * drops the demo prefix and lands the visitor on the real tenant's panel.
+ * Build paths as `${base}/uslugi`, never `${base}/admin/uslugi`.
+ *
+ * The client-side counterpart is `useAdminBase()`; for links in Server
+ * Components prefer `<AdminLink>`.
+ */
+export async function getAdminBasePath(): Promise<string> {
+  const demoSlug = (await headers()).get("x-demo-slug");
+  return demoSlug ? `/demo/${demoSlug}` : "/admin";
+}

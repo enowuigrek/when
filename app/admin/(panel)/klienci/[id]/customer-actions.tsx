@@ -3,6 +3,7 @@
 import { useState, useActionState } from "react";
 import { deleteCustomerAction, updateCustomerContactAction } from "../actions";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 export function CustomerActions({
   customerId,
@@ -19,8 +20,9 @@ export function CustomerActions({
   const [editingContact, setEditingContact] = useState(false);
   const [contactState, contactAction, contactPending] = useActionState(updateCustomerContactAction, { status: "idle" as const });
 
+  const adminBase = useAdminBase();
   const newBookingHref =
-    `/admin/rezerwacja/nowa?phone=${encodeURIComponent(customerPhone)}` +
+    `${adminBase}/rezerwacja/nowa?phone=${encodeURIComponent(customerPhone)}` +
     `&name=${encodeURIComponent(customerName)}` +
     (customerEmail ? `&email=${encodeURIComponent(customerEmail)}` : "");
 

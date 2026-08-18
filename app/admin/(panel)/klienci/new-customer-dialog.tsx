@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomerAction, type CreateCustomerState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 const inp =
   "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
@@ -11,6 +12,7 @@ const inp =
 export function NewCustomerDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const adminBase = useAdminBase();
   const [state, action, pending] = useActionState<CreateCustomerState, FormData>(
     createCustomerAction,
     { status: "idle" }
@@ -19,9 +21,9 @@ export function NewCustomerDialog() {
   useEffect(() => {
     if (state.status === "ok") {
       setOpen(false);
-      router.push(`/admin/klienci/${state.id}`);
+      router.push(`${adminBase}/klienci/${state.id}`);
     }
-  }, [state, router]);
+  }, [state, router, adminBase]);
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 

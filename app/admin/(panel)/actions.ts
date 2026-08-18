@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/email/send";
 import { buildCancellationEmail } from "@/lib/email/booking-cancellation";
 import { getSettings } from "@/lib/db/settings";
 import { recordBookingEvent } from "@/lib/db/booking-events";
+import { getAdminTenantId } from "@/lib/tenant";
 
 export async function logoutAction() {
   await destroyAdminSession();
@@ -22,18 +23,21 @@ export async function cancelBookingAction(formData: FormData) {
 
   const reason = formData.get("reason")?.toString().trim() || null;
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
 
   // Fetch booking + service before updating (for the email).
   const { data: booking } = await supabase
     .from("bookings")
     .select("*, service:services(name)")
+    .eq("tenant_id", tenantId)
     .eq("id", id)
     .maybeSingle();
 
   const { error } = await supabase
     .from("bookings")
     .update({ status: "cancelled", notes: reason ?? undefined })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) throw new Error(`Cancel failed: ${error.message}`);
@@ -76,9 +80,11 @@ export async function assignStaffAction(formData: FormData): Promise<{ ok: true 
 
   const staffId = formData.get("staffId")?.toString() || null;
 
+  const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient()
     .from("bookings")
     .update({ staff_id: staffId })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) {
@@ -98,9 +104,11 @@ export async function editBookingNotesAction(formData: FormData): Promise<{ ok: 
 
   const notes = formData.get("notes")?.toString().trim() || null;
 
+  const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient()
     .from("bookings")
     .update({ notes })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) return { ok: false, message: `Błąd: ${error.message}` };
@@ -121,10 +129,12 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     return { ok: false, message: "Nieprawidłowa data lub godzina." };
   }
 
+  const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { data: booking } = await supabase
     .from("bookings")
     .select("*, service:services(name, duration_min)")
+    .eq("tenant_id", tenantId)
     .eq("id", id)
     .maybeSingle();
 
@@ -142,6 +152,7 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
   const { error } = await supabase
     .from("bookings")
     .update({ starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() })
+    .eq("tenant_id", tenantId)
     .eq("id", id);
 
   if (error) {
@@ -168,9 +179,11 @@ export async function markNoShowAction(formData: FormData) {
   const id = formData.get("id")?.toString();
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid booking id");
 
+  const tenantId = await getAdminTenantId();
   const { error } = await createAdminClient()
     .from("bookings")
     .update({ status: "no_show" })
+    .eq("tenant_id", tenantId)
     .eq("id", id)
     .eq("status", "confirmed");
 

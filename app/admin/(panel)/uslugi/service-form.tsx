@@ -5,6 +5,7 @@ import type { ServiceFormState } from "./actions";
 import type { Service, PaymentMode } from "@/lib/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 const DURATION_PRESETS = [15, 30, 45, 60, 75, 90, 120];
 
@@ -15,6 +16,7 @@ export function ServiceForm({
   action: (prev: ServiceFormState, fd: FormData) => Promise<ServiceFormState>;
   service?: Service;
 }) {
+  const adminBase = useAdminBase();
   const [state, formAction, pending] = useActionState<ServiceFormState, FormData>(
     action,
     { status: "idle" }
@@ -211,7 +213,7 @@ export function ServiceForm({
         <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-5 py-2.5">
           {pending ? "Zapisuję…" : service ? "Zapisz zmiany" : "Dodaj usługę"}
         </Button>
-        <ButtonLink href="/admin/uslugi" variant="secondary" radius="full" className="px-5 py-2.5">
+        <ButtonLink href={`${adminBase}/uslugi`} variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
         </ButtonLink>
       </div>

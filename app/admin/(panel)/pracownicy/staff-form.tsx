@@ -6,6 +6,7 @@ import type { Service } from "@/lib/types";
 import type { StaffFormState } from "./actions";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 const COLORS = [
   "#d4a26a","#6ab0d4","#6ad4a2","#d46a6a",
@@ -27,6 +28,7 @@ export function StaffForm({
   services: Service[];
   assignedServiceIds?: string[];
 }) {
+  const adminBase = useAdminBase();
   const [state, formAction, pending] = useActionState<StaffFormState, FormData>(
     action,
     { status: "idle" }
@@ -163,7 +165,7 @@ export function StaffForm({
       )}
 
       <div className="flex justify-end gap-3">
-        <ButtonLink href="/admin/pracownicy" variant="secondary" radius="full" className="px-5 py-2.5">
+        <ButtonLink href={`${adminBase}/pracownicy`} variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
         </ButtonLink>
         <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-6 py-2.5">

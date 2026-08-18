@@ -11,6 +11,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { StaffPicker } from "@/components/booking/staff-picker";
 import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
 import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
+import { useAdminBase } from "@/lib/use-admin-base";
 import {
   getAdminSlotsForDate,
   createAdminBookingAction,
@@ -49,6 +50,7 @@ export function AdminBookingForm({
   prefilledName?: string | null;
   prefilledEmail?: string | null;
 }) {
+  const adminBase = useAdminBase();
   const [state, formAction, formPending] = useActionState<AdminBookingState, FormData>(
     createAdminBookingAction,
     { status: "idle" }
@@ -313,7 +315,7 @@ export function AdminBookingForm({
             >
               {formPending ? "Rezerwuję…" : "Dodaj rezerwację"}
             </Button>
-            <ButtonLink href="/admin/harmonogram" variant="secondary" radius="full" className="px-5 py-2.5">
+            <ButtonLink href={`${adminBase}/harmonogram`} variant="secondary" radius="full" className="px-5 py-2.5">
               Anuluj
             </ButtonLink>
           </div>
@@ -321,7 +323,7 @@ export function AdminBookingForm({
       )}
 
       {!selectedSlot && (
-        <ButtonLink href="/admin" variant="secondary" radius="full" className="px-5 py-2.5">
+        <ButtonLink href={adminBase} variant="secondary" radius="full" className="px-5 py-2.5">
           Anuluj
         </ButtonLink>
       )}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { notFound } from "next/navigation";
 import { getStaffById, getStaffServiceIds } from "@/lib/db/staff";
 import { getServices } from "@/lib/db/services";
@@ -26,9 +26,9 @@ export default async function EditStaffPage({ params }: { params: Params }) {
       </h1>
       <p className="mb-8 text-sm text-zinc-500">
         Grafik i nieobecności tego pracownika ustawisz w{" "}
-        <Link href="/admin/grafik" className="text-[var(--color-accent)] hover:underline">
+        <AdminLink href="/admin/grafik" className="text-[var(--color-accent)] hover:underline">
           Grafiku
-        </Link>
+        </AdminLink>
         .
       </p>
       <StaffForm

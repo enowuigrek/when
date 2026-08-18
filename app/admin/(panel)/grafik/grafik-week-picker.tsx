@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 function addDays(d: string, n: number): string {
   const [y, m, day] = d.split("-").map(Number);
@@ -34,9 +34,7 @@ export function GrafikWeekPicker({
   staffParam,
   pracownicyParam,
 }: Props) {
-  const pathname = usePathname();
-  const demoMatch = pathname.match(/^\/demo\/([^/]+)/);
-  const adminBase = demoMatch ? `/demo/${demoMatch[1]}` : "/admin";
+  const adminBase = useAdminBase();
 
   const weekEnd = addDays(weekStart, 6);
   const prev = addDays(weekStart, -7);

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffGroupsWithMembers } from "@/lib/db/staff-groups";
 import { createGroupAction } from "./actions";
@@ -12,9 +12,9 @@ export default async function GroupsPage() {
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-10">
-      <Link href="/admin/pracownicy" className="mb-6 inline-flex text-sm text-zinc-500 hover:text-zinc-300">
+      <AdminLink href="/admin/pracownicy" className="mb-6 inline-flex text-sm text-zinc-500 hover:text-zinc-300">
         ← Pracownicy
-      </Link>
+      </AdminLink>
 
       <div className="mb-2 flex items-start justify-between gap-4">
         <div>
@@ -52,7 +52,7 @@ export default async function GroupsPage() {
       )}
 
       <p className="mt-8 text-xs text-zinc-600">
-        Po stworzeniu grupy ustawisz ceny per usługa w sekcji <Link href="/admin/uslugi" className="text-zinc-400 hover:text-zinc-200">Usługi</Link> — przy edycji usługi pojawi się lista grup z możliwością ustawienia ceny.
+        Po stworzeniu grupy ustawisz ceny per usługa w sekcji <AdminLink href="/admin/uslugi" className="text-zinc-400 hover:text-zinc-200">Usługi</AdminLink> — przy edycji usługi pojawi się lista grup z możliwością ustawienia ceny.
       </p>
     </section>
   );

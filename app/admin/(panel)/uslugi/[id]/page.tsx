@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AdminLink } from "@/components/admin-link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { ServiceForm } from "../service-form";
@@ -92,7 +93,7 @@ export default async function EditServicePage({ params }: { params: Params }) {
 
       {groups.length === 0 && (
         <div className="mt-12 rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 px-5 py-6 text-center text-sm text-zinc-500">
-          Aby ustawić ceny per grupa pracowników, najpierw <a href="/admin/pracownicy/grupy" className="text-zinc-300 underline hover:text-zinc-100">utwórz grupę</a>.
+          Aby ustawić ceny per grupa pracowników, najpierw <AdminLink href="/admin/pracownicy/grupy" className="text-zinc-300 underline hover:text-zinc-100">utwórz grupę</AdminLink>.
         </div>
       )}
     </section>

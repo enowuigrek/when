@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/auth/admin-session";
-import { getAdminTenantId } from "@/lib/tenant";
+import { getAdminTenantId, getAdminBasePath } from "@/lib/tenant";
 
 async function requireAdmin() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
@@ -124,7 +124,7 @@ export async function createServiceAction(
   revalidatePath("/admin/uslugi");
   revalidatePath("/");
   revalidatePath("/rezerwacja");
-  redirect("/admin/uslugi");
+  redirect(`${await getAdminBasePath()}/uslugi`);
 }
 
 export async function updateServiceAction(
@@ -167,7 +167,7 @@ export async function updateServiceAction(
   revalidatePath("/admin/uslugi");
   revalidatePath("/");
   revalidatePath("/rezerwacja");
-  redirect("/admin/uslugi");
+  redirect(`${await getAdminBasePath()}/uslugi`);
 }
 
 export async function setServicePriceOverrideAction(formData: FormData): Promise<void> {

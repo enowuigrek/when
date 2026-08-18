@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { AdminLink } from "@/components/admin-link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { getActiveStaff } from "@/lib/db/staff";
@@ -35,9 +35,9 @@ export default async function CustomerProfilePage({ params }: { params: Params }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <Link href="/admin/klienci" className="mb-6 inline-flex text-sm text-zinc-500 hover:text-zinc-300">
+      <AdminLink href="/admin/klienci" className="mb-6 inline-flex text-sm text-zinc-500 hover:text-zinc-300">
         ← Klienci
-      </Link>
+      </AdminLink>
 
       {/* Header */}
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
