@@ -209,28 +209,9 @@ export default async function HarmonogramPage({
 
       </div>
 
-      {/* View switcher and the staff filter share one line, and this row sits
-          above the split — so the calendar in the rail and the grid below it
-          start from the same edge instead of the rail floating higher by the
-          height of this row. The switcher stays visible on phones even though
-          the filter does not. */}
+      {/* Filter row, above the split so the rail and the grid start from the
+          same edge. */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-zinc-800 p-1">
-          {(["dzien", "tydzien"] as View[]).map((v) => (
-            <Link
-              key={v}
-              href={navUrl(v, baseDate)}
-              // Same type size as the filter chips beside it — the box was
-              // already the same height, but text-xs made it read as smaller.
-              className={`rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
-                view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {v === "dzien" ? "Dzień" : "Tydzień"}
-            </Link>
-          ))}
-        </div>
-
       {/*
         One row of toggles, replacing the old filter chips + a second row of
         summary cards that repeated the same people. Money is deliberately
@@ -304,6 +285,22 @@ export default async function HarmonogramPage({
           afford since it scrolls sideways anyway, and buys back the vertical. */}
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
         <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
+          {/* Sits over the calendar: both answer "which stretch of time am I
+              looking at", so they belong to the same corner of the screen. */}
+          <div className="flex items-center gap-1 self-start rounded-lg border border-zinc-800 p-1">
+            {(["dzien", "tydzien"] as View[]).map((v) => (
+              <Link
+                key={v}
+                href={navUrl(v, baseDate)}
+                className={`rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
+                  view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {v === "dzien" ? "Dzień" : "Tydzień"}
+              </Link>
+            ))}
+          </div>
+
           <ScheduleDatePicker
             view={view}
             today={today}
@@ -646,7 +643,7 @@ function WeekView({
                 {visibleStaff.map((s) => {
                   const bookings = dayMap?.get(s.id) ?? [];
                   return (
-                    <td key={s.id} className="px-3 py-3 align-top">
+                    <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-3 py-3 align-top">
                       {bookings.length === 0 ? (
                         <Link href={navUrl("dzien", d)} className="block h-full min-h-[3rem] w-full text-zinc-700 hover:text-zinc-500">—</Link>
                       ) : (
