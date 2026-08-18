@@ -7,6 +7,7 @@ import { DayBookingCard } from "./day-booking-card";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { DayStaffCarousel } from "./day-staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
+import { DaySummary } from "./day-summary";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -197,7 +198,7 @@ export default async function HarmonogramPage({
   }));
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <section className="mx-auto max-w-[100rem] px-4 py-8 sm:px-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
@@ -205,9 +206,6 @@ export default async function HarmonogramPage({
           <p className="mt-1 text-sm text-zinc-500">{periodLabel}</p>
         </div>
 
-        {/* View toggle and calendar are one cluster: both answer "what am I
-            looking at". Left floating apart, the toggle read as stranded in
-            the middle of the header. */}
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
           <div className="flex items-center gap-1 self-start rounded-lg border border-zinc-800 p-1 sm:self-auto">
             {(["dzien", "tydzien"] as View[]).map((v) => (
@@ -223,6 +221,16 @@ export default async function HarmonogramPage({
             ))}
           </div>
 
+        </div>
+      </div>
+
+      {/* Two columns from lg up. The calendar used to sit in the header, which
+          left ~300px of dead space beside it and pushed the schedule past the
+          half-way line of the screen — on a page that is now the panel's
+          landing page. In a rail it costs the table some width, which it can
+          afford since it scrolls sideways anyway, and buys back the vertical. */}
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
+        <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
           <ScheduleDatePicker
             view={view}
             today={today}
@@ -235,8 +243,12 @@ export default async function HarmonogramPage({
             badges={dayCounts}
             days={calendarDays}
           />
-        </div>
-      </div>
+          <div className="hidden lg:block">
+            <DaySummary bookings={active} view={view} now={new Date().toISOString()} />
+          </div>
+        </aside>
+
+        <div className="min-w-0 lg:order-1 lg:flex-1">
 
       {/*
         One row of toggles, replacing the old filter chips + a second row of
@@ -303,9 +315,11 @@ export default async function HarmonogramPage({
         </div>
       )}
 
-      <div className="mt-6">
-        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
-        {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
+          <div className="mt-6">
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
+            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
+          </div>
+        </div>
       </div>
     </section>
   );
