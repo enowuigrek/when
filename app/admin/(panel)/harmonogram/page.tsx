@@ -5,6 +5,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
+import { DayStaffCarousel } from "./day-staff-carousel";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -214,14 +215,14 @@ export default async function HarmonogramPage({
         colour and the rest dim. Tiles wrap, so ten people become two calm
         rows rather than a cramped single line.
 
-        On a phone wrapping is the wrong answer — eight people became four
-        rows and ate a fifth of the screen before the calendar started. There
-        the row scrolls sideways instead and stays one tile tall; from `sm` up
-        there is room to wrap.
+        Hidden below `sm`: there the day view turns into a one-person
+        carousel and its strip of initials takes over both jumping between
+        people and showing where you are, so this row would be a second
+        control for the same thing.
       */}
       {allStaff.length > 1 && (
         <div
-          className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0"
+          className="mt-5 hidden items-center gap-2 overflow-x-auto pb-1 sm:flex sm:flex-wrap sm:overflow-x-visible sm:pb-0"
           style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
         >
           <Link
@@ -367,21 +368,44 @@ function DayView({
   const isToday = date === today;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+    <DayStaffCarousel staff={visibleStaff}>
       {/* width:100% + minWidth keeps both ends working: with many staff the
           table exceeds the container and scrolls at ~180px per column; with
           one or two it stretches to fill instead of leaving the page empty.
           Staff columns carry no width so `table-layout: fixed` splits the
           remaining space between them evenly. */}
+      {/* --sched-col-w is set by DayStaffCarousel on phones, where each column
+          is widened to fill the screen; on desktop it is unset and the 180px
+          fallback applies exactly as before. */}
       <table
         className="border-collapse text-sm"
-        style={{ tableLayout: "fixed", width: "100%", minWidth: 64 + visibleStaff.length * 180 }}
+        style={{
+          tableLayout: "fixed",
+          width: "100%",
+          minWidth: `calc(64px + ${visibleStaff.length} * var(--sched-col-w, 180px))`,
+        }}
       >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-            <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500" style={{ width: 64 }}>Godz.</th>
+            <th
+              className="sticky left-0 z-10 bg-zinc-900/60 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              style={{ width: 64 }}
+            >
+              Godz.
+            </th>
             {visibleStaff.length > 0 ? visibleStaff.map((s) => (
-              <th key={s.id} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>
+              <th
+                key={s.id}
+                data-staff-id={s.id}
+                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                // scrollMarginLeft keeps the snap point clear of the sticky
+                // hour gutter — without it the column lands underneath it.
+                style={{
+                  color: s.color,
+                  scrollSnapAlign: "var(--sched-snap, none)" as string,
+                  scrollMarginLeft: 64,
+                }}
+              >
                 {s.name}
               </th>
             )) : (
@@ -396,7 +420,9 @@ function DayView({
               style={{ height: ROW_H }}
               className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}
             >
-              <td className="px-3 py-1 align-top">
+              <td
+                className={`sticky left-0 z-10 px-3 py-1 align-top ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/95"}`}
+              >
                 <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
               {visibleStaff.length > 0 ? visibleStaff.map((s) => {
@@ -471,7 +497,7 @@ function DayView({
       {dayHours?.closed && (
         <p className="px-4 py-6 text-center text-sm text-zinc-600">Dzień wolny według godzin biznesu.</p>
       )}
-    </div>
+    </DayStaffCarousel>
   );
 }
 
