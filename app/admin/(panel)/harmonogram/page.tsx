@@ -472,7 +472,11 @@ function DayView({
             <tr
               key={slot.label}
               style={{ height: ROW_H }}
-              className={`border-b border-zinc-800/30 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/10"}`}
+              // No zebra striping: the tint had no light-theme counterpart, so
+              // it rendered as grey bars, and because later rows paint after
+              // the row a booking starts in, those bars crossed the bookings
+              // themselves. Dividing lines carry the rhythm on their own.
+              className="border-b border-zinc-800/30"
             >
               <td
                 // One flat colour for the whole gutter rather than following
@@ -512,21 +516,21 @@ function DayView({
                 }
 
                 return (
-                  <td key={s.id} className="px-2 py-1 align-top">
+                  <td key={s.id} className="relative p-0 align-top">
                     <NewBookingButton
                       services={services}
                       allStaff={allStaff}
                       date={date}
                       time={slot.label}
                       presetStaffId={s.id}
-                      className="block h-7 w-full rounded hover:bg-zinc-800/40"
+                      className="slot-empty absolute inset-0"
                     >
                       <span className="sr-only">{`Dodaj rezerwację ${slot.label}, ${s.name}`}</span>
                     </NewBookingButton>
                   </td>
                 );
               }) : (
-                <td className="px-2 py-1 align-top">
+                <td className="relative p-0 align-top">
                   {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).map((b) => (
                     <div key={b.id} className="mb-1 rounded border border-zinc-800 px-2 py-1">
                       <p className="font-mono text-xs text-zinc-400">{formatWarsawTime(b.starts_at)}</p>
@@ -540,7 +544,7 @@ function DayView({
                       date={date}
                       time={slot.label}
                       presetStaffId={null}
-                      className="block h-7 w-full rounded hover:bg-zinc-800/40"
+                      className="slot-empty absolute inset-0"
                     >
                       <span className="sr-only">{`Dodaj rezerwację ${slot.label}`}</span>
                     </NewBookingButton>
@@ -614,7 +618,7 @@ function WeekView({
             const totalForDay = active.filter((b) => warsawDate(b.starts_at) === d).length;
 
             return (
-              <tr key={d} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
+              <tr key={d} className="border-b border-zinc-800/60">
                 <td className="sticky left-0 z-20 bg-zinc-950 px-4 py-3 align-top">
                   <Link href={navUrl("dzien", d)} className="block hover:opacity-70">
                     <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>{dayLabels[dow]}</p>

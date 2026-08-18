@@ -46,7 +46,7 @@ export default async function PanelLayout({
             happens inside <main>, and inside the schedule grid within it — so
             a gesture always lands on the one region under the pointer instead
             of the page and a nested box competing for it. */}
-        <div className="flex h-screen overflow-hidden bg-zinc-950">
+        <div className="flex h-dvh overflow-hidden bg-zinc-950">
           <AdminSidebar
             tenantId={demoTenantId}
             businessName={settings.business_name}
@@ -97,7 +97,7 @@ export default async function PanelLayout({
 
   return (
     <TenantThemeWrapper settings={s}>
-      <div className="flex h-screen overflow-hidden bg-zinc-950">
+      <div className="flex h-dvh overflow-hidden bg-zinc-950">
         <AdminSidebar
           tenantId={tenantId}
           businessName={s.business_name}

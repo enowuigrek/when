@@ -24,7 +24,10 @@ export function TenantThemeWrapper({
   return (
     <div
       data-theme={theme}
-      className="flex min-h-screen flex-col"
+      // dvh, not vh: Safari resolves 100vh against the viewport as if the
+      // toolbar were hidden, so the wrapper ends up taller than what is
+      // actually visible and the page scrolls by exactly that difference.
+      className="flex min-h-dvh flex-col"
       style={{
         "--accent": accent,
         "--accent-hover": accentHover,

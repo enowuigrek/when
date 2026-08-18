@@ -209,6 +209,20 @@ body {
   background-color: #f4f4f5;
 }
 
+/* Free slot in the schedule. Fills its whole cell rather than sitting inside
+   it as a rounded chip — the target is the slot, so it should look like the
+   slot. `cell` gives the spreadsheet plus, which says "click to add here"
+   without a tooltip. */
+.slot-empty {
+  cursor: cell;
+}
+.slot-empty:hover {
+  background-color: rgba(63, 63, 70, 0.35);
+}
+[data-theme="light"] .slot-empty:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* The schedule grid scrolls on its own from `lg` up, instead of taking the
    page with it. Two reasons: the horizontal scrollbar lives at the bottom of
    this box, so giving the box a fixed height keeps that bar on screen instead
