@@ -59,12 +59,12 @@ export function ScheduleDatePicker({
 }: Props) {
   const [open, setOpen] = useState(false);
 
-  const calendar = (
+  const calendarFor = (size: "sm" | "md") => (
     <CalendarPicker
       today={today}
       days={days}
       badges={badges}
-      size="sm"
+      size={size}
       allowPastNav
       {...(view === "tydzien"
         ? {
@@ -133,12 +133,14 @@ export function ScheduleDatePicker({
           )}
         </div>
 
-        {open && <div className="mt-3">{calendar}</div>}
+        {open && <div className="mt-3">{calendarFor("sm")}</div>}
       </div>
 
       {/* Desktop: the month is worth its space. */}
       <div className="hidden sm:block">
-        {calendar}
+        {/* Inline width: seven 40px cells plus padding. An arbitrary Tailwind
+            width was not being generated here, and this is one fixed number. */}
+        <div style={{ width: 320 }}>{calendarFor("md")}</div>
         {!isOnToday && (
           <Link
             href={todayHref}

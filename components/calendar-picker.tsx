@@ -269,7 +269,9 @@ export function CalendarPicker({
                 //   - viewed week:  soft sidebar-style gray (the row you're navigating to)
                 //   - hovered:      slightly darker than viewed (preview)
                 if (isCurrentWeek) {
-                  cls += "bg-[var(--color-accent)]/90 text-[var(--color-accent-fg)] ";
+                  // A tint rather than a solid fill: seven saturated cells
+                  // shout, and the row only needs to read as "this is now".
+                  cls += "bg-[var(--color-accent)]/15 text-[var(--color-accent)] ";
                 } else if (isViewedWeek) {
                   cls += "bg-zinc-800 text-zinc-100 ";
                 } else if (isHoveredWeek) {
@@ -280,11 +282,11 @@ export function CalendarPicker({
                   cls += "text-zinc-600 ";
                 }
 
-                // Today: small white dot under the cell number. Always visible —
-                // it's just a single-cell marker, no whole-row treatment.
-                const todayDot = isToday ? (
-                  <span className="pointer-events-none absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-white" />
-                ) : null;
+                // Today is ringed, matching day mode. The old white dot was
+                // hard-coded white to survive the solid accent fill, and against
+                // a coloured row it read as a stray mark.
+                if (isToday) cls += "ring-1 ring-inset ring-[var(--color-accent)] ";
+                const todayDot = null;
 
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
                 const cellInner = (
@@ -358,21 +360,33 @@ export function CalendarPicker({
                 cls += "text-zinc-700/50 cursor-default font-normal";
               }
 
-              const todayDot = isToday && !isSelected ? (
-                <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[var(--color-accent)]" />
-              ) : null;
-              const badgeNode = badge ? (
-                <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-zinc-800 px-1 font-mono text-[10px] leading-none py-0.5 text-zinc-300">
-                  {badge}
+              // Today reads as a ring around the number rather than a dot:
+              // at these cell sizes a dot competes with the badge for the same
+              // few pixels and ends up looking like a smudge.
+              if (isToday && !isSelected) cls += " ring-1 ring-inset ring-[var(--color-accent)]";
+
+              // The count sits under the number, not in the corner. As a
+              // corner pill it overlapped the digit in anything but the
+              // largest cells.
+              const cellInner = (
+                <span className="flex flex-col items-center justify-center leading-none">
+                  <span>{dayLabel}</span>
+                  {badge ? (
+                    <span
+                      className={`mt-0.5 font-mono text-[9px] leading-none ${
+                        isSelected ? "text-[var(--color-accent-fg)]/70" : "text-zinc-500"
+                      }`}
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
                 </span>
-              ) : null;
+              );
 
               if (href) {
                 return (
                   <Link key={date} href={href} className={cls}>
-                    {todayDot}
-                    {badgeNode}
-                    {dayLabel}
+                    {cellInner}
                   </Link>
                 );
               }
@@ -385,9 +399,7 @@ export function CalendarPicker({
                   onClick={() => isAvailable && onPick?.(date)}
                   className={cls}
                 >
-                  {todayDot}
-                  {badgeNode}
-                  {dayLabel}
+                  {cellInner}
                 </button>
               );
               });

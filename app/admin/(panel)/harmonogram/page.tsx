@@ -195,41 +195,43 @@ export default async function HarmonogramPage({
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Harmonogram</h1>
           <p className="mt-1 text-sm text-zinc-500">{periodLabel}</p>
         </div>
 
-        {/* View tabs */}
-        <div className="flex items-center gap-1 rounded-lg border border-zinc-800 p-1">
-          {(["dzien", "tydzien"] as View[]).map((v) => (
-            <Link
-              key={v}
-              href={navUrl(v, baseDate)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                view === v
-                  ? "bg-zinc-800 text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {v === "dzien" ? "Dzień" : "Tydzień"}
-            </Link>
-          ))}
-        </div>
+        {/* View toggle and calendar are one cluster: both answer "what am I
+            looking at". Left floating apart, the toggle read as stranded in
+            the middle of the header. */}
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          <div className="flex items-center gap-1 self-start rounded-lg border border-zinc-800 p-1 sm:self-auto">
+            {(["dzien", "tydzien"] as View[]).map((v) => (
+              <Link
+                key={v}
+                href={navUrl(v, baseDate)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {v === "dzien" ? "Dzień" : "Tydzień"}
+              </Link>
+            ))}
+          </div>
 
-        <ScheduleDatePicker
-          view={view}
-          today={today}
-          baseDate={baseDate}
-          weekStart={mondayOf(baseDate)}
-          todayWeekStart={mondayOf(today)}
-          dayHref={dayHrefMap}
-          weekHref={weekHrefMap}
-          todayHref={navUrl(view, today)}
-          badges={dayCounts}
-          days={calendarDays}
-        />
+          <ScheduleDatePicker
+            view={view}
+            today={today}
+            baseDate={baseDate}
+            weekStart={mondayOf(baseDate)}
+            todayWeekStart={mondayOf(today)}
+            dayHref={dayHrefMap}
+            weekHref={weekHrefMap}
+            todayHref={navUrl(view, today)}
+            badges={dayCounts}
+            days={calendarDays}
+          />
+        </div>
       </div>
 
       {/*
