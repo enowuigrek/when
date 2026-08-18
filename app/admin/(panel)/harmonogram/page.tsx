@@ -2,8 +2,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getBookingsBetween } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
-import { getBusinessHours } from "@/lib/db/services";
+import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
+import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -100,11 +101,16 @@ export default async function HarmonogramPage({
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
   // Fetch all in parallel
-  const [allStaff, hours, all] = await Promise.all([
+  const [allStaff, hours, all, allServicesRaw] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getBookingsBetween(startIso, endIso),
+    getServices(),
   ]);
+  // Feeds the create-booking modal opened from an empty slot.
+  const services: ServiceOption[] = allServicesRaw.map((s) => ({
+    id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln,
+  }));
 
   const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
   const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
@@ -229,7 +235,7 @@ export default async function HarmonogramPage({
       )}
 
       <div className="mt-6">
-        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} />}
+        {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
         {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
         {view === "miesiac" && <MonthView baseDate={baseDate} active={active} today={today} navUrl={navUrl} />}
       </div>
@@ -246,6 +252,7 @@ function DayView({
   hours,
   today,
   adminBase,
+  services,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -254,6 +261,7 @@ function DayView({
   hours: Awaited<ReturnType<typeof getBusinessHours>>;
   today: string;
   adminBase: string;
+  services: ServiceOption[];
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
   const dayHours = hours.find((h) => h.day_of_week === dayOfWeek);
@@ -389,11 +397,16 @@ function DayView({
 
                 return (
                   <td key={s.id} className="px-2 py-1 align-top">
-                    <Link
-                      href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
+                    <NewBookingButton
+                      services={services}
+                      allStaff={allStaff}
+                      date={date}
+                      time={slot.label}
+                      presetStaffId={s.id}
                       className="block h-7 w-full rounded hover:bg-zinc-800/40"
-                      aria-label={`Dodaj rezerwację ${slot.label}`}
-                    />
+                    >
+                      <span className="sr-only">{`Dodaj rezerwację ${slot.label}, ${s.name}`}</span>
+                    </NewBookingButton>
                   </td>
                 );
               }) : (
@@ -405,7 +418,16 @@ function DayView({
                     </div>
                   ))}
                   {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).length === 0 && (
-                    <Link href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
+                    <NewBookingButton
+                      services={services}
+                      allStaff={allStaff}
+                      date={date}
+                      time={slot.label}
+                      presetStaffId={null}
+                      className="block h-7 w-full rounded hover:bg-zinc-800/40"
+                    >
+                      <span className="sr-only">{`Dodaj rezerwację ${slot.label}`}</span>
+                    </NewBookingButton>
                   )}
                 </td>
               )}

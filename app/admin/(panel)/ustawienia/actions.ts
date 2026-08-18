@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 // ── Settings ─────────────────────────────────────────────────────────────────

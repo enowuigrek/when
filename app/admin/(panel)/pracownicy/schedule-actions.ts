@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { upsertStaffSchedule, addStaffTimeOff, deleteStaffTimeOff } from "@/lib/db/staff-schedule";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 export type ScheduleState = { status: "idle" } | { status: "ok" } | { status: "error"; message: string };

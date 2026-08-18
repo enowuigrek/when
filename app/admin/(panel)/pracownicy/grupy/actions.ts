@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import {
   createStaffGroup,
   renameStaffGroup,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/staff-groups";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 export async function createGroupAction(formData: FormData): Promise<void> {

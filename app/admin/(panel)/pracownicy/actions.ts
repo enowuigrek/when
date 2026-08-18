@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { getAdminBasePath } from "@/lib/tenant";
 import {
   createStaff,
@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/staff";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 const staffSchema = z.object({

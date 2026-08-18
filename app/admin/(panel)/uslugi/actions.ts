@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { getAdminTenantId, getAdminBasePath } from "@/lib/tenant";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 const serviceSchema = z.object({

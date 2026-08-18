@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { getServiceById, getBusinessHours } from "@/lib/db/services";
 import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getSettings } from "@/lib/db/settings";
@@ -133,7 +133,7 @@ export async function createAdminBookingAction(
   _prev: AdminBookingState,
   formData: FormData
 ): Promise<AdminBookingState> {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 
   const raw = {
     serviceId: formData.get("serviceId")?.toString() ?? "",

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isAdminAuthenticated } from "@/lib/auth/admin-session";
+import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { upsertOneDaySchedule, addStaffTimeOff, deleteStaffTimeOff } from "@/lib/db/staff-schedule";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
@@ -10,7 +10,7 @@ import { warsawDayBoundsUtc } from "@/lib/slots";
 import type { BookingForModal } from "@/components/booking-management-modal";
 
 async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  await requirePanelAccess();
 }
 
 export async function updateDayScheduleAction(formData: FormData) {
