@@ -14,12 +14,14 @@ function toModalBooking(b: BookingWithService): BookingForModal {
     endsAt: b.ends_at,
     customerName: b.customer_name,
     customerPhone: b.customer_phone,
+    serviceId: b.service_id ?? null,
     serviceName: b.service?.name ?? null,
     staffId: b.staff_id,
     staffName: b.staff?.name ?? null,
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
     status: b.status,
+    paymentStatus: b.payment_status ?? null,
   };
 }
 import {
