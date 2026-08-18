@@ -379,11 +379,9 @@ html {
   .glow-card::before { transition: none; }
 }
 
-/* The page never scrolls sideways. Wide content — the schedule table with a
-   column per staff member — scrolls inside its own container; when it leaked
-   past that, the document scrolled instead and slid the sidebar off-screen,
-   with a range that changed depending on whether the sidebar was expanded. */
-html,
-body {
-  overflow-x: hidden;
-}
+/* Deliberately NOT setting overflow-x on html/body to contain wide content.
+   Per spec, hiding one axis computes the other to `auto`, which moves the
+   scroll container off the viewport — `position: sticky` then loses its
+   reference and the full-height sidebar scrolls away, leaving a void below
+   it. Width is contained on the panel's <main> instead, which is not an
+   ancestor of the sidebar. */
