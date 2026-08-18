@@ -22,7 +22,7 @@ export default async function GrafikPage({
 }) {
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
-  const adminBase = demoSlug ? `/demo/${demoSlug}` : "";
+  const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
   const { pracownik: selectedStaffId, tydzien: weekParam } = await searchParams;
 
@@ -85,7 +85,7 @@ export default async function GrafikPage({
                 {staff.map((s) => (
                   <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     <Link
-                      href={`${adminBase}/admin/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
+                      href={`${adminBase}/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
                       className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
                     >
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
@@ -141,7 +141,7 @@ export default async function GrafikPage({
                 {staff.map((s) => (
                   <Link
                     key={s.id}
-                    href={`${adminBase}/admin/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
+                    href={`${adminBase}/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
                       s.id === selectedStaff.id
                         ? "border-zinc-600 bg-zinc-800 text-zinc-100"

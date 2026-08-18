@@ -69,7 +69,7 @@ export default async function HarmonogramPage({
   const demoSlug = h.get("x-demo-slug");
   // When inside a /demo/{slug}/* URL all internal links must keep the prefix
   // so the proxy keeps injecting x-demo-slug on every navigation.
-  const adminBase = demoSlug ? `/demo/${demoSlug}` : "";
+  const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
   const { widok, od, pracownik } = await searchParams;
   const view: View = widok === "dzien" || widok === "miesiac" ? widok : "tydzien";
@@ -113,7 +113,7 @@ export default async function HarmonogramPage({
     const params = new URLSearchParams({ widok: v, od: date });
     const sid = staffOverride === undefined ? selectedStaffId : staffOverride;
     if (sid) params.set("pracownik", sid);
-    return `${adminBase}/admin/harmonogram?${params.toString()}`;
+    return `${adminBase}/harmonogram?${params.toString()}`;
   }
 
   const prevDate = view === "dzien"
@@ -318,7 +318,7 @@ function DayView({
                       <div className="h-5" style={{ borderLeft: `2px solid ${s.color}40` }} />
                     ) : (
                       <Link
-                        href={`${adminBase}/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
+                        href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`}
                         className="block h-7 w-full rounded hover:bg-zinc-800/40"
                         aria-label={`Dodaj rezerwację ${slot.label}`}
                       />
@@ -334,7 +334,7 @@ function DayView({
                     </div>
                   ))}
                   {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).length === 0 && (
-                    <Link href={`${adminBase}/admin/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
+                    <Link href={`${adminBase}/rezerwacja/nowa?data=${date}&godzina=${slot.label}`} className="block h-7 w-full rounded hover:bg-zinc-800/40" />
                   )}
                 </td>
               )}

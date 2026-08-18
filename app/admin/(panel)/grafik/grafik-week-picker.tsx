@@ -36,7 +36,7 @@ export function GrafikWeekPicker({
 }: Props) {
   const pathname = usePathname();
   const demoMatch = pathname.match(/^\/demo\/([^/]+)/);
-  const adminBase = demoMatch ? `/demo/${demoMatch[1]}` : "";
+  const adminBase = demoMatch ? `/demo/${demoMatch[1]}` : "/admin";
 
   const weekEnd = addDays(weekStart, 6);
   const prev = addDays(weekStart, -7);
@@ -48,7 +48,7 @@ export function GrafikWeekPicker({
     params.set("tydzien", monday);
     if (staffParam) params.set("pracownik", staffParam);
     if (pracownicyParam) params.set("pracownicy", pracownicyParam);
-    return `${adminBase}/admin/grafik?${params.toString()}`;
+    return `${adminBase}/grafik?${params.toString()}`;
   }
 
   return (
