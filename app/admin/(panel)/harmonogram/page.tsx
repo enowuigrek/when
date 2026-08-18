@@ -68,7 +68,7 @@ function warsawDate(iso: string): string {
 export default async function HarmonogramPage({
   searchParams,
 }: {
-  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string }>;
+  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string; pracownicy?: string }>;
 }) {
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
@@ -76,7 +76,7 @@ export default async function HarmonogramPage({
   // so the proxy keeps injecting x-demo-slug on every navigation.
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
-  const { widok, od, pracownik } = await searchParams;
+  const { widok, od, pracownik, pracownicy } = await searchParams;
   const view: View = widok === "dzien" || widok === "miesiac" ? widok : "tydzien";
   const today = warsawToday();
   const baseDate = od && /^\d{4}-\d{2}-\d{2}$/.test(od) ? od : today;
@@ -112,18 +112,35 @@ export default async function HarmonogramPage({
     id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln,
   }));
 
-  const selectedStaffId = pracownik && allStaff.some((s) => s.id === pracownik) ? pracownik : null;
-  const visibleStaff = selectedStaffId ? allStaff.filter((s) => s.id === selectedStaffId) : allStaff;
+  // Empty selection means "everyone" — the filter is off rather than excluding
+  // all of them. `pracownik` is the old single-value param, still honoured so
+  // links shared before multi-select keep working.
+  const selectedIds = (pracownicy ?? pracownik ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter((id) => allStaff.some((s) => s.id === id));
+  const filtering = selectedIds.length > 0;
+
+  const visibleStaff = filtering ? allStaff.filter((s) => selectedIds.includes(s.id)) : allStaff;
 
   const activeAll = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
-  const active = selectedStaffId ? activeAll.filter((b) => b.staff_id === selectedStaffId) : activeAll;
+  const active = filtering
+    ? activeAll.filter((b) => b.staff_id !== null && selectedIds.includes(b.staff_id))
+    : activeAll;
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
-  function navUrl(v: View, date: string, staffOverride?: string | null) {
+  function navUrl(v: View, date: string, ids: string[] = selectedIds) {
     const params = new URLSearchParams({ widok: v, od: date });
-    const sid = staffOverride === undefined ? selectedStaffId : staffOverride;
-    if (sid) params.set("pracownik", sid);
+    if (ids.length) params.set("pracownicy", ids.join(","));
     return `${adminBase}/harmonogram?${params.toString()}`;
+  }
+
+  /** Add or drop one person; dropping the last one falls back to everyone. */
+  function toggleStaffUrl(id: string) {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id];
+    return navUrl(view, baseDate, next);
   }
 
   const prevDate = view === "dzien"
@@ -144,11 +161,12 @@ export default async function HarmonogramPage({
     ? new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(new Date(baseDate + "T12:00:00Z"))
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
-  // ── Staff stats (always over allStaff so filter chips show counts) ────────
-  const staffStats = allStaff.map((s) => {
-    const bookings = activeAll.filter((b) => b.staff_id === s.id);
-    return { ...s, count: bookings.length, revenue: bookings.reduce((sum, b) => sum + (b.price_pln_snapshot ?? b.service?.price_pln ?? 0), 0) };
-  });
+  // Counts come from activeAll, not `active`, so a tile keeps showing its own
+  // number while it is filtered out.
+  const staffStats = allStaff.map((s) => ({
+    ...s,
+    count: activeAll.filter((b) => b.staff_id === s.id).length,
+  }));
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -184,53 +202,68 @@ export default async function HarmonogramPage({
         </div>
       </div>
 
-      {/* Staff filter chips */}
+      {/*
+        One row of toggles, replacing the old filter chips + a second row of
+        summary cards that repeated the same people. Money is deliberately
+        gone: it was noise here, and the number that matters when scanning a
+        day is how many bookings someone has.
+
+        Three states, because "everyone" is not the same as "each one picked":
+        with no filter the tiles stay neutral and only Wszyscy reads as active;
+        once anyone is picked, the chosen ones light up in their own column
+        colour and the rest dim. Tiles wrap, so ten people become two calm
+        rows rather than a cramped single line.
+
+        On a phone wrapping is the wrong answer — eight people became four
+        rows and ate a fifth of the screen before the calendar started. There
+        the row scrolls sideways instead and stays one tile tall; from `sm` up
+        there is room to wrap.
+      */}
       {allStaff.length > 1 && (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-wider text-zinc-600">Pracownik:</span>
+        <div
+          className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0"
+          style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
+        >
           <Link
-            href={navUrl(view, baseDate, null)}
-            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-              !selectedStaffId
+            href={navUrl(view, baseDate, [])}
+            aria-current={!filtering ? "true" : undefined}
+            className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+              !filtering
                 ? "border-zinc-600 bg-zinc-800 text-zinc-100"
                 : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
             }`}
           >
             Wszyscy
           </Link>
+
           {staffStats.map((s) => {
-            const isActive = selectedStaffId === s.id;
+            const picked = selectedIds.includes(s.id);
             return (
               <Link
                 key={s.id}
-                href={navUrl(view, baseDate, s.id)}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
-                  isActive
-                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                href={toggleStaffUrl(s.id)}
+                aria-current={picked ? "true" : undefined}
+                title={picked ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
+                className={`flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors ${
+                  picked
+                    ? "text-zinc-100"
+                    : filtering
+                    ? "border-zinc-800/60 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400"
+                    : "border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
                 }`}
+                style={picked ? { borderColor: s.color, backgroundColor: `${s.color}1a` } : undefined}
               >
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full transition-opacity"
+                  style={{ backgroundColor: s.color, opacity: filtering && !picked ? 0.4 : 1 }}
+                />
                 {s.name}
-                {s.count > 0 && <span className="ml-0.5 font-mono text-[10px] text-zinc-500">{s.count}</span>}
+                {s.count > 0 && (
+                  <span className="font-mono text-xs text-zinc-500">{s.count}</span>
+                )}
               </Link>
             );
           })}
-        </div>
-      )}
-
-      {/* Period summary */}
-      {staffStats.some((s) => s.count > 0) && (
-        <div className="mt-4 flex flex-wrap gap-3">
-          {staffStats.filter((s) => s.count > 0 && (!selectedStaffId || s.id === selectedStaffId)).map((s) => (
-            <div key={s.id} className="flex items-center gap-2.5 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-2.5">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-              <div>
-                <p className="text-sm font-medium text-zinc-200">{s.name}</p>
-                <p className="font-mono text-xs text-zinc-500">{s.count} rez · {s.revenue} zł</p>
-              </div>
-            </div>
-          ))}
         </div>
       )}
 
