@@ -222,62 +222,70 @@ const SAMPLE_NAMES = [
   ["Paweł Wójcik", "+48500100205", null],
 ] as const;
 
+type HoursSeed = { day_of_week: number; open_time: string | null; close_time: string | null; closed: boolean };
+
+/** Mon–Fri daytime, Sat morning, Sun closed. */
+const HOURS_STANDARD: HoursSeed[] = [
+  { day_of_week: 0, open_time: null, close_time: null, closed: true },
+  { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
+  { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
+  { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
+  { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
+  { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
+  { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
+];
+
+/** Classes run into the evening; open seven days. */
+const HOURS_STUDIO: HoursSeed[] = [
+  { day_of_week: 0, open_time: "08:00", close_time: "20:00", closed: false },
+  { day_of_week: 1, open_time: "07:00", close_time: "21:00", closed: false },
+  { day_of_week: 2, open_time: "07:00", close_time: "21:00", closed: false },
+  { day_of_week: 3, open_time: "07:00", close_time: "21:00", closed: false },
+  { day_of_week: 4, open_time: "07:00", close_time: "21:00", closed: false },
+  { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
+  { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false },
+];
+
+/** Late evenings for after-work classes, Sunday closed. */
+const HOURS_DANCE: HoursSeed[] = [
+  { day_of_week: 0, open_time: null, close_time: null, closed: true },
+  { day_of_week: 1, open_time: "10:00", close_time: "21:00", closed: false },
+  { day_of_week: 2, open_time: "10:00", close_time: "21:00", closed: false },
+  { day_of_week: 3, open_time: "10:00", close_time: "21:00", closed: false },
+  { day_of_week: 4, open_time: "10:00", close_time: "21:00", closed: false },
+  { day_of_week: 5, open_time: "10:00", close_time: "21:00", closed: false },
+  { day_of_week: 6, open_time: "09:00", close_time: "16:00", closed: false },
+];
+
+/**
+ * Everything that varies per demo variant, in one place. Adding a variant is a
+ * single entry here plus a `SETTINGS` entry — previously it meant editing four
+ * parallel ternary chains, where missing one silently seeded another variant's
+ * data.
+ */
+const VARIANTS: Record<DemoVariant, {
+  services: ServiceSeed[];
+  staff: StaffSeed[];
+  groups: GroupSeed[];
+  hours: HoursSeed[];
+  customers: readonly (readonly [string, string, string | null])[];
+}> = {
+  barber:    { services: BARBER_SERVICES,    staff: BARBER_STAFF,    groups: BARBER_GROUPS,    hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
+  kosmetyka: { services: KOSMETYKA_SERVICES, staff: KOSMETYKA_STAFF, groups: KOSMETYKA_GROUPS, hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
+  joga:      { services: JOGA_SERVICES,      staff: JOGA_STAFF,      groups: JOGA_GROUPS,      hours: HOURS_STUDIO,   customers: SAMPLE_NAMES },
+  taniec:    { services: TANIEC_SERVICES,    staff: TANIEC_STAFF,    groups: TANIEC_GROUPS,    hours: HOURS_DANCE,    customers: SAMPLE_NAMES },
+  zorba:     { services: ZORBA_SERVICES,     staff: ZORBA_STAFF,     groups: ZORBA_GROUPS,     hours: HOURS_DANCE,    customers: ZORBA_CUSTOMERS },
+};
+
 export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Promise<void> {
   const supabase = createAdminClient();
-  const services =
-    variant === "barber" ? BARBER_SERVICES
-    : variant === "kosmetyka" ? KOSMETYKA_SERVICES
-    : variant === "taniec" ? TANIEC_SERVICES
-    : variant === "zorba" ? ZORBA_SERVICES
-    : JOGA_SERVICES;
-  const staff =
-    variant === "barber" ? BARBER_STAFF
-    : variant === "kosmetyka" ? KOSMETYKA_STAFF
-    : variant === "taniec" ? TANIEC_STAFF
-    : variant === "zorba" ? ZORBA_STAFF
-    : JOGA_STAFF;
-  const groups =
-    variant === "barber" ? BARBER_GROUPS
-    : variant === "kosmetyka" ? KOSMETYKA_GROUPS
-    : variant === "taniec" ? TANIEC_GROUPS
-    : variant === "zorba" ? ZORBA_GROUPS
-    : JOGA_GROUPS;
+  const { services, staff, groups, hours, customers: customerSeed } = VARIANTS[variant];
   const settings = SETTINGS[variant];
 
   // Settings
   await supabase.from("settings").insert({ tenant_id: tenantId, ...settings });
 
   // Business hours
-  const hours =
-    variant === "joga"
-      ? [
-          { day_of_week: 0, open_time: "08:00", close_time: "20:00", closed: false },
-          { day_of_week: 1, open_time: "07:00", close_time: "21:00", closed: false },
-          { day_of_week: 2, open_time: "07:00", close_time: "21:00", closed: false },
-          { day_of_week: 3, open_time: "07:00", close_time: "21:00", closed: false },
-          { day_of_week: 4, open_time: "07:00", close_time: "21:00", closed: false },
-          { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
-          { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false },
-        ]
-    : variant === "taniec" || variant === "zorba"
-      ? [
-          { day_of_week: 0, open_time: null, close_time: null, closed: true },
-          { day_of_week: 1, open_time: "10:00", close_time: "21:00", closed: false },
-          { day_of_week: 2, open_time: "10:00", close_time: "21:00", closed: false },
-          { day_of_week: 3, open_time: "10:00", close_time: "21:00", closed: false },
-          { day_of_week: 4, open_time: "10:00", close_time: "21:00", closed: false },
-          { day_of_week: 5, open_time: "10:00", close_time: "21:00", closed: false },
-          { day_of_week: 6, open_time: "09:00", close_time: "16:00", closed: false },
-        ]
-      : [
-          { day_of_week: 0, open_time: null, close_time: null, closed: true },
-          { day_of_week: 1, open_time: "10:00", close_time: "19:00", closed: false },
-          { day_of_week: 2, open_time: "10:00", close_time: "19:00", closed: false },
-          { day_of_week: 3, open_time: "10:00", close_time: "19:00", closed: false },
-          { day_of_week: 4, open_time: "10:00", close_time: "19:00", closed: false },
-          { day_of_week: 5, open_time: "10:00", close_time: "19:00", closed: false },
-          { day_of_week: 6, open_time: "09:00", close_time: "15:00", closed: false },
-        ];
   await supabase.from("business_hours").insert(hours.map((h) => ({ ...h, tenant_id: tenantId })));
 
   // Time filters
@@ -366,7 +374,6 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   if (overrideRows.length) await supabase.from("service_group_prices").insert(overrideRows);
 
   // Customers
-  const customerSeed = variant === "zorba" ? ZORBA_CUSTOMERS : SAMPLE_NAMES;
   const customerRows = customerSeed.map(([name, phone, email]) => ({
     tenant_id: tenantId,
     name,

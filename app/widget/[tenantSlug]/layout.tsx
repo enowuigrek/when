@@ -7,9 +7,14 @@ import { ThemeApplier } from "@/components/theme-applier";
  * The root layout sets data-theme on <html> based on the cookie tenant,
  * but the widget must show the correct embedded salon's colors/theme.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function WidgetTenantLayout({ children, params }: any) {
-  const { tenantSlug } = await params as { tenantSlug: string };
+export default async function WidgetTenantLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ tenantSlug: string }>;
+}) {
+  const { tenantSlug } = await params;
   const tenantId = await getTenantIdBySlug(tenantSlug);
   if (!tenantId) return <>{children}</>;
 
