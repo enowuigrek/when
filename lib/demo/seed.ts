@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec";
+export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec" | "zorba";
 
 type ServiceSeed = {
   slug: string; name: string; description: string;
@@ -93,6 +93,53 @@ const TANIEC_STAFF: StaffSeed[] = [
 // Szkoła tańca — każdy instruktor ta sama stawka bazowa
 const TANIEC_GROUPS: GroupSeed[] = [];
 
+// ── Zorba (Częstochowa) ─────────────────────────────────────────────────────
+// Prospekt: szkoła tańca prowadzona jednoosobowo przez Marcina. Na ich stronie
+// pierwszy taniec i lekcje indywidualne są "ustalane w dogodnym terminie" —
+// czyli wyłącznie telefonicznie. Demo ma pokazać, że to samo da się umówić
+// online o 23:00 w niedzielę. Dlatego oba stoją na górze listy.
+//
+// Wszystkie pozycje mają is_group:false — obsługa zajęć grupowych (limity
+// miejsc) została usunięta w 410e545, więc oznaczenie ich jako grupowych
+// pokazywałoby w widgecie zajęte terminy po jednej rezerwacji.
+const ZORBA_SERVICES: ServiceSeed[] = [
+  { slug: "pierwszy-taniec-weselny", name: "Pierwszy Taniec Weselny", description: "Choreografia przygotowana pod Waszą piosenkę i możliwości. Zwykle 4–6 spotkań przed weselem. Termin rezerwujesz online — o każdej porze.", duration_min: 60, price_pln: 150, sort_order: 1 },
+  { slug: "lekcja-indywidualna", name: "Lekcje indywidualne", description: "Prywatna godzina z instruktorem — Twoje tempo, Twój styl. Solo lub w parze. Bez dzwonienia i ustalania, wybierasz wolny termin z kalendarza.", duration_min: 60, price_pln: 120, sort_order: 2 },
+  { slug: "taneczny-mix", name: "Taneczny Mix (dzieci i młodzież)", description: "Zajęcia taneczne dla dzieci i młodzieży. Ruch, rytm i zabawa — bez stresu i oceniania.", duration_min: 45, price_pln: 40, sort_order: 3 },
+  { slug: "latino-solo", name: "Latino Solo", description: "Salsa, bachata, cha-cha — solo, bez partnera. Energia, rytm i dobra zabawa.", duration_min: 60, price_pln: 45, sort_order: 4 },
+  { slug: "kurs-tanca-uzytkowego", name: "Kurs Tańca Użytkowego", description: "Taniec towarzyski w praktyce — na wesele, studniówkę i każdą imprezę. Walc, tango, foxtrot.", duration_min: 60, price_pln: 50, sort_order: 5 },
+  { slug: "fitbabka", name: "Fitbabka (zajęcia dla pań)", description: "Taneczny trening dla pań — kondycja, sylwetka i dobry nastrój w jednym.", duration_min: 45, price_pln: 35, sort_order: 6 },
+  { slug: "taniec-szkola-rekreacja", name: "Taniec — Szkoła / Rekreacja / Zabawa", description: "Zajęcia ogólnotaneczne dla dorosłych. Od podstaw, w swoim tempie, bez presji.", duration_min: 60, price_pln: 45, sort_order: 7 },
+];
+
+// Jednoosobowa obsługa — kolejnych instruktorów dodaje się w panelu
+// (Pracownicy → Dodaj); grafik i przypisanie usług tworzą się automatycznie.
+const ZORBA_STAFF: StaffSeed[] = [
+  { name: "Marcin", bio: "Właściciel i instruktor. Pierwszy taniec, taniec użytkowy i zajęcia dla dzieci.", color: "#d4a26a", sort_order: 1 },
+];
+
+const ZORBA_GROUPS: GroupSeed[] = [];
+
+// Baza klientów Zorby. Pary narzeczonych trzymane obok siebie — w panelu widać
+// wtedy, że pierwszy taniec to powtarzalny cykl spotkań, a nie pojedyncza wizyta.
+const ZORBA_CUSTOMERS = [
+  ["Anna Grabowska",       "+48502100201", "anna.grabowska@example.com"],
+  ["Michał Grabowski",     "+48502100202", null],
+  ["Karolina Zielińska",   "+48502100203", "karolina.z@example.com"],
+  ["Bartosz Zieliński",    "+48502100204", null],
+  ["Magdalena Nowak",      "+48502100205", "magda.nowak@example.com"],
+  ["Tomasz Nowak",         "+48502100206", null],
+  ["Julia Kaczmarek",      "+48502100207", "julia.k@example.com"],
+  ["Piotr Wysocki",        "+48502100208", "piotr.wysocki@example.com"],
+  ["Agnieszka Mazur",      "+48502100209", null],
+  ["Natalia Sikora",       "+48502100210", "natalia.sikora@example.com"],
+  ["Ewa Krawczyk",         "+48502100211", null],
+  ["Zuzanna Adamczyk",     "+48502100212", "zuzia.a@example.com"],
+  ["Robert Pawlak",        "+48502100213", null],
+  ["Iwona Dudek",          "+48502100214", "iwona.dudek@example.com"],
+  ["Krzysztof Baran",      "+48502100215", null],
+] as const;
+
 const SETTINGS = {
   barber: {
     business_name: "Demo Barber",
@@ -136,6 +183,21 @@ const SETTINGS = {
     slot_granularity_min: 30,
     booking_horizon_days: 28,
   },
+  zorba: {
+    business_name: "Szkoła Tańca Zorba",
+    tagline: "Pierwszy taniec i lekcje indywidualne — zarezerwuj online, o każdej porze.",
+    description: "Konto demo przygotowane dla Szkoły Tańca Zorba. Klikaj śmiało — to kopia, nic tu nie jest prawdziwe.",
+    // Schemat ma jedno pole adresu; druga sala podana obok, żeby obie były widoczne.
+    address_street: "ul. Sikorskiego 56 (także: ul. Wysockiego 37)",
+    address_city: "Częstochowa",
+    address_postal: "42-200",
+    phone: "+48 34 300 00 00",
+    email: null,
+    color_accent: "#c8843c",
+    theme: "dark" as const,
+    slot_granularity_min: 30,
+    booking_horizon_days: 28,
+  },
   taniec: {
     business_name: "Studio Tańca Estyma",
     tagline: "Zapisz się online — bez dzwonienia.",
@@ -166,16 +228,19 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
     variant === "barber" ? BARBER_SERVICES
     : variant === "kosmetyka" ? KOSMETYKA_SERVICES
     : variant === "taniec" ? TANIEC_SERVICES
+    : variant === "zorba" ? ZORBA_SERVICES
     : JOGA_SERVICES;
   const staff =
     variant === "barber" ? BARBER_STAFF
     : variant === "kosmetyka" ? KOSMETYKA_STAFF
     : variant === "taniec" ? TANIEC_STAFF
+    : variant === "zorba" ? ZORBA_STAFF
     : JOGA_STAFF;
   const groups =
     variant === "barber" ? BARBER_GROUPS
     : variant === "kosmetyka" ? KOSMETYKA_GROUPS
     : variant === "taniec" ? TANIEC_GROUPS
+    : variant === "zorba" ? ZORBA_GROUPS
     : JOGA_GROUPS;
   const settings = SETTINGS[variant];
 
@@ -194,7 +259,7 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
           { day_of_week: 5, open_time: "07:00", close_time: "21:00", closed: false },
           { day_of_week: 6, open_time: "08:00", close_time: "18:00", closed: false },
         ]
-    : variant === "taniec"
+    : variant === "taniec" || variant === "zorba"
       ? [
           { day_of_week: 0, open_time: null, close_time: null, closed: true },
           { day_of_week: 1, open_time: "10:00", close_time: "21:00", closed: false },
@@ -301,7 +366,8 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   if (overrideRows.length) await supabase.from("service_group_prices").insert(overrideRows);
 
   // Customers
-  const customerRows = SAMPLE_NAMES.map(([name, phone, email]) => ({
+  const customerSeed = variant === "zorba" ? ZORBA_CUSTOMERS : SAMPLE_NAMES;
+  const customerRows = customerSeed.map(([name, phone, email]) => ({
     tenant_id: tenantId,
     name,
     phone,
@@ -320,7 +386,77 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   const bookingRows: Array<Record<string, unknown>> = [];
   const today = new Date();
 
-  if (variant === "taniec") {
+  if (variant === "zorba") {
+    // Jednoosobowa szkoła — wszystko idzie na Marcina, więc terminy nie mogą
+    // się nakładać (constraint no_overlap_staff). Rozkład jest ułożony ręcznie
+    // i przy zmianach trzeba pilnować, żeby wpisy z tego samego dnia się
+    // rozjeżdżały o pełny czas trwania usługi.
+    //
+    // Ciężar położony na pierwszy taniec i lekcje indywidualne — to one mają
+    // pokazać, że rzecz "ustalana w dogodnym terminie" da się kliknąć online.
+    const marcin = staffIds[0];
+
+    /** Warsaw wall-clock → UTC instant, poprawnie przez DST. */
+    function wawInstant(dayOffset: number, hh: number, mm = 0): Date {
+      const base = new Date(today);
+      base.setDate(base.getDate() + dayOffset);
+      const guess = new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate(), hh, mm, 0));
+      const wawHour = Number(
+        new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Warsaw", hour: "2-digit", hour12: false }).format(guess)
+      );
+      const offsetH = (wawHour - guess.getUTCHours() + 24) % 24;
+      return new Date(guess.getTime() - offsetH * 3600_000);
+    }
+
+    // [dayOffset, godzina, minuta, slug usługi, indeks klienta]
+    const plan: Array<[number, number, number, string, number]> = [
+      // ── miniony tydzień i wcześniej (bieżący miesiąc) ──
+      [-14, 17, 0, "pierwszy-taniec-weselny", 0],
+      [-13, 18, 0, "lekcja-indywidualna", 6],
+      [-11, 16, 0, "latino-solo", 8],
+      [-10, 10, 0, "taneczny-mix", 10],
+      [-10, 11, 0, "fitbabka", 13],
+      [-8, 18, 0, "pierwszy-taniec-weselny", 0],
+      [-7, 19, 0, "kurs-tanca-uzytkowego", 12],
+      [-6, 17, 0, "lekcja-indywidualna", 7],
+      [-4, 18, 0, "pierwszy-taniec-weselny", 2],
+      [-3, 11, 0, "taniec-szkola-rekreacja", 14],
+      [-1, 19, 0, "lekcja-indywidualna", 9],
+      // ── dziś ──
+      [0, 11, 0, "lekcja-indywidualna", 6],
+      [0, 16, 0, "fitbabka", 13],
+      [0, 18, 0, "pierwszy-taniec-weselny", 2],
+      [0, 19, 30, "latino-solo", 8],
+      // ── najbliższe dni ──
+      [1, 17, 0, "pierwszy-taniec-weselny", 0],
+      [2, 18, 0, "lekcja-indywidualna", 7],
+      [3, 16, 0, "taneczny-mix", 10],
+      [4, 10, 0, "pierwszy-taniec-weselny", 4],
+      [6, 19, 0, "lekcja-indywidualna", 11],
+      [7, 17, 0, "kurs-tanca-uzytkowego", 12],
+    ];
+
+    for (const [dayOffset, hh, mm, slug, custIdx] of plan) {
+      const serviceId = serviceByName.get(slug);
+      const meta = serviceMeta.get(slug);
+      if (!serviceId || !meta) continue;
+      const cust = ZORBA_CUSTOMERS[custIdx];
+      const starts = wawInstant(dayOffset, hh, mm);
+      bookingRows.push({
+        tenant_id: tenantId,
+        service_id: serviceId,
+        staff_id: marcin,
+        customer_name: cust[0],
+        customer_phone: cust[1],
+        customer_email: cust[2] ?? null,
+        starts_at: starts.toISOString(),
+        ends_at: new Date(starts.getTime() + meta.duration_min * 60_000).toISOString(),
+        status: "confirmed",
+        price_pln_snapshot: meta.price_pln,
+        duration_min_snapshot: meta.duration_min,
+      });
+    }
+  } else if (variant === "taniec") {
     // Dance school: mix of group classes + individual lessons (hero use-case).
     // Spread across this month: past bookings + today + upcoming week.
     const DANCE_CUSTOMERS = [

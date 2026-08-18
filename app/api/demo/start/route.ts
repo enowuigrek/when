@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     variantRaw === "kosmetyka" ? "kosmetyka"
     : variantRaw === "joga" ? "joga"
     : variantRaw === "taniec" ? "taniec"
+    : variantRaw === "zorba" ? "zorba"
     : "barber";
 
   const supabase = createAdminClient();
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
   const name = variant === "kosmetyka" ? "Demo — Gabinet kosmetyczny"
     : variant === "joga" ? "Demo — Studio Jogi"
     : variant === "taniec" ? "Demo — Studio Tańca"
+    : variant === "zorba" ? "Szkoła Tańca Zorba"
     : "Demo — Barber Shop";
 
   const { data: tenant, error } = await supabase
