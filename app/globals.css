@@ -209,6 +209,45 @@ body {
   background-color: #f4f4f5;
 }
 
+/* The schedule grid scrolls on its own from `lg` up, instead of taking the
+   page with it. Two reasons: the horizontal scrollbar lives at the bottom of
+   this box, so giving the box a fixed height keeps that bar on screen instead
+   of parking it below the fold; and with the page still, the calendar rail
+   and the column headers stay where you left them.
+   Left alone below `lg` on purpose — nesting a vertical scroll inside a page
+   scroll is awkward with a thumb, and the day view there is already a
+   horizontal carousel. */
+@media (min-width: 1024px) {
+  .schedule-viewport {
+    max-height: calc(100vh - 14rem);
+    overflow-y: auto;
+  }
+}
+
+/* macOS hides overlay scrollbars until they move, so the only hint that the
+   grid scrolls sideways was the gesture itself — no help on Windows, or to
+   anyone who has not guessed. These stay visible. */
+.schedule-viewport::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+}
+.schedule-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+.schedule-viewport::-webkit-scrollbar-thumb {
+  background-color: #52525b;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.schedule-viewport::-webkit-scrollbar-thumb:hover {
+  background-color: #71717a;
+}
+.schedule-viewport::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Uniform height for inputs and selects */
 input[type="text"],
 input[type="email"],

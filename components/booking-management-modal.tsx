@@ -175,7 +175,7 @@ function BookingModal({
       // customer suggestions opening — so parts that did not change appear to
       // drift. Pinned at the top it can only grow downwards.
       className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4"
-      style={{ paddingTop: "6vh", paddingBottom: "4vh" }}
+      style={{ paddingTop: "10vh", paddingBottom: "4vh" }}
       onClick={onClose}
     >
       <div

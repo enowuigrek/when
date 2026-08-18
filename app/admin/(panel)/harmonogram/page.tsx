@@ -439,7 +439,9 @@ function DayView({
               // Opaque, not bg-zinc-900/60: a frozen column that lets the
               // columns slide visibly underneath it looks like a rendering
               // fault. z-20 keeps it above the absolutely positioned bookings.
-              className="sticky left-0 z-20 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              // Corner cell: frozen on both axes, so it must sit above both
+              // the row gutter (z-20) and the header row (z-10).
+              className="sticky left-0 top-0 z-30 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
               style={{ width: 64 }}
             >
               Godz.
@@ -448,7 +450,7 @@ function DayView({
               <th
                 key={s.id}
                 data-staff-id={s.id}
-                className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
                 // scrollMarginLeft keeps the snap point clear of the sticky
                 // hour gutter — without it the column lands underneath it.
                 style={{
@@ -583,7 +585,7 @@ function WeekView({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+    <div className="schedule-viewport overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"
@@ -592,13 +594,13 @@ function WeekView({
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th
-              className="sticky left-0 z-20 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+              className="sticky left-0 top-0 z-30 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
               style={{ width: 112 }}
             >
               Dzień
             </th>
             {visibleStaff.map((s) => (
-              <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
+              <th key={s.id} className="sticky top-0 z-10 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
             ))}
             {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>

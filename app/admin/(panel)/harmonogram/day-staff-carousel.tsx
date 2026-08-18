@@ -127,7 +127,7 @@ export function DayStaffCarousel({
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="overflow-x-auto rounded-xl border border-zinc-800/60"
+        className="schedule-viewport overflow-x-auto rounded-xl border border-zinc-800/60"
         style={
           {
             scrollbarWidth: "thin",
