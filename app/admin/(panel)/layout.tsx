@@ -42,7 +42,11 @@ export default async function PanelLayout({
     const settings = await getSettingsForTenant(demoTenantId);
     return (
       <TenantThemeWrapper settings={settings}>
-        <div className="flex min-h-screen bg-zinc-950">
+        {/* App shell: the window itself never scrolls. Everything vertical
+            happens inside <main>, and inside the schedule grid within it — so
+            a gesture always lands on the one region under the pointer instead
+            of the page and a nested box competing for it. */}
+        <div className="flex h-screen overflow-hidden bg-zinc-950">
           <AdminSidebar
             tenantId={demoTenantId}
             businessName={settings.business_name}
@@ -52,7 +56,7 @@ export default async function PanelLayout({
             isSuperAdmin={false}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
-            <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
+            <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
           </div>
         </div>
       </TenantThemeWrapper>
@@ -93,7 +97,7 @@ export default async function PanelLayout({
 
   return (
     <TenantThemeWrapper settings={s}>
-      <div className="flex min-h-screen bg-zinc-950">
+      <div className="flex h-screen overflow-hidden bg-zinc-950">
         <AdminSidebar
           tenantId={tenantId}
           businessName={s.business_name}
@@ -115,7 +119,7 @@ export default async function PanelLayout({
               />
             </div>
           )}
-          <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
+          <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
         </div>
       </div>
     </TenantThemeWrapper>

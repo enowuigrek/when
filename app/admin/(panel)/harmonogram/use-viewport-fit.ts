@@ -2,8 +2,12 @@
 
 import { useEffect, useState, type RefObject } from "react";
 
-/** Breathing room below the grid so it does not touch the window edge. */
-const BOTTOM_GAP = 24;
+/**
+ * Room left below the grid: the section's own bottom padding (py-8 = 32px)
+ * plus a little slack. Too small and the page gains a few pixels of scroll of
+ * its own, which is exactly the ambiguity this is meant to remove.
+ */
+const BOTTOM_GAP = 40;
 
 /**
  * Height that makes an element end exactly at the bottom of the window.
