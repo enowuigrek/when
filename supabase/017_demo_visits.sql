@@ -14,3 +14,9 @@ create table if not exists demo_visits (
 );
 
 create index if not exists demo_visits_tenant_at_idx on demo_visits (tenant_id, at desc);
+
+-- Same shape as every other table here: RLS on, no policies. The app writes
+-- through the service role, which bypasses RLS; the anon key ships in the
+-- browser bundle, and without this it could read and — worse — write rows,
+-- letting anyone pollute the demo statistics.
+alter table demo_visits enable row level security;
