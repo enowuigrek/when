@@ -5,6 +5,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { formatWarsawTime, formatWarsawDate, warsawToday } from "@/lib/slots";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
 
@@ -41,11 +42,8 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <section className="mx-auto max-w-[90rem] space-y-6 px-4 py-8 sm:px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-sm text-zinc-500">{formatWarsawDate(today + "T12:00:00Z")}</p>
-      </div>
+    <PageShell title="Dashboard" subtitle={formatWarsawDate(today + "T12:00:00Z")}>
+      <div className="space-y-6">
 
       {/* Every tile goes somewhere: the number you are looking at is usually
           the start of a question, and the answer lives one click away. */}
@@ -269,7 +267,8 @@ export default async function DashboardPage() {
           </ul>
         )}
       </div>
-    </section>
+      </div>
+    </PageShell>
   );
 }
 

@@ -10,6 +10,8 @@ import { WeekViewport } from "./week-viewport";
 import { ScheduleDatePicker } from "./schedule-date-picker";
 import { DaySummary } from "./day-summary";
 import { StaffChip } from "@/components/ui/staff-chip";
+import { PageShell } from "@/components/ui/page-shell";
+import { calendarWindow } from "@/lib/calendar-window";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -45,15 +47,6 @@ import { dayLabels } from "@/lib/business";
 export const metadata = { title: "Harmonogram", robots: { index: false } };
 
 type View = "dzien" | "tydzien";
-
-function startOfMonth(dateStr: string): string {
-  return dateStr.slice(0, 7) + "-01";
-}
-
-function daysInMonth(dateStr: string): number {
-  const [y, m] = dateStr.split("-").map(Number);
-  return new Date(y, m, 0).getDate();
-}
 
 /** Monday of the week containing a Warsaw date. */
 function mondayOf(dateStr: string): string {
@@ -160,23 +153,7 @@ export default async function HarmonogramPage({
     ? `${dayLabels[warsawDayOfWeek(baseDate)]}, ${formatShortDate(baseDate)}`
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
-  // Days the calendar can reach without another round trip: the month either
-  // side of what is selected, which is as far as one step of month navigation
-  // gets you. Closed days come from business hours so they read as greyed out.
-  const calWindowStart = startOfMonth(addDays(startOfMonth(baseDate), -1));
-  const calWindowEnd = addDays(
-    startOfMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))),
-    daysInMonth(addDays(startOfMonth(baseDate), daysInMonth(baseDate))) - 1
-  );
-  // Nothing is marked closed here. In a booking flow that state stops you
-  // picking a day you cannot have; in the schedule a closed Sunday is still
-  // worth opening — there may be something on it, and you may just want to
-  // look. Greying them also made this calendar read differently from the
-  // week-mode one, which has no such notion.
-  const calendarDays: { date: string; closed: boolean }[] = [];
-  for (let d = calWindowStart; d <= calWindowEnd; d = addDays(d, 1)) {
-    calendarDays.push({ date: d, closed: false });
-  }
+  const { start: calWindowStart, end: calWindowEnd, days: calendarDays } = calendarWindow(baseDate);
   // Hrefs are built here rather than passed as callbacks: functions cannot
   // cross from a server component into a client one.
   const dayHrefMap: Record<string, string> = {};
@@ -200,23 +177,13 @@ export default async function HarmonogramPage({
   }));
 
   return (
-    <section className="mx-auto max-w-[100rem] px-4 py-8 sm:px-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Harmonogram</h1>
-          <p className="mt-1 text-sm text-zinc-500">{periodLabel}</p>
-        </div>
-
-      </div>
-
-
+    <PageShell title="Harmonogram" subtitle={periodLabel}>
       {/* Two columns from lg up. The calendar used to sit in the header, which
           left ~300px of dead space beside it and pushed the schedule past the
           half-way line of the screen — on a page that is now the panel's
           landing page. In a rail it costs the table some width, which it can
           afford since it scrolls sideways anyway, and buys back the vertical. */}
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-6 lg:flex-row">
         <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
           {/* Sits over the calendar: both answer "which stretch of time am I
               looking at", so they belong to the same corner of the screen. */}
@@ -312,7 +279,7 @@ export default async function HarmonogramPage({
           </div>
         </div>
       </div>
-    </section>
+    </PageShell>
   );
 }
 

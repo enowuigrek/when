@@ -211,3 +211,21 @@ export async function getStaffAvailabilityMap(
 
   return result;
 }
+
+/**
+ * Absences that have not finished yet, across all staff.
+ *
+ * The panel beside the roster lists them for whoever is filtered in, so it
+ * needs one query rather than one per person; anything already over is left
+ * out, since nothing can be done about it.
+ */
+export async function getUpcomingTimeOff(fromDate: string): Promise<StaffTimeOff[]> {
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
+    .from("staff_time_off")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .gte("end_date", fromDate)
+    .order("start_date", { ascending: true });
+  return (data ?? []) as StaffTimeOff[];
+}

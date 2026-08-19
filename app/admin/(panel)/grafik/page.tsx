@@ -2,57 +2,100 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours } from "@/lib/db/services";
-import { getAllStaffSchedules, getTimeOffInRange } from "@/lib/db/staff-schedule";
-import { warsawToday, addDays, mondayOfWeek } from "@/lib/slots";
+import {
+  getAllStaffSchedules,
+  getTimeOffInRange,
+  getUpcomingTimeOff,
+} from "@/lib/db/staff-schedule";
+import { getBookingCountsByDay } from "@/lib/db/bookings";
+import { warsawToday, addDays, mondayOfWeek, warsawDayBoundsUtc, formatShortDate } from "@/lib/slots";
+import { calendarWindow } from "@/lib/calendar-window";
 import { dayLabels } from "@/lib/business";
+import { PageShell } from "@/components/ui/page-shell";
+import { StaffChip } from "@/components/ui/staff-chip";
+import { ScheduleDatePicker } from "../harmonogram/schedule-date-picker";
 import { GrafikCell } from "./grafik-cell";
-import { TimeOffSection } from "../pracownicy/time-off-section";
-import { getStaffTimeOff } from "@/lib/db/staff-schedule";
-import { GrafikWeekPicker } from "./grafik-week-picker";
+import { TimeOffPanel, type TimeOffEntry } from "./time-off-panel";
 
 export const metadata = { title: "Grafik", robots: { index: false } };
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0] as const; // Mon → Sun
-const SHORT_DOW = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"] as const;
+
+/** Frozen first column. Wider than the schedule's hour gutter, which only ever
+ *  holds "14:30" — this one carries a weekday and a date. */
+const GUTTER_W = 104;
 
 export default async function GrafikPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pracownik?: string; tydzien?: string }>;
+  searchParams: Promise<{ tydzien?: string; pracownik?: string; pracownicy?: string }>;
 }) {
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
-  const { pracownik: selectedStaffId, tydzien: weekParam } = await searchParams;
+  const { tydzien, pracownik, pracownicy } = await searchParams;
 
   const today = warsawToday();
   const todayMonday = mondayOfWeek(today);
-  const weekStart = weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) ? mondayOfWeek(weekParam) : todayMonday;
+  const weekStart = tydzien && /^\d{4}-\d{2}-\d{2}$/.test(tydzien) ? mondayOfWeek(tydzien) : todayMonday;
   const weekEnd = addDays(weekStart, 6);
 
-  const [staff, hours, allSchedules, timeOffWeek] = await Promise.all([
+  const [staff, hours, allSchedules, timeOffWeek, upcoming] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getAllStaffSchedules(),
     getTimeOffInRange(weekStart, weekEnd),
+    getUpcomingTimeOff(today),
   ]);
 
-  // Per-staff time-off list for sidebar — runs after staff resolves (needs staffId)
-  const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? staff[0] ?? null;
-  const selectedTimeOff = selectedStaff ? await getStaffTimeOff(selectedStaff.id) : [];
+  // Same filter contract as the schedule: no selection means everyone, and the
+  // old single-value `pracownik` still resolves so older links keep working.
+  const selectedIds = (pracownicy ?? pracownik ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter((id) => staff.some((s) => s.id === id));
+  const filtering = selectedIds.length > 0;
+  const visibleStaff = filtering ? staff.filter((s) => selectedIds.includes(s.id)) : staff;
 
-  // Build week dates — skip days where business is closed
+  function navUrl(week: string, ids: string[] = selectedIds) {
+    const params = new URLSearchParams({ tydzien: week });
+    if (ids.length) params.set("pracownicy", ids.join(","));
+    return `${adminBase}/grafik?${params.toString()}`;
+  }
+
+  /** Add or drop one person; dropping the last one falls back to everyone. */
+  function toggleStaffUrl(id: string) {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id];
+    return navUrl(weekStart, next);
+  }
+
+  // ── Calendar, identical to the schedule's ─────────────────────────────────
+  const { start: calStart, end: calEnd, days: calendarDays } = calendarWindow(weekStart);
+  const weekHrefMap: Record<string, string> = {};
+  for (const { date } of calendarDays) {
+    const monday = mondayOfWeek(date);
+    if (!weekHrefMap[monday]) weekHrefMap[monday] = navUrl(monday);
+  }
+  const dayCounts = await getBookingCountsByDay(
+    warsawDayBoundsUtc(calStart).startIso,
+    warsawDayBoundsUtc(calEnd).endIso
+  );
+
+  // ── Week rows ─────────────────────────────────────────────────────────────
   const weekDates = ORDERED_DAYS
     .map((dow, i) => ({ dow, date: addDays(weekStart, i) }))
-    .filter(({ dow }) => {
-      const h = hours.find((h) => h.day_of_week === dow);
-      return !h?.closed;
-    });
+    .filter(({ dow }) => !hours.find((h) => h.day_of_week === dow)?.closed);
 
   function bizHours(dow: number) {
     const h = hours.find((h) => h.day_of_week === dow);
-    return { open: h?.open_time?.slice(0, 5) ?? null, close: h?.close_time?.slice(0, 5) ?? null, closed: h?.closed ?? true };
+    return {
+      open: h?.open_time?.slice(0, 5) ?? null,
+      close: h?.close_time?.slice(0, 5) ?? null,
+      closed: h?.closed ?? true,
+    };
   }
 
   function scheduleFor(staffId: string, dow: number) {
@@ -63,126 +106,189 @@ export default async function GrafikPage({
     return timeOffWeek.find((t) => t.staff_id === staffId && t.start_date <= date && t.end_date >= date);
   }
 
+  // ── Panel data ────────────────────────────────────────────────────────────
+  const byId = new Map(staff.map((s) => [s.id, s]));
+  const panelEntries: TimeOffEntry[] = upcoming
+    .filter((t) => visibleStaff.some((s) => s.id === t.staff_id))
+    .map((t) => {
+      const person = byId.get(t.staff_id);
+      return {
+        id: t.id,
+        staffId: t.staff_id,
+        staffName: person?.name ?? "—",
+        staffColor: person?.color ?? "#71717a",
+        type: t.type,
+        startDate: t.start_date,
+        endDate: t.end_date,
+        note: t.note,
+      };
+    });
+
+  const timeOffPanel = (
+    <TimeOffPanel
+      entries={panelEntries}
+      soleStaff={visibleStaff.length === 1 ? visibleStaff[0] : null}
+      visibleCount={visibleStaff.length}
+      allStaff={staff}
+      today={today}
+    />
+  );
+
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Grafik</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Godziny pracy i nieobecności pracowników. Kliknij komórkę żeby edytować lub dodać urlop.
-          </p>
-        </div>
-        <GrafikWeekPicker weekStart={weekStart} staffParam={selectedStaffId} todayMonday={todayMonday} today={today} />
-      </div>
+    <PageShell
+      title="Grafik"
+      subtitle={`${formatShortDate(weekStart)} — ${formatShortDate(weekEnd)}`}
+    >
+      {/* Same split as the schedule: calendar in the rail, grid on the left,
+          so switching between the two sections moves nothing on screen. */}
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <aside className="flex flex-col gap-4 lg:order-2 lg:w-[20rem] lg:shrink-0">
+          {/* Sits exactly where the schedule keeps its Dzień/Tydzień switch, so
+              the calendar below lands on the same line in both sections and the
+              rail stops shifting when you move between them. Rather than pad
+              the gap with nothing, it holds the one thing you reach for from
+              here: the same week, seen as bookings instead of hours. */}
+          <Link
+            href={`${adminBase}/harmonogram?widok=tydzien&od=${weekStart}${
+              filtering ? `&pracownicy=${selectedIds.join(",")}` : ""
+            }`}
+            className="self-start rounded-lg border border-zinc-800 p-1 text-sm font-medium text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300"
+          >
+            <span className="block px-3.5 py-1">Rezerwacje w tym tygodniu →</span>
+          </Link>
 
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
-        {/* ── Weekly schedule grid ─────────────────────────────────────── */}
-        <div className="flex-1 overflow-x-auto rounded-xl border border-zinc-800/60" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-          <table className="w-full min-w-[480px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
-                <th className="w-28 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Dzień</th>
-                {staff.map((s) => (
-                  <th key={s.id} className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    <Link
-                      href={`${adminBase}/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
-                      className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
-                    >
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span style={{ color: s.color }}>{s.name}</span>
-                    </Link>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {weekDates.map(({ dow, date }, i) => {
-                const biz = bizHours(dow);
-                const isToday = date === today;
-                const [, m, d] = date.split("-");
-                return (
-                  <tr key={date} className={`border-b border-zinc-800/60 ${i % 2 === 0 ? "bg-zinc-950" : "bg-zinc-900/20"}`}>
-                    <td className="px-4 py-3 align-top">
-                      <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
-                        {dayLabels[dow]}
-                        <span className="ml-1.5 font-mono text-xs text-zinc-600">{d}.{m}</span>
-                      </p>
-                      {biz.closed && <p className="text-xs text-zinc-700">wolne biznesu</p>}
-                      {!biz.closed && <p className="font-mono text-xs text-zinc-600">{biz.open}–{biz.close}</p>}
-                    </td>
-                    {staff.map((s) => (
-                      <td key={s.id} className="px-2 py-2 align-top">
-                        <GrafikCell
-                          staffId={s.id}
-                          staffColor={s.color}
-                          dayOfWeek={dow}
-                          dateStr={date}
-                          scheduleRow={scheduleFor(s.id, dow)}
-                          timeOff={timeOffOn(s.id, date)}
-                          businessOpen={biz.open}
-                          businessClose={biz.close}
-                          allStaff={staff}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          <ScheduleDatePicker
+            view="tydzien"
+            today={today}
+            baseDate={weekStart}
+            weekStart={weekStart}
+            todayWeekStart={todayMonday}
+            dayHref={{}}
+            weekHref={weekHrefMap}
+            todayHref={navUrl(todayMonday)}
+            badges={dayCounts}
+            days={calendarDays}
+          />
 
-        {/* ── Sidebar: selected staff time-off ─────────────────────────── */}
-        {staff.length > 0 && selectedStaff && (
-          <div className="w-full lg:w-80 shrink-0">
-            <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-5">
-              {/* Staff picker */}
-              <div className="mb-4 flex flex-wrap gap-2">
-                {staff.map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`${adminBase}/grafik?pracownik=${s.id}&tydzien=${weekStart}`}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
-                      s.id === selectedStaff.id
-                        ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                        : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                    {s.name}
-                  </Link>
-                ))}
-              </div>
+          {/* On a phone the rail stacks above the roster, and a full-height
+              panel here would push the grid — the thing you came for — off the
+              screen. So it moves below the grid there and keeps its place in
+              the rail from lg up. */}
+          <div className="hidden lg:block">{timeOffPanel}</div>
+        </aside>
 
-              <h2 className="mb-3 text-sm font-semibold text-zinc-200">
-                Nieobecności — {selectedStaff.name}
-              </h2>
-              <p className="mb-3 text-xs text-zinc-500">
-                Możesz też dodać nieobecność klikając w konkretny dzień grafiku.
-              </p>
-
-              <TimeOffSection staffId={selectedStaff.id} timeOff={selectedTimeOff} />
+        <div className="min-w-0 lg:order-1 lg:flex-1">
+          {/* Shown on phones as well, unlike the schedule's row: there the day
+              view collapses into a one-person carousel whose strip of initials
+              already does the jumping, so a chip row would be a second control
+              for the same thing. The roster has no such carousel. */}
+          {staff.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={navUrl(weekStart, [])}
+                aria-current={!filtering ? "true" : undefined}
+                className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+                  !filtering
+                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
+                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                }`}
+              >
+                Wszyscy
+              </Link>
+              {staff.map((s) => (
+                <StaffChip
+                  key={s.id}
+                  staff={s}
+                  selected={selectedIds.includes(s.id)}
+                  dimmed={filtering && !selectedIds.includes(s.id)}
+                  href={toggleStaffUrl(s.id)}
+                  title={selectedIds.includes(s.id) ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
+                />
+              ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Legend */}
-      <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-zinc-500">
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-4 w-8 rounded border border-zinc-700 bg-zinc-900/60" />
-          godziny pracy
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-4 w-8 rounded border border-zinc-800/40 bg-transparent" />
-          wolny
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-flex h-4 w-8 items-center justify-center rounded border border-red-900/50 bg-zinc-900/40 font-medium text-red-400" style={{ fontSize: 9 }}>L4</span>
-          nieobecność
-        </span>
-        <span className="text-zinc-600">(domyślne) = godziny z ustawień</span>
+          <div
+            // Unconditional mt-4, matching the schedule: with one person there
+            // is no chip row on either page, and the gap has to survive its
+            // absence or the two grids start at different heights.
+            className="mt-4 overflow-x-auto rounded-xl border border-zinc-800/60"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
+          >
+            <table
+              className="border-collapse text-sm"
+              style={{
+                tableLayout: "fixed",
+                width: "100%",
+                minWidth: `calc(${GUTTER_W}px + ${Math.max(visibleStaff.length, 1)} * 180px)`,
+              }}
+            >
+              <thead>
+                <tr className="bg-zinc-900/60">
+                  {/* Frozen on both axes, so it sits above the day gutter and
+                      the header row alike — and opaque, since anything sliding
+                      visibly underneath reads as a rendering fault. */}
+                  <th
+                    className="sticky left-0 top-0 z-30 border-b border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+                    style={{ width: GUTTER_W }}
+                  >
+                    Dzień
+                  </th>
+                  {visibleStaff.map((s) => (
+                    <th
+                      key={s.id}
+                      className="sticky top-0 z-10 border-b border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                      style={{ color: s.color }}
+                    >
+                      {s.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {weekDates.map(({ dow, date }) => {
+                  const biz = bizHours(dow);
+                  const isToday = date === today;
+                  const [, m, d] = date.split("-");
+                  return (
+                    <tr key={date} className="border-b border-dashed border-zinc-800/40">
+                      <td className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-3 py-2.5 align-top">
+                        <p className={`text-sm font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
+                          {dayLabels[dow]}
+                        </p>
+                        <p className="font-mono text-xs text-zinc-600">
+                          {d}.{m}
+                        </p>
+                      </td>
+                      {visibleStaff.map((s) => (
+                        <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-2 py-2 align-top">
+                          <GrafikCell
+                            staffId={s.id}
+                            staffColor={s.color}
+                            dayOfWeek={dow}
+                            dateStr={date}
+                            scheduleRow={scheduleFor(s.id, dow)}
+                            timeOff={timeOffOn(s.id, date)}
+                            businessOpen={biz.open}
+                            businessClose={biz.close}
+                            allStaff={staff}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-xs text-zinc-600">
+            Kliknij komórkę, żeby ustawić godziny pracy albo wpisać nieobecność. Puste pole = godziny z ustawień.
+          </p>
+
+          <div className="mt-6 lg:hidden">{timeOffPanel}</div>
+        </div>
       </div>
-    </section>
+    </PageShell>
   );
 }
