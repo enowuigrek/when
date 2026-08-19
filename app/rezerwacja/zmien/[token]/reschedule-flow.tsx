@@ -66,10 +66,11 @@ export function RescheduleFlow({
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
           Wybierz nowy dzień
         </h2>
-        {/* Capped so the day cells stay square — see the admin form. */}
-        <div className="max-w-[26rem]">
-          <CalendarPicker days={days} selectedDate={selectedDate} onPick={pickDate} today={today} />
-        </div>
+        {/* Full width here, unlike the panel's rail: on a booking page the
+            service card and the slot grid both span the column, and a calendar
+            stopping halfway across looked like it had failed to load. The
+            taller cell keeps it from flattening into bars. */}
+        <CalendarPicker days={days} selectedDate={selectedDate} onPick={pickDate} today={today} size="lg" />
       </div>
 
       <div>

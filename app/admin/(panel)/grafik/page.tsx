@@ -187,8 +187,13 @@ export default async function GrafikPage({
           {/* Hidden on phones, as in the schedule: there the grid collapses into
               a one-person carousel whose strip of initials already does the
               jumping, so this would be a second control for the same thing. */}
-          {staff.length > 1 && (
-            <div className="hidden flex-wrap items-center gap-2 sm:flex">
+          {/* The row keeps its height even when there is nobody to filter.
+              It is what holds the grid level with the calendar in the rail —
+              without it, an account with no staff yet starts its left column
+              a chip-row higher than its right one. */}
+          <div className="hidden min-h-[38px] flex-wrap items-center gap-2 sm:flex">
+            {staff.length > 1 && (
+              <>
               <StaffChip selected={!filtering} dimmed={filtering} href={navUrl(weekStart, [])}>
                 Wszyscy
               </StaffChip>
@@ -202,8 +207,9 @@ export default async function GrafikPage({
                   title={selectedIds.includes(s.id) ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
                 />
               ))}
-            </div>
-          )}
+              </>
+            )}
+          </div>
 
           {staff.length === 0 && (
             <div className="mt-4">

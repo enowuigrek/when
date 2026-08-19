@@ -80,7 +80,7 @@ type CalendarPickerProps = {
 
   // Layout
   displayYearMonth?: { year: number; month: number };
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "lg";
   /**
    * Allow stepping into months before the current one (off by default).
    * Booking flows lock to the present; admin browsing pages enable this.
@@ -176,9 +176,15 @@ export function CalendarPicker({
   // Sizing — bump up small mode on mobile (it's used in admin sidebars where
   // 32px cells fall below comfortable tap targets). At sm: breakpoint we
   // shrink back to the original compact size for desktop side panels.
+  //
+  // `lg` is for a calendar that fills a page column rather than sitting in a
+  // rail. A cell there is over ninety pixels wide, and at the rail's 40px
+  // height that reads as a row of flat bars rather than a calendar — the taller
+  // cell keeps the proportion closer to square.
   const isSm = size === "sm";
+  const isLg = size === "lg";
   const wrapperPad = isSm ? "p-3" : "p-4";
-  const cellH = isSm ? "h-11 sm:h-8" : "h-11 sm:h-10";
+  const cellH = isSm ? "h-11 sm:h-8" : isLg ? "h-12 sm:h-14" : "h-11 sm:h-10";
   const headerMb = isSm ? "mb-3" : "mb-4";
   const headerBtn = isSm ? "h-10 w-10 sm:h-7 sm:w-7" : "h-10 w-10 sm:h-8 sm:w-8";
   const headerLabel = isSm ? "text-sm sm:text-xs" : "text-sm";

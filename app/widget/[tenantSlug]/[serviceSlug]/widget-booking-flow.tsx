@@ -117,10 +117,11 @@ export function WidgetBookingFlow({
       {/* CALENDAR */}
       <div>
         <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Dzień</p>
-        {/* Capped so the day cells stay square — see the admin form. */}
-        <div className="max-w-[26rem]">
-          <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
-        </div>
+        {/* Full width here, unlike the panel's rail: on a booking page the
+            service card and the slot grid both span the column, and a calendar
+            stopping halfway across looked like it had failed to load. The
+            taller cell keeps it from flattening into bars. */}
+        <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} size="lg" />
       </div>
 
       {/* SLOTS */}

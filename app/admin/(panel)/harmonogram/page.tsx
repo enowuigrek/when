@@ -242,11 +242,16 @@ export default async function HarmonogramPage({
             people and showing where you are, so this row would be a second
             control for the same thing.
           */}
-          {allStaff.length > 1 && (
-            <div
-              className="hidden items-center gap-2 sm:flex sm:flex-wrap"
-              style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
-            >
+          {/* The row keeps its height even when there is nobody to filter. It
+              is what holds the grid level with the calendar in the rail —
+              without it, an account with no staff yet starts its left column a
+              chip-row higher than its right one. */}
+          <div
+            className="hidden min-h-[38px] items-center gap-2 sm:flex sm:flex-wrap"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
+          >
+            {allStaff.length > 1 && (
+              <>
               <StaffChip selected={!filtering} dimmed={filtering} href={navUrl(view, baseDate, [])}>
                 Wszyscy
               </StaffChip>
@@ -262,8 +267,9 @@ export default async function HarmonogramPage({
               title={selectedIds.includes(s.id) ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
             />
           ))}
-            </div>
-          )}
+              </>
+            )}
+          </div>
           </div>
 
 
