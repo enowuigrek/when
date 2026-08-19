@@ -209,6 +209,17 @@ body {
   background-color: #f4f4f5;
 }
 
+/* Text sitting on a saturated fill has to stay light in both themes. The light
+   theme forces .text-zinc-100 and .text-red-400 to near-black with !important,
+   which quietly turned white-on-red into black-on-red — unreadable on the
+   cancel and delete buttons. These two win that fight. */
+.on-solid {
+  color: #fafafa !important;
+}
+.on-solid-hover:hover {
+  color: #fafafa !important;
+}
+
 /* Free slot in the schedule. Fills its whole cell rather than sitting inside
    it as a rounded chip — the target is the slot, so it should look like the
    slot. `cell` gives the spreadsheet plus, which says "click to add here"

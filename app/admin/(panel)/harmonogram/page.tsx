@@ -209,74 +209,6 @@ export default async function HarmonogramPage({
 
       </div>
 
-      {/* Filter row, above the split so the rail and the grid start from the
-          same edge. */}
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-      {/*
-        One row of toggles, replacing the old filter chips + a second row of
-        summary cards that repeated the same people. Money is deliberately
-        gone: it was noise here, and the number that matters when scanning a
-        day is how many bookings someone has.
-
-        Three states, because "everyone" is not the same as "each one picked":
-        with no filter the tiles stay neutral and only Wszyscy reads as active;
-        once anyone is picked, the chosen ones light up in their own column
-        colour and the rest dim. Tiles wrap, so ten people become two calm
-        rows rather than a cramped single line.
-
-        Hidden below `sm`: there the day view turns into a one-person
-        carousel and its strip of initials takes over both jumping between
-        people and showing where you are, so this row would be a second
-        control for the same thing.
-      */}
-      {allStaff.length > 1 && (
-        <div
-          className="hidden items-center gap-2 sm:flex sm:flex-wrap"
-          style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
-        >
-          <Link
-            href={navUrl(view, baseDate, [])}
-            aria-current={!filtering ? "true" : undefined}
-            className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
-              !filtering
-                ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
-            }`}
-          >
-            Wszyscy
-          </Link>
-
-          {staffStats.map((s) => {
-            const picked = selectedIds.includes(s.id);
-            return (
-              <Link
-                key={s.id}
-                href={toggleStaffUrl(s.id)}
-                aria-current={picked ? "true" : undefined}
-                title={picked ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors ${
-                  picked
-                    ? "text-zinc-100"
-                    : filtering
-                    ? "border-zinc-800/60 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400"
-                    : "border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
-                }`}
-                style={picked ? { borderColor: s.color, backgroundColor: `${s.color}1a` } : undefined}
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full transition-opacity"
-                  style={{ backgroundColor: s.color, opacity: filtering && !picked ? 0.4 : 1 }}
-                />
-                {s.name}
-                {s.count > 0 && (
-                  <span className="font-mono text-xs text-zinc-500">{s.count}</span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-      )}
-      </div>
 
       {/* Two columns from lg up. The calendar used to sit in the header, which
           left ~300px of dead space beside it and pushed the schedule past the
@@ -319,11 +251,81 @@ export default async function HarmonogramPage({
         </aside>
 
         <div className="min-w-0 lg:order-1 lg:flex-1">
+          {/* Filter row, above the split so the rail and the grid start from the
+              same edge. */}
+          <div className="flex flex-wrap items-center gap-3">
+              {/*
+            One row of toggles, replacing the old filter chips + a second row of
+            summary cards that repeated the same people. Money is deliberately
+            gone: it was noise here, and the number that matters when scanning a
+            day is how many bookings someone has.
+
+            Three states, because "everyone" is not the same as "each one picked":
+            with no filter the tiles stay neutral and only Wszyscy reads as active;
+            once anyone is picked, the chosen ones light up in their own column
+            colour and the rest dim. Tiles wrap, so ten people become two calm
+            rows rather than a cramped single line.
+
+            Hidden below `sm`: there the day view turns into a one-person
+            carousel and its strip of initials takes over both jumping between
+            people and showing where you are, so this row would be a second
+            control for the same thing.
+          */}
+          {allStaff.length > 1 && (
+            <div
+              className="hidden items-center gap-2 sm:flex sm:flex-wrap"
+              style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
+            >
+              <Link
+                href={navUrl(view, baseDate, [])}
+                aria-current={!filtering ? "true" : undefined}
+                className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+                  !filtering
+                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
+                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                }`}
+              >
+                Wszyscy
+              </Link>
+
+              {staffStats.map((s) => {
+                const picked = selectedIds.includes(s.id);
+                return (
+                  <Link
+                    key={s.id}
+                    href={toggleStaffUrl(s.id)}
+                    aria-current={picked ? "true" : undefined}
+                    title={picked ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
+                    // items-baseline, not items-center: the count is a smaller
+                    // type size, and centring its box lifts its baseline above the
+                    // name's. Aligning baselines sits them on one line.
+                    className={`flex shrink-0 items-baseline gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors ${
+                      picked
+                        ? "text-zinc-100"
+                        : filtering
+                        ? "border-zinc-800/60 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400"
+                        : "border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
+                    }`}
+                    style={picked ? { borderColor: s.color, backgroundColor: `${s.color}1a` } : undefined}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 self-center rounded-full transition-opacity"
+                      style={{ backgroundColor: s.color, opacity: filtering && !picked ? 0.4 : 1 }}
+                    />
+                    {s.name}
+                    {s.count > 0 && (
+                      <span className="font-mono text-xs text-zinc-500">{s.count}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          </div>
 
 
-          {/* No top margin: the filter row moved above the split, so the grid
-              starts flush with the rail beside it. */}
-          <div>
+
+          <div className="mt-4">
             {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
             {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
           </div>
