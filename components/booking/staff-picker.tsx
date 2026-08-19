@@ -1,59 +1,36 @@
 "use client";
 
-import { StaffAvatar } from "@/components/ui/staff-avatar";
-
-type StaffOption = { id: string; name: string; color: string; photo_url?: string | null };
+import { StaffChip, type ChipStaff } from "@/components/ui/staff-chip";
 
 type Props = {
-  staff: StaffOption[];
+  staff: ChipStaff[];
   /** "" means "Dowolny" / any staff. */
   selectedStaffId: string;
   onPick: (id: string) => void;
-  /** Optional: dates on which a given staff member is unavailable. Used to dim them in widget. */
+  /** Dates on which a given staff member is unavailable — dims them in the widget. */
   unavailableForStaffId?: (id: string) => boolean;
 };
 
 /**
- * Shared staff picker — pill buttons with color dots + "Dowolny" first.
- * Used by both admin "new booking" and the widget client flow.
+ * Staff step of the booking forms. The chip itself lives in StaffChip, shared
+ * with the schedule filter, so picking a person looks the same wherever you
+ * do it — including lighting up in their own colour rather than plain grey.
  */
 export function StaffPicker({ staff, selectedStaffId, onPick, unavailableForStaffId }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={() => onPick("")}
-        className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
-          selectedStaffId === ""
-            ? "border-zinc-500 bg-zinc-800 text-zinc-100"
-            : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-        }`}
-      >
+      <StaffChip selected={selectedStaffId === ""} onClick={() => onPick("")}>
         Dowolny
-      </button>
-      {staff.map((s) => {
-        const isSelected = s.id === selectedStaffId;
-        const dimmed = unavailableForStaffId?.(s.id) ?? false;
-        return (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => onPick(s.id)}
-            className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
-              isSelected
-                ? "border-zinc-500 bg-zinc-800 text-zinc-100"
-                : dimmed
-                ? "border-zinc-800/60 bg-zinc-900/20 text-zinc-600 opacity-60"
-                : "border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-            }`}
-          >
-            <span style={{ opacity: dimmed ? 0.5 : 1 }} className="flex items-center">
-              <StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={20} />
-            </span>
-            {s.name}
-          </button>
-        );
-      })}
+      </StaffChip>
+      {staff.map((s) => (
+        <StaffChip
+          key={s.id}
+          staff={s}
+          selected={s.id === selectedStaffId}
+          dimmed={unavailableForStaffId?.(s.id) ?? false}
+          onClick={() => onPick(s.id)}
+        />
+      ))}
     </div>
   );
 }

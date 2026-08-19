@@ -1,4 +1,6 @@
 import { AdminLink } from "@/components/admin-link";
+import { ListRow, ListRows } from "@/components/ui/list-row";
+import { StaffAvatar } from "@/components/ui/staff-avatar";
 import { getAllStaff } from "@/lib/db/staff";
 import { toggleStaffActiveAction } from "./actions";
 import { DeleteStaffButton } from "./delete-button";
@@ -37,49 +39,38 @@ export default async function PracownicyPage() {
       {staff.length === 0 ? (
         <p className="text-sm text-zinc-500">Brak pracowników.</p>
       ) : (
-        <div className="space-y-3">
+        <ListRows>
           {staff.map((s) => (
-            <div
+            <ListRow
               key={s.id}
-              className={`flex items-center gap-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-5 py-4 ${
-                s.active ? "" : "opacity-50"
-              }`}
-            >
-              <div
-                className="h-10 w-10 shrink-0 rounded-full"
-                style={{ backgroundColor: s.color }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-zinc-100">{s.name}</p>
-                {s.bio && (
-                  <p className="mt-0.5 text-sm text-zinc-500 line-clamp-1">{s.bio}</p>
-                )}
-                {!s.active && (
-                  <p className="mt-0.5 text-xs uppercase tracking-wider text-zinc-600">Nieaktywny</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <AdminLink
-                  href={`/admin/pracownicy/${s.id}`}
-                  className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
-                >
-                  Edytuj
-                </AdminLink>
-                <form action={toggleStaffActiveAction}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <input type="hidden" name="active" value={String(s.active)} />
-                  <button
-                    type="submit"
+              dimmed={!s.active}
+              avatar={<StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={40} />}
+              title={s.name}
+              subtitle={s.active ? s.bio : (s.bio ? `${s.bio} · nieaktywny` : "nieaktywny")}
+              right={
+                <>
+                  <AdminLink
+                    href={`/admin/pracownicy/${s.id}`}
                     className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
                   >
-                    {s.active ? "Ukryj" : "Aktywuj"}
-                  </button>
-                </form>
-                <DeleteStaffButton id={s.id} name={s.name} />
-              </div>
-            </div>
+                    Edytuj
+                  </AdminLink>
+                  <form action={toggleStaffActiveAction}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <input type="hidden" name="active" value={String(s.active)} />
+                    <button
+                      type="submit"
+                      className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+                    >
+                      {s.active ? "Ukryj" : "Aktywuj"}
+                    </button>
+                  </form>
+                  <DeleteStaffButton id={s.id} name={s.name} />
+                </>
+              }
+            />
           ))}
-        </div>
+        </ListRows>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { DayStaffCarousel } from "./day-staff-carousel";
 import { WeekViewport } from "./week-viewport";
 import { ScheduleDatePicker } from "./schedule-date-picker";
 import { DaySummary } from "./day-summary";
+import { StaffChip } from "@/components/ui/staff-chip";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -288,37 +289,17 @@ export default async function HarmonogramPage({
                 Wszyscy
               </Link>
 
-              {staffStats.map((s) => {
-                const picked = selectedIds.includes(s.id);
-                return (
-                  <Link
-                    key={s.id}
-                    href={toggleStaffUrl(s.id)}
-                    aria-current={picked ? "true" : undefined}
-                    title={picked ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
-                    // items-baseline, not items-center: the count is a smaller
-                    // type size, and centring its box lifts its baseline above the
-                    // name's. Aligning baselines sits them on one line.
-                    className={`flex shrink-0 items-baseline gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors ${
-                      picked
-                        ? "text-zinc-100"
-                        : filtering
-                        ? "border-zinc-800/60 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400"
-                        : "border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100"
-                    }`}
-                    style={picked ? { borderColor: s.color, backgroundColor: `${s.color}1a` } : undefined}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 self-center rounded-full transition-opacity"
-                      style={{ backgroundColor: s.color, opacity: filtering && !picked ? 0.4 : 1 }}
-                    />
-                    {s.name}
-                    {s.count > 0 && (
-                      <span className="font-mono text-xs text-zinc-500">{s.count}</span>
-                    )}
-                  </Link>
-                );
-              })}
+              {staffStats.map((s) => (
+            <StaffChip
+              key={s.id}
+              staff={s}
+              selected={selectedIds.includes(s.id)}
+              dimmed={filtering && !selectedIds.includes(s.id)}
+              count={s.count}
+              href={toggleStaffUrl(s.id)}
+              title={selectedIds.includes(s.id) ? `Ukryj ${s.name}` : `Pokaż ${s.name}`}
+            />
+          ))}
             </div>
           )}
           </div>

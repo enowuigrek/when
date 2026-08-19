@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminLink } from "@/components/admin-link";
+import { ListRow, ListRows, InitialAvatar } from "@/components/ui/list-row";
 import { getAllCustomersWithStats } from "@/lib/db/customers";
 import { formatWarsawDate } from "@/lib/slots";
 import { NewCustomerDialog } from "./new-customer-dialog";
@@ -64,60 +65,55 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
           {q ? "Brak wyników." : "Brak klientów — pojawią się po pierwszej rezerwacji."}
         </p>
       ) : (
-        <div className="divide-y divide-zinc-800/60 rounded-xl border border-zinc-800/60 bg-zinc-900/40">
+        <ListRows>
           {customers.map((c) => (
-            <AdminLink
+            <ListRow
               key={c.id}
               href={`/admin/klienci/${c.id}`}
-              className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-800/30 sm:gap-4 sm:px-5"
-            >
-              {/* Avatar */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-300">
-                {c.name.charAt(0).toUpperCase()}
-              </div>
-
-              {/* Name + contact */}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <p className="truncate font-medium text-zinc-100">{c.name}</p>
-                  {c.noShowCount > 0 && (
-                    <span className="text-xs text-amber-500">{c.noShowCount}× nie przyszedł</span>
-                  )}
+              avatar={<InitialAvatar name={c.name} />}
+              title={
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="truncate">{c.name}</span>
                   {c.visitCount >= 10 && (
-                    <span className="rounded-full border border-[var(--color-accent)]/30 px-1.5 py-0.5 text-[10px] text-[var(--color-accent)]">stały</span>
+                    <span className="rounded-full border border-[var(--color-accent)]/30 px-1.5 py-0.5 text-[10px] font-normal text-[var(--color-accent)]">
+                      stały
+                    </span>
                   )}
-                </div>
-                <p className="mt-0.5 truncate font-mono text-xs text-zinc-500">{c.phone}</p>
-              </div>
-
-              {/* Mobile-only compact stats */}
-              <div className="flex shrink-0 flex-col items-end gap-0.5 text-right text-xs text-zinc-500 sm:hidden">
-                <p className="font-mono text-sm text-zinc-200">{c.visitCount}×</p>
-                <p className="font-mono text-[11px] text-[var(--color-accent)]">{c.totalSpent} zł</p>
-              </div>
-
-              {/* Desktop stats */}
-              <div className="hidden items-center gap-6 text-right text-xs text-zinc-500 sm:flex">
-                <div>
-                  <p className="font-mono text-sm text-zinc-200">{c.visitCount}</p>
-                  <p>wizyt</p>
-                </div>
-                <div>
-                  <p className="font-mono text-sm text-[var(--color-accent)]">{c.totalSpent} zł</p>
-                  <p>wydał</p>
-                </div>
-                {c.lastVisit && (
-                  <div>
-                    <p className="text-zinc-400">{formatWarsawDate(c.lastVisit)}</p>
-                    <p>ostatnia</p>
-                  </div>
-                )}
-              </div>
-
-              <span className="text-zinc-600">›</span>
-            </AdminLink>
+                  {c.noShowCount > 0 && (
+                    <span className="text-xs font-normal text-amber-500">{c.noShowCount}× nie przyszedł</span>
+                  )}
+                </span>
+              }
+              subtitle={<span className="font-mono text-xs">{c.phone}</span>}
+              right={
+                <>
+                  {/* Phones get the two figures that matter; the rest is desktop only. */}
+                  <span className="flex flex-col items-end gap-0.5 text-right sm:hidden">
+                    <span className="font-mono text-sm text-zinc-200">{c.visitCount}×</span>
+                    <span className="font-mono text-[11px] text-[var(--color-accent)]">{c.totalSpent} zł</span>
+                  </span>
+                  <span className="hidden items-center gap-6 text-right text-xs text-zinc-500 sm:flex">
+                    <span className="block">
+                      <span className="block font-mono text-sm text-zinc-200">{c.visitCount}</span>
+                      wizyt
+                    </span>
+                    <span className="block">
+                      <span className="block font-mono text-sm text-[var(--color-accent)]">{c.totalSpent} zł</span>
+                      wydał
+                    </span>
+                    {c.lastVisit && (
+                      <span className="block">
+                        <span className="block text-zinc-400">{formatWarsawDate(c.lastVisit)}</span>
+                        ostatnia
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-zinc-600">›</span>
+                </>
+              }
+            />
           ))}
-        </div>
+        </ListRows>
       )}
     </div>
   );
