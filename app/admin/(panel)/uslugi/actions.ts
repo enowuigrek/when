@@ -170,41 +170,6 @@ export async function updateServiceAction(
   redirect(`${await getAdminBasePath()}/uslugi`);
 }
 
-export async function setServicePriceOverrideAction(formData: FormData): Promise<void> {
-  await requireAdmin();
-  const serviceId = formData.get("service_id")?.toString();
-  const groupId = formData.get("group_id")?.toString();
-  const priceRaw = formData.get("price_pln")?.toString();
-  const durationRaw = formData.get("duration_min")?.toString().trim();
-  if (!serviceId || !groupId) return;
-
-  const tenantId = await getAdminTenantId();
-  const supabase = createAdminClient();
-
-  // Verify service belongs to current tenant before mutating overrides
-  const { data: svc } = await supabase
-    .from("services")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("id", serviceId)
-    .maybeSingle();
-  if (!svc) return;
-
-  // Empty price → delete override
-  if (!priceRaw || priceRaw.trim() === "") {
-    await supabase.from("service_group_prices").delete().eq("service_id", serviceId).eq("group_id", groupId);
-  } else {
-    const price = parseInt(priceRaw, 10);
-    if (Number.isNaN(price) || price < 0) return;
-    const duration = durationRaw && durationRaw !== "" ? parseInt(durationRaw, 10) : null;
-    await supabase
-      .from("service_group_prices")
-      .upsert({ service_id: serviceId, group_id: groupId, price_pln: price, duration_min: duration }, { onConflict: "service_id,group_id" });
-  }
-
-  revalidatePath(`/admin/uslugi/${serviceId}`);
-}
-
 export async function deleteServiceAction(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id")?.toString();
