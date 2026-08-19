@@ -545,7 +545,7 @@ function WeekView({
   }
 
   return (
-    <StaffCarousel staff={visibleStaff} gutter={112} col={200} fitViewport={false}>
+    <StaffCarousel staff={visibleStaff} gutter={112} fitViewport={false}>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"

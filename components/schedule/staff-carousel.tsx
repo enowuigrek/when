@@ -5,8 +5,16 @@ import { useViewportFit } from "./use-viewport-fit";
 
 type Staff = { id: string; name: string; color: string };
 
-/** A staff column's natural width, unless the caller says otherwise. */
-const DEFAULT_COL = 180;
+/**
+ * Phones only, matching the `sm` breakpoint the chip rows are hidden at.
+ *
+ * An earlier version turned the carousel on by measuring the container against
+ * the width of two columns. That fired on a desktop whenever the window was
+ * narrow enough — a mechanic meant for touch, appearing on a machine with a
+ * mouse and a filter row. The breakpoint is the whole rule: below it the chips
+ * are gone and the carousel stands in for them, above it neither applies.
+ */
+const PHONE = "(max-width: 639px)";
 
 /**
  * One person at a time on a phone, for any of the panel's staff-column grids.
@@ -22,25 +30,21 @@ const DEFAULT_COL = 180;
  *
  * Shared by the day schedule, the week schedule and the roster — all three are
  * days against people, and they only differ in how wide the frozen column is.
- * Wide enough for two whole columns, this renders its children unchanged.
+ * On anything wider than a phone this renders its children unchanged.
  */
 export function StaffCarousel({
   staff,
   gutter,
-  col = DEFAULT_COL,
   fitViewport = true,
   children,
 }: {
   staff: Staff[];
   /** Width of the frozen first column, so a snapped column lands beside it. */
   gutter: number;
-  /** This grid's natural column width — the week view runs wider than the day. */
-  col?: number;
   /** Cap the height to the viewport and scroll inside. Off for short tables. */
   fitViewport?: boolean;
   children: ReactNode;
 }) {
-  const CAROUSEL_BELOW = gutter + 2 * col;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mobile, setMobile] = useState(false);
   const [colW, setColW] = useState(0);
@@ -51,10 +55,12 @@ export function StaffCarousel({
   const measure = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const on = staff.length > 1 && el.clientWidth < CAROUSEL_BELOW;
+    const on = staff.length > 1 && window.matchMedia(PHONE).matches;
     setMobile(on);
+    // The container still decides how wide a column is — it is the phone that
+    // decides whether there is a carousel at all.
     setColW(on ? Math.max(200, el.clientWidth - gutter) : 0);
-  }, [staff.length, gutter, CAROUSEL_BELOW]);
+  }, [staff.length, gutter]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -62,7 +68,12 @@ export function StaffCarousel({
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    const mq = window.matchMedia(PHONE);
+    mq.addEventListener("change", measure);
+    return () => {
+      ro.disconnect();
+      mq.removeEventListener("change", measure);
+    };
   }, [measure]);
 
   /**
