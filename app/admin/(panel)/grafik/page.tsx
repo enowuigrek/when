@@ -12,6 +12,9 @@ import { warsawToday, addDays, mondayOfWeek, warsawDayBoundsUtc, formatShortDate
 import { calendarWindow } from "@/lib/calendar-window";
 import { dayLabels } from "@/lib/business";
 import { PageShell } from "@/components/ui/page-shell";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AdminLink } from "@/components/admin-link";
+import { buttonClasses } from "@/components/ui/button";
 import { StaffChip } from "@/components/ui/staff-chip";
 import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "../harmonogram/schedule-date-picker";
@@ -202,9 +205,27 @@ export default async function GrafikPage({
             </div>
           )}
 
+          {staff.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                title="Nie ma jeszcze nikogo w zespole."
+                hint="Grafik pokazuje godziny pracy i nieobecności — najpierw dodaj pracownika."
+                action={
+                  <AdminLink
+                    href="/admin/pracownicy/nowy"
+                    className={buttonClasses({ variant: "primary", radius: "full" })}
+                  >
+                    + Dodaj pracownika
+                  </AdminLink>
+                }
+              />
+            </div>
+          )}
+
           {/* Unconditional mt-4, matching the schedule: with one person there is
               no chip row on either page, and the gap has to survive its absence
               or the two grids start at different heights. */}
+          {staff.length > 0 && (
           <div className="mt-4">
             <StaffCarousel staff={visibleStaff} gutter={GUTTER_W} fitViewport={false}>
             <table
@@ -279,10 +300,13 @@ export default async function GrafikPage({
             </table>
             </StaffCarousel>
           </div>
+          )}
 
-          <p className="mt-3 text-xs text-zinc-600">
-            Kliknij komórkę, żeby ustawić godziny pracy albo wpisać nieobecność. Puste pole = godziny z ustawień.
-          </p>
+          {staff.length > 0 && (
+            <p className="mt-3 text-xs text-zinc-600">
+              Kliknij komórkę, żeby ustawić godziny pracy albo wpisać nieobecność. Puste pole = godziny z ustawień.
+            </p>
+          )}
 
           <div className="mt-6 lg:hidden">{timeOffPanel}</div>
         </div>

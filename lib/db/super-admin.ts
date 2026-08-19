@@ -179,3 +179,85 @@ export async function getFeedbackForTenant(tenantId: string): Promise<FeedbackRo
   const all = await getAllFeedback();
   return all.filter((f) => f.tenant_id === tenantId);
 }
+
+export type DemoOverview = {
+  id: string;
+  slug: string;
+  businessName: string;
+  kind: "demo" | "trial";
+  /** Null on a trial: those are the ones meant to be sent and never expire. */
+  expiresAt: string | null;
+  createdAt: string;
+  services: number;
+  staff: number;
+  bookings: number;
+  /** Page views recorded on the demo panel. */
+  views: number;
+  /** Distinct pages opened — one means they looked at the first screen only. */
+  pagesSeen: number;
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+};
+
+/**
+ * The demos, with what is in them and whether anyone has looked.
+ *
+ * Sorted so the ones meant for sending — trials, which do not expire — come
+ * first; the short-lived ones the landing page generates follow.
+ */
+export async function getDemoOverview(): Promise<DemoOverview[]> {
+  const supabase = createAdminClient();
+
+  const { data: tenants } = await supabase
+    .from("tenants")
+    .select("id, slug, kind, expires_at, created_at")
+    .in("kind", ["demo", "trial"])
+    .order("created_at", { ascending: false });
+
+  const rows = (tenants ?? []) as {
+    id: string; slug: string; kind: "demo" | "trial";
+    expires_at: string | null; created_at: string;
+  }[];
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((t) => t.id);
+  const [settingsRes, servicesRes, staffRes, bookingsRes, visitsRes] = await Promise.all([
+    supabase.from("settings").select("tenant_id, business_name").in("tenant_id", ids),
+    supabase.from("services").select("tenant_id").in("tenant_id", ids),
+    supabase.from("staff").select("tenant_id").in("tenant_id", ids),
+    supabase.from("bookings").select("tenant_id").in("tenant_id", ids),
+    supabase.from("demo_visits").select("tenant_id, path, at").in("tenant_id", ids),
+  ]);
+
+  const nameBy = new Map(
+    ((settingsRes.data ?? []) as { tenant_id: string; business_name: string }[])
+      .map((r) => [r.tenant_id, r.business_name])
+  );
+  const count = (data: unknown, id: string) =>
+    ((data ?? []) as { tenant_id: string }[]).filter((r) => r.tenant_id === id).length;
+
+  const visits = (visitsRes.data ?? []) as { tenant_id: string; path: string; at: string }[];
+
+  return rows.map((t) => {
+    const mine = visits.filter((v) => v.tenant_id === t.id);
+    const times = mine.map((v) => v.at).sort();
+    return {
+      id: t.id,
+      slug: t.slug,
+      businessName: nameBy.get(t.id) ?? t.slug,
+      kind: t.kind,
+      expiresAt: t.expires_at,
+      createdAt: t.created_at,
+      services: count(servicesRes.data, t.id),
+      staff: count(staffRes.data, t.id),
+      bookings: count(bookingsRes.data, t.id),
+      views: mine.length,
+      pagesSeen: new Set(mine.map((v) => v.path)).size,
+      firstSeenAt: times[0] ?? null,
+      lastSeenAt: times[times.length - 1] ?? null,
+    };
+  }).sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === "trial" ? -1 : 1;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}

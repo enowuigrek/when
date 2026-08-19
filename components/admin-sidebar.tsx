@@ -509,9 +509,18 @@ function SidebarBody({
               <IcPlus />
             </LinkPendingSwap>
           </span>
-          {expanded && (
-            <span className="ml-2 whitespace-nowrap">Nowa rezerwacja</span>
-          )}
+          {/* Animated open, not mounted on expand. Mounting put the label on
+              screen at full width the instant the state flipped, while the
+              sidebar was still widening around it — so for a frame or two it
+              stuck out past the edge. Every nav row already grows its label
+              from max-w-0; this one now does the same, on the same curve. */}
+          <span
+            className={`ml-2 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
+              expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+            }`}
+          >
+            Nowa rezerwacja
+          </span>
         </Link>
       </div>
 

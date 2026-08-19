@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { getAllTenantsWithStats, type TenantWithStats, type PlatformSummary } from "@/lib/db/super-admin";
+import { headers } from "next/headers";
+import { getAllTenantsWithStats, getDemoOverview, type TenantWithStats, type PlatformSummary } from "@/lib/db/super-admin";
+import { DemoList } from "./demo-list";
 import { NewTenantForm } from "./new-tenant-form";
 
 export const metadata = { title: "Panel zarządcy", robots: { index: false } };
@@ -15,7 +17,16 @@ function activityBadge(t: TenantWithStats) {
 }
 
 export default async function WszystkoPage() {
-  const { tenants, summary } = await getAllTenantsWithStats();
+  const [{ tenants, summary }, demos, h] = await Promise.all([
+    getAllTenantsWithStats(),
+    getDemoOverview(),
+    headers(),
+  ]);
+  // Build the shareable link from the request, so it is right in dev and in
+  // production without a second source of truth for the domain.
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "whenbooking.pl";
+  const proto = host.startsWith("localhost") ? "http" : "https";
+  const origin = `${proto}://${host}`;
 
   const maxBookings = Math.max(...tenants.map((t) => t.bookingsTotal), 1);
 
@@ -30,6 +41,8 @@ export default async function WszystkoPage() {
       </div>
 
       <KpiGrid summary={summary} />
+
+      <DemoList demos={demos} origin={origin} />
 
       {/* Activity chart — bookings per client (horizontal bars) */}
       <section className="mt-8 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">

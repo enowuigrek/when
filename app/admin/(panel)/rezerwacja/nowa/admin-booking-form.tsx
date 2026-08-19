@@ -10,6 +10,7 @@ import type { Customer } from "@/lib/db/customers";
 import { CalendarPicker } from "@/components/calendar-picker";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { StaffPicker } from "@/components/booking/staff-picker";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
 import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
 import { useAdminBase } from "@/lib/use-admin-base";
@@ -202,6 +203,12 @@ export function AdminBookingForm({
       {/* STEP 2 — SERVICE */}
       <div>
         <p className={`mb-3 ${sectionHeading}`}>2 · Usługa</p>
+        {services.length === 0 && (
+          <EmptyState
+            title="Nie ma jeszcze żadnej usługi."
+            hint="Rezerwacja zawsze dotyczy usługi — dodaj pierwszą, żeby móc umawiać."
+          />
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           {services.map((s) => {
             const isSelected = s.id === selectedServiceId;

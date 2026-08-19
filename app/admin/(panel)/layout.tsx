@@ -16,6 +16,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
 import { AdminSidebar } from "@/components/admin-sidebar";
+import { DemoVisitBeacon } from "@/components/demo-visit-beacon";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 
@@ -58,6 +59,9 @@ export default async function PanelLayout({
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
             <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
           </div>
+          {/* Demo panels only — answers "did the prospect open the link, and
+              did they look at more than the first screen". */}
+          <DemoVisitBeacon slug={demoSlug} />
         </div>
       </TenantThemeWrapper>
     );
