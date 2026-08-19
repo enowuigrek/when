@@ -73,7 +73,7 @@ function warsawDate(iso: string): string {
 export default async function HarmonogramPage({
   searchParams,
 }: {
-  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string; pracownicy?: string }>;
+  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string; pracownicy?: string; rezerwacja?: string }>;
 }) {
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
@@ -81,7 +81,7 @@ export default async function HarmonogramPage({
   // so the proxy keeps injecting x-demo-slug on every navigation.
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
-  const { widok, od, pracownik, pracownicy } = await searchParams;
+  const { widok, od, pracownik, pracownicy, rezerwacja } = await searchParams;
   // Day is the operational view — the panel root already redirects here,
   // so week-as-fallback was an inconsistency rather than a choice.
   const view: View = widok === "tydzien" ? "tydzien" : "dzien";
@@ -266,8 +266,8 @@ export default async function HarmonogramPage({
 
 
           <div className="mt-4">
-            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} />}
-            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} />}
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} openBookingId={rezerwacja ?? null} />}
+            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} />}
           </div>
         </div>
       </div>
@@ -285,6 +285,7 @@ function DayView({
   today,
   adminBase,
   services,
+  openBookingId,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -294,6 +295,8 @@ function DayView({
   today: string;
   adminBase: string;
   services: ServiceOption[];
+  /** Booking to open on arrival — see BookingManagementButton.openOnMount. */
+  openBookingId: string | null;
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
   const dayHours = hours.find((h) => h.day_of_week === dayOfWeek);
@@ -460,6 +463,7 @@ function DayView({
                         <DayBookingCard
                           booking={toModalBooking(plan.booking)}
                           allStaff={allStaff}
+                          openOnMount={plan.booking.id === openBookingId}
                           timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
                           color={s.color}
                           // Under ~45 minutes the third line would be squeezed
@@ -526,6 +530,7 @@ function WeekView({
   allStaff,
   today,
   navUrl,
+  openBookingId,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -533,6 +538,7 @@ function WeekView({
   allStaff: { id: string; name: string; color: string }[];
   today: string;
   navUrl: (v: View, d: string) => string;
+  openBookingId: string | null;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
   const byDayStaff = new Map<string, Map<string, typeof active>>();
@@ -606,6 +612,7 @@ function WeekView({
                               <BookingManagementButton
                                 booking={toModalBooking(b)}
                                 allStaff={allStaff}
+                                openOnMount={b.id === openBookingId}
                                 className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
                               >
                                 <div className="relative" style={{ backgroundColor: `${s.color}18`, borderLeft: `2px solid ${s.color}`, padding: "2px 6px", borderRadius: 4 }}>

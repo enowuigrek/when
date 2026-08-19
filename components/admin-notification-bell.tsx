@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
+import { useAdminBase } from "@/lib/use-admin-base";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 
 type EventType = "created" | "rescheduled" | "cancelled";
@@ -21,6 +22,8 @@ type RawEvent = {
 
 type NotifItem = {
   id: string;
+  /** Which booking to open when the row is clicked. */
+  bookingId: string | null;
   eventType: EventType;
   source: EventSource;
   customerName: string;
@@ -37,7 +40,7 @@ type Toast = NotifItem;
 // delta, usually empty, so the extra ticks are cheap.
 const POLL_MS = 10_000;
 
-function notifsKey(tenantId: string) { return `when_admin_notifs_v3_${tenantId}`; }
+function notifsKey(tenantId: string) { return `when_admin_notifs_v4_${tenantId}`; }
 function cursorKey(tenantId: string) { return `when_admin_cursor_v1_${tenantId}`; }
 
 function loadStored(tenantId: string): NotifItem[] {
@@ -67,14 +70,36 @@ const TITLE: Record<EventType, string> = {
   rescheduled: "Zmiana terminu",
   cancelled: "Anulowana rezerwacja",
 };
-const ICON: Record<EventType, string> = {
-  created: "🟢", rescheduled: "🔄", cancelled: "🔴",
-};
 const ACCENT: Record<EventType, string> = {
   created: "text-emerald-400",
   rescheduled: "text-blue-400",
   cancelled: "text-red-400",
 };
+
+/**
+ * A tinted chip per event type, in place of the emoji this used to print.
+ *
+ * Emoji render as whatever the operating system decides — a flat green disc on
+ * one machine, a glossy one on another — so three of them in a column read as
+ * clip-art rather than as part of the panel. These follow the same colours the
+ * titles already use.
+ */
+function EventIcon({ type }: { type: EventType }) {
+  const tint: Record<EventType, string> = {
+    created: "bg-emerald-500/15 text-emerald-400",
+    rescheduled: "bg-blue-500/15 text-blue-400",
+    cancelled: "bg-red-500/15 text-red-400",
+  };
+  return (
+    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tint[type]}`}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {type === "created" && <><path d="M8 2v4M16 2v4M3 10h18" /><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M12 14v4M10 16h4" /></>}
+        {type === "rescheduled" && <><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></>}
+        {type === "cancelled" && <><circle cx="12" cy="12" r="9" /><path d="M15 9l-6 6M9 9l6 6" /></>}
+      </svg>
+    </span>
+  );
+}
 
 // ── Bell SVG ──────────────────────────────────────────────────────────────
 
@@ -84,6 +109,48 @@ function BellIcon() {
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
+  );
+}
+
+
+/**
+ * One notification. Both panel shapes render this, rather than each keeping
+ * its own copy of the markup — they had already drifted apart on the size of
+ * the delete button.
+ */
+function NotifRow({
+  item,
+  onOpen,
+  onDelete,
+}: {
+  item: NotifItem;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <li className={`relative flex items-start gap-3 px-4 py-3 transition-colors ${item.read ? "" : "bg-zinc-800/30"}`}>
+      {/* Unread reads as a bar down the edge of the row rather than a dot in
+          the text flow — it marks the whole row and costs no indent, so read
+          and unread rows line up with each other. */}
+      {!item.read && (
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-[var(--color-accent)]" aria-hidden="true" />
+      )}
+      <EventIcon type={item.eventType} />
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{TITLE[item.eventType]}</p>
+        <p className={`truncate text-sm ${item.read ? "text-zinc-400" : "text-zinc-100"}`}>{item.customerName}</p>
+        {item.serviceName && <p className="truncate text-xs text-zinc-500">{item.serviceName}</p>}
+        <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="ml-1 shrink-0 text-lg leading-none text-zinc-600 hover:text-zinc-300"
+        aria-label={`Usuń powiadomienie — ${item.customerName}`}
+      >
+        ×
+      </button>
+    </li>
   );
 }
 
@@ -107,6 +174,7 @@ export function AdminNotificationBell({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const adminBase = useAdminBase();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
@@ -148,6 +216,7 @@ export function AdminNotificationBell({
           if (seenIds.has(e.id)) continue;
           const item: NotifItem = {
             id: e.id,
+            bookingId: e.booking_id,
             eventType: e.event_type,
             source: e.source,
             customerName: e.customer_name,
@@ -203,8 +272,24 @@ export function AdminNotificationBell({
     return () => clearTimeout(t);
   }, [toasts]);
 
+  // Opening the bell no longer marks everything read. It did, which meant the
+  // unread state existed for exactly as long as it took to look at it — you
+  // could never open the panel, get interrupted, and come back to find what
+  // was new. Reading is now something a row does when you act on it, or the
+  // "Przeczytane" button does deliberately.
   function openPanel() {
     setOpen((v) => !v);
+  }
+
+  function markRead(id: string) {
+    setItems((prev) => {
+      const updated = prev.map((i) => (i.id === id ? { ...i, read: true } : i));
+      saveStored(updated, tenantId);
+      return updated;
+    });
+  }
+
+  function markAllRead() {
     setItems((prev) => {
       const updated = prev.map((i) => ({ ...i, read: true }));
       saveStored(updated, tenantId);
@@ -228,9 +313,24 @@ export function AdminNotificationBell({
     saveStored([], tenantId);
   }
 
-  function navigateTo(startsAt: string) {
+  /**
+   * Open the booking the notification is about.
+   *
+   * The path was hardcoded to /admin/…, which in a demo panel walked straight
+   * out of the /demo/{slug} prefix. The proxy only sets x-demo-slug on paths
+   * under /demo, so the schedule that loaded belonged to whatever tenant the
+   * admin session pointed at — someone else's diary, reached by clicking a
+   * notification about your own booking.
+   *
+   * `rezerwacja` carries the booking id so the schedule opens that booking
+   * rather than just landing on its day.
+   */
+  function openNotif(item: NotifItem) {
+    markRead(item.id);
     setOpen(false);
-    router.push(`/admin/harmonogram?widok=dzien&od=${warsawDateStr(startsAt)}`);
+    const params = new URLSearchParams({ widok: "dzien", od: warsawDateStr(item.startsAt) });
+    if (item.bookingId) params.set("rezerwacja", item.bookingId);
+    router.push(`${adminBase}/harmonogram?${params.toString()}`);
   }
 
   // ── Toast portal (always rendered into body) ──────────────────────────
@@ -241,9 +341,9 @@ export function AdminNotificationBell({
             <div
               key={t.id}
               className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-700/60 bg-zinc-900 px-4 py-3 shadow-xl"
-              onClick={() => { setToasts((p) => p.filter((x) => x.id !== t.id)); navigateTo(t.startsAt); }}
+              onClick={() => { setToasts((p) => p.filter((x) => x.id !== t.id)); openNotif(t); }}
             >
-              <span className="mt-0.5">{ICON[t.eventType]}</span>
+              <EventIcon type={t.eventType} />
               <div>
                 <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
                 <p className="text-xs text-zinc-300">{t.customerName}{t.serviceName ? ` · ${t.serviceName}` : ""}</p>
@@ -304,31 +404,30 @@ export function AdminNotificationBell({
     <>
       <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
         <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
-        {items.length > 0 && (
-          <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
-            Wyczyść wszystkie
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {unread > 0 && (
+            <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
+              Przeczytane
+            </button>
+          )}
+          {items.length > 0 && (
+            <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+              Wyczyść
+            </button>
+          )}
+        </div>
       </div>
       {items.length === 0 ? (
         <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
       ) : (
         <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
           {items.map((item) => (
-            <li key={item.id} className={`flex items-start gap-3 px-4 py-3 ${item.read ? "" : "bg-zinc-900/60"}`}>
-              {!item.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
-              <button
-                type="button"
-                onClick={() => navigateTo(item.startsAt)}
-                className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
-              >
-                <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{ICON[item.eventType]} {TITLE[item.eventType]}</p>
-                <p className="text-sm text-zinc-100">{item.customerName}</p>
-                {item.serviceName && <p className="text-xs text-zinc-400">{item.serviceName}</p>}
-                <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
-              </button>
-              <button type="button" onClick={() => deleteNotif(item.id)} className="ml-1 shrink-0 text-zinc-600 hover:text-zinc-300" aria-label="Usuń">×</button>
-            </li>
+            <NotifRow
+              key={item.id}
+              item={item}
+              onOpen={() => openNotif(item)}
+              onDelete={() => deleteNotif(item.id)}
+            />
           ))}
         </ul>
       )}
@@ -352,6 +451,11 @@ export function AdminNotificationBell({
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800/60 px-4">
               <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
               <div className="flex items-center gap-3">
+                {unread > 0 && (
+                  <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
+                    Przeczytane
+                  </button>
+                )}
                 {items.length > 0 && (
                   <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
                     Wyczyść
@@ -368,21 +472,13 @@ export function AdminNotificationBell({
               ) : (
                 <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
                   {items.map((item) => (
-                    <li key={item.id} className={`flex items-start gap-3 px-4 py-3 ${item.read ? "" : "bg-zinc-900/60"}`}>
-                      {!item.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-accent)]" />}
-                      <button
-                        type="button"
-                        onClick={() => navigateTo(item.startsAt)}
-                        className={`flex-1 text-left ${item.read ? "pl-5" : ""}`}
-                      >
-                        <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{ICON[item.eventType]} {TITLE[item.eventType]}</p>
-                        <p className="text-sm text-zinc-100">{item.customerName}</p>
-                        {item.serviceName && <p className="text-xs text-zinc-400">{item.serviceName}</p>}
-                        <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
-                      </button>
-                      <button type="button" onClick={() => deleteNotif(item.id)} className="ml-1 shrink-0 text-zinc-600 hover:text-zinc-300 text-lg leading-none" aria-label="Usuń">×</button>
-                    </li>
-                  ))}
+            <NotifRow
+              key={item.id}
+              item={item}
+              onOpen={() => openNotif(item)}
+              onDelete={() => deleteNotif(item.id)}
+            />
+          ))}
                 </ul>
               )}
             </div>

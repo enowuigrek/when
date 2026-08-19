@@ -18,6 +18,7 @@ export function DayBookingCard({
   timeLabel,
   color,
   compact = false,
+  openOnMount = false,
 }: {
   booking: BookingForModal;
   allStaff: Staff[];
@@ -26,11 +27,14 @@ export function DayBookingCard({
   color: string;
   /** Short bookings only have room for the time and the name. */
   compact?: boolean;
+  /** Open the management modal straight away — arrived from a notification. */
+  openOnMount?: boolean;
 }) {
   return (
     <BookingManagementButton
       booking={booking}
       allStaff={allStaff}
+      openOnMount={openOnMount}
       className="block h-full w-full text-left transition-colors hover:brightness-125"
     >
       <div

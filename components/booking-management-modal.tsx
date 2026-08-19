@@ -56,6 +56,7 @@ export function BookingManagementButton({
   allStaff,
   className,
   onResolved,
+  openOnMount = false,
   children,
 }: {
   booking: BookingForModal;
@@ -63,9 +64,15 @@ export function BookingManagementButton({
   className?: string;
   /** Called with what was done, before the modal closes. */
   onResolved?: (outcome: BookingOutcome) => void;
+  /**
+   * Open straight away. Set by the schedule for the booking named in
+   * `?rezerwacja=`, so a notification lands on the booking itself rather than
+   * somewhere on its day.
+   */
+  openOnMount?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openOnMount);
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={className}>
