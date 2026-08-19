@@ -264,10 +264,12 @@ function BookingModal({
         {/* Tabs */}
         {!isCancelled && (
           <div className="flex gap-0.5 border-b border-zinc-800 bg-zinc-900/40 px-2 py-1.5 text-xs">
+            {/* Reassigning needs somebody to reassign to: with one person on
+                the books the tab offered a list of one. */}
             {([
               ["info", "Notatki"],
               ["reschedule", "Przełóż"],
-              ["reassign", "Pracownik"],
+              ...(allStaff.length > 1 ? [["reassign", "Pracownik"]] : []),
               ["cancel", "Anuluj"],
             ] as [Tab, string][]).map(([k, label]) => (
               <button

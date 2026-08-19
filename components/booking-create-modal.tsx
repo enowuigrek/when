@@ -81,7 +81,9 @@ function NewBookingModal({
   const [error, setError] = useState<string | null>(null);
 
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
-  const [staffId, setStaffId] = useState(presetStaffId ?? "");
+  const [staffId, setStaffId] = useState(
+    presetStaffId ?? (allStaff.length === 1 ? allStaff[0].id : "")
+  );
   const [timeVal, setTimeVal] = useState(time);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -235,18 +237,22 @@ function NewBookingModal({
               w-full together still lose to on iOS, and two controls of
               different natural heights in one row never lined up anyway. There
               is vertical room in this dialog and no reason to fight for it. */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* One person on the books means no choice to offer — the field would
+              be a select with a single real option. The booking is theirs. */}
+          <div className={`grid grid-cols-1 gap-3 ${allStaff.length > 1 ? "sm:grid-cols-2" : ""}`}>
             <div className="min-w-0">
               <label className={labelCls}>Godzina</label>
               <input type="time" value={timeVal} onChange={(e) => setTimeVal(e.target.value)} className={`mt-1.5 ${inputCls} font-mono`} />
             </div>
-            <div className="min-w-0">
-              <label className={labelCls}>Pracownik</label>
-              <select value={staffId} onChange={(e) => setStaffId(e.target.value)} className={`mt-1.5 ${inputCls}`}>
-                <option value="">— dowolny —</option>
-                {allStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
+            {allStaff.length > 1 && (
+              <div className="min-w-0">
+                <label className={labelCls}>Pracownik</label>
+                <select value={staffId} onChange={(e) => setStaffId(e.target.value)} className={`mt-1.5 ${inputCls}`}>
+                  <option value="">— dowolny —</option>
+                  {allStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           <div>

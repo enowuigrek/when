@@ -67,7 +67,12 @@ export function AdminBookingForm({
 
   // Booking selections
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id ?? "");
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(""); // "" = any
+  // With one person on the books there is nobody to choose between, so the
+  // step is not shown — and the booking is theirs from the start rather than
+  // going in as "anybody" and being resolved on the server.
+  const [selectedStaffId, setSelectedStaffId] = useState<string>(
+    staff.length === 1 ? staff[0].id : ""
+  ); // "" = any
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(() =>
@@ -229,8 +234,8 @@ export function AdminBookingForm({
         </div>
       </div>
 
-      {/* STEP 3 — STAFF (only if multiple) */}
-      {staff.length > 0 && (
+      {/* STEP 3 — STAFF (only if there is a choice to make) */}
+      {staff.length > 1 && (
         <div>
           <p className={`mb-3 ${sectionHeading}`}>3 · Pracownik</p>
           <StaffPicker staff={staff} selectedStaffId={selectedStaffId} onPick={pickStaff} />
@@ -240,7 +245,7 @@ export function AdminBookingForm({
       {/* STEP 4 — CALENDAR */}
       <div>
         <p className={`mb-3 ${sectionHeading}`}>
-          {staff.length > 0 ? "4" : "3"} · Dzień
+          {staff.length > 1 ? "4" : "3"} · Dzień
         </p>
         {/* Capped, like the calendar in the schedule and the roster. Left to
             fill this form it stretched to 780px and the day cells turned into
@@ -255,7 +260,7 @@ export function AdminBookingForm({
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <p className={sectionHeading}>
-            {staff.length > 0 ? "5" : "4"} · Godzina
+            {staff.length > 1 ? "5" : "4"} · Godzina
           </p>
           <TimeFilterBar
             filters={timeFilters}

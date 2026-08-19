@@ -7,7 +7,7 @@ import {
   getStaffBookings,
   getActiveStaff,
 } from "@/lib/db/staff";
-import { formatWarsawDate, formatWarsawTime, warsawToday } from "@/lib/slots";
+import { warsawToday } from "@/lib/slots";
 import { PageShell } from "@/components/ui/page-shell";
 import { StatTile } from "@/components/ui/stat-tile";
 import { card, sectionHeading as heading } from "@/components/ui/surface";
@@ -54,7 +54,10 @@ export default async function StaffProfilePage({
     .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
 
   // Revenue over the last 30 days, counting only what actually happened.
-  const since = new Date(Date.now() - 30 * 864e5).toISOString();
+  // Derived from `now` rather than reading the clock a second time: two
+  // readings during one render can disagree, and the lint rule that flags
+  // Date.now() during render is right to — one timestamp for the whole page.
+  const since = new Date(Date.parse(now) - 30 * 864e5).toISOString();
   const done = bookings.filter(
     (b) => b.startsAt >= since && b.startsAt < now && b.status !== "cancelled" && b.status !== "no_show"
   );
