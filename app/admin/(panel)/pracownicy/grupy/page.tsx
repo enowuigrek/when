@@ -1,4 +1,5 @@
 import { AdminLink } from "@/components/admin-link";
+import { PageShell } from "@/components/ui/page-shell";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffGroupsWithMembers } from "@/lib/db/staff-groups";
 import { createGroupAction } from "./actions";
@@ -11,21 +12,17 @@ export default async function GroupsPage() {
   const [staff, groups] = await Promise.all([getActiveStaff(), getStaffGroupsWithMembers()]);
 
   return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <AdminLink href="/admin/pracownicy" className="mb-6 inline-flex text-sm text-zinc-500 hover:text-zinc-300">
-        ← Pracownicy
-      </AdminLink>
-
-      <div className="mb-2 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Grupy pracowników</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Twórz grupy (np. „Premium”, „Junior”), żeby ustawiać inne ceny usług dla wybranych pracowników.
-          </p>
-        </div>
-      </div>
-
-      <form action={createGroupAction} className="mb-8 mt-6 flex items-center gap-2">
+    <PageShell
+      narrow
+      title="Grupy pracowników"
+      subtitle="Twórz grupy (np. „Premium”, „Junior”), żeby ustawiać inne ceny usług dla wybranych pracowników."
+      back={
+        <AdminLink href="/admin/pracownicy" className="inline-flex text-sm text-zinc-500 hover:text-zinc-300">
+          ← Pracownicy
+        </AdminLink>
+      }
+    >
+      <form action={createGroupAction} className="mb-8 flex items-center gap-2">
         <input
           name="name"
           required
@@ -54,6 +51,6 @@ export default async function GroupsPage() {
       <p className="mt-8 text-xs text-zinc-600">
         Po stworzeniu grupy ustawisz ceny per usługa w sekcji <AdminLink href="/admin/uslugi" className="text-zinc-400 hover:text-zinc-200">Usługi</AdminLink> — przy edycji usługi pojawi się lista grup z możliwością ustawienia ceny.
       </p>
-    </section>
+    </PageShell>
   );
 }

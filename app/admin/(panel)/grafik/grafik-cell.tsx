@@ -4,6 +4,7 @@ import { useState, useTransition, useRef, useEffect, useActionState } from "reac
 import { updateDayScheduleAction, addTimeOffFromGrafikAction, deleteTimeOffFromGrafikAction, type AddTimeOffState } from "./grafik-actions";
 import type { StaffScheduleRow, StaffTimeOff } from "@/lib/db/staff-schedule";
 import { TimeOffConflicts } from "./time-off-conflicts";
+import { TimeOffForm } from "./time-off-form";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -184,69 +185,13 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
           )}
 
           {tab === "timeoff" && (
-            <form
+            <TimeOffForm
+              staffId={staffId}
+              defaultDate={dateStr}
               action={timeOffAction}
-              className="space-y-3"
-            >
-              <input type="hidden" name="staffId" value={staffId} />
-              <input type="hidden" name="start_date" value={dateStr} />
-
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Typ</label>
-                <select
-                  name="type"
-                  defaultValue="vacation"
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                >
-                  <option value="vacation">Urlop</option>
-                  <option value="sick">L4 (chorobowe)</option>
-                  <option value="personal">Sprawy prywatne</option>
-                  <option value="other">Inne</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-zinc-500">Od</label>
-                  <input
-                    type="date"
-                    value={dateStr}
-                    readOnly
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-2 py-1 font-mono text-sm text-zinc-400"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="mb-1 block text-xs text-zinc-500">Do (opcj.)</label>
-                  <input
-                    type="date"
-                    name="end_date"
-                    min={dateStr}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Notatka (opcj.)</label>
-                <input
-                  type="text"
-                  name="note"
-                  placeholder="np. wyjazd"
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setOpen(false)} className="text-xs text-zinc-600 hover:text-zinc-400">Anuluj</button>
-                <button
-                  type="submit"
-                  disabled={timeOffPending}
-                  className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
-                >
-                  {timeOffPending ? "…" : "Dodaj"}
-                </button>
-              </div>
-            </form>
+              pending={timeOffPending}
+              onCancel={() => setOpen(false)}
+            />
           )}
         </div>
       )}

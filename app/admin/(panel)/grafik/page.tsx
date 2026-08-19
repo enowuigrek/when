@@ -184,17 +184,9 @@ export default async function GrafikPage({
               for the same thing. The roster has no such carousel. */}
           {staff.length > 1 && (
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={navUrl(weekStart, [])}
-                aria-current={!filtering ? "true" : undefined}
-                className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
-                  !filtering
-                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
-                }`}
-              >
+              <StaffChip selected={!filtering} dimmed={filtering} href={navUrl(weekStart, [])}>
                 Wszyscy
-              </Link>
+              </StaffChip>
               {staff.map((s) => (
                 <StaffChip
                   key={s.id}

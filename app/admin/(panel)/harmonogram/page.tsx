@@ -244,17 +244,9 @@ export default async function HarmonogramPage({
               className="hidden items-center gap-2 sm:flex sm:flex-wrap"
               style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
             >
-              <Link
-                href={navUrl(view, baseDate, [])}
-                aria-current={!filtering ? "true" : undefined}
-                className={`shrink-0 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
-                  !filtering
-                    ? "border-zinc-600 bg-zinc-800 text-zinc-100"
-                    : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
-                }`}
-              >
+              <StaffChip selected={!filtering} dimmed={filtering} href={navUrl(view, baseDate, [])}>
                 Wszyscy
-              </Link>
+              </StaffChip>
 
               {staffStats.map((s) => (
             <StaffChip

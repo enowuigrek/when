@@ -7,6 +7,7 @@ import {
   type AddTimeOffState,
 } from "./grafik-actions";
 import { TimeOffConflicts } from "./time-off-conflicts";
+import { TimeOffForm } from "./time-off-form";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -34,9 +35,6 @@ const TYPE_COLORS: Record<TimeOffEntry["type"], string> = {
   personal: "text-blue-400 border-blue-900/50",
   other: "text-zinc-400 border-zinc-700",
 };
-
-const input =
-  "w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
 
 /** "12 sie" — the year is noise for absences a few weeks out. */
 function shortDate(day: string) {
@@ -120,51 +118,21 @@ export function TimeOffPanel({
       )}
 
       {soleStaff && adding && (
-        <form action={action} className="mt-3 space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-          <input type="hidden" name="staffId" value={soleStaff.id} />
-
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: soleStaff.color }} />
-            {soleStaff.name}
-          </div>
-
-          <select name="type" defaultValue="vacation" className={input}>
-            <option value="vacation">Urlop</option>
-            <option value="sick">L4 (chorobowe)</option>
-            <option value="personal">Sprawy prywatne</option>
-            <option value="other">Inne</option>
-          </select>
-
-          <div className="flex items-center gap-2">
-            <label className="flex-1">
-              <span className="mb-1 block text-xs text-zinc-500">Od</span>
-              <input type="date" name="start_date" defaultValue={today} required className={`${input} font-mono`} />
-            </label>
-            <label className="flex-1">
-              <span className="mb-1 block text-xs text-zinc-500">Do</span>
-              <input type="date" name="end_date" defaultValue={today} required className={`${input} font-mono`} />
-            </label>
-          </div>
-
-          <input type="text" name="note" placeholder="Notatka (opcj.)" className={input} />
-
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="text-xs text-zinc-600 hover:text-zinc-400"
-            >
-              Anuluj
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-950 disabled:opacity-50"
-            >
-              {pending ? "…" : "Dodaj"}
-            </button>
-          </div>
-        </form>
+        <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
+          <TimeOffForm
+            staffId={soleStaff.id}
+            defaultDate={today}
+            action={action}
+            pending={pending}
+            onCancel={() => setAdding(false)}
+            header={
+              <div className="flex items-center gap-1.5 pb-1 text-xs text-zinc-400">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: soleStaff.color }} />
+                {soleStaff.name}
+              </div>
+            }
+          />
+        </div>
       )}
 
       {entries.length === 0 ? (

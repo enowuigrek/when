@@ -151,6 +151,7 @@ body {
 [data-theme="light"] .text-red-300 { color: #991b1b !important; }
 [data-theme="light"] .text-red-400 { color: #b91c1c !important; }
 [data-theme="light"] .border-red-700\/50 { border-color: rgba(185,28,28,0.4) !important; }
+[data-theme="light"] .border-red-400\/40 { border-color: rgba(185,28,28,0.35) !important; }
 [data-theme="light"] .border-red-900\/50 { border-color: rgba(127,29,29,0.4) !important; }
 
 /* Status colors in light theme — slightly darker for legibility on white */

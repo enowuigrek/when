@@ -36,8 +36,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "bg-[var(--color-accent)] text-[var(--color-accent-fg)] hover:bg-[var(--color-accent-hover)]",
   secondary:
     "border border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200",
+  // Border is the text colour faded, not a second red. red-500/50 against
+  // red-400 text read as two different colours — worse in the light theme,
+  // where the text darkens to red-700 and the border stayed bright.
   danger:
-    "on-solid-hover border border-red-500/50 text-red-400 hover:bg-red-600 hover:border-red-600",
+    "on-solid-hover border border-red-400/40 text-red-400 hover:bg-red-600 hover:border-red-600",
   dangerSolid: "on-solid bg-red-700 hover:bg-red-600",
   ghost: "text-zinc-400 hover:text-zinc-100",
 };

@@ -38,8 +38,12 @@ export function StaffChip({
   /** Label for the neutral chip. */
   children?: ReactNode;
 }) {
+  // items-center, not items-baseline: baseline alignment let the 18px avatar
+  // push the flex line's descender space, making a staff chip 41px tall next
+  // to a 38px "everyone" chip in the same row, with the name sitting 2px above
+  // centre. The count keeps its baseline inside its own span instead.
   const base =
-    "flex shrink-0 items-baseline gap-2 rounded-lg border px-3.5 py-2 text-sm transition-colors";
+    "flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors";
 
   const state = selected
     ? "text-zinc-100"
@@ -59,18 +63,20 @@ export function StaffChip({
   const inner = (
     <>
       {staff && (
-        <span className="self-center">
-          <StaffAvatar photoUrl={staff.photo_url} color={staff.color} name={staff.name} size={18} />
-        </span>
+        <StaffAvatar photoUrl={staff.photo_url} color={staff.color} name={staff.name} size={18} />
       )}
-      {staff ? staff.name : children}
-      {count !== undefined && count > 0 && (
-        <span className="font-mono text-xs text-zinc-500">{count}</span>
-      )}
+      {/* Name and count share one line box so the smaller number sits on the
+          name's baseline rather than floating against the chip's centre. */}
+      <span className="flex items-baseline gap-2">
+        {staff ? staff.name : children}
+        {count !== undefined && count > 0 && (
+          <span className="font-mono text-xs text-zinc-500">{count}</span>
+        )}
+      </span>
     </>
   );
 
-  const cls = `${base} ${state} ${selected && !staff ? "border-zinc-500 bg-zinc-800" : ""}`;
+  const cls = `${base} ${state} ${selected && !staff ? "border-zinc-600 bg-zinc-800" : ""}`;
 
   if (href) {
     return (
