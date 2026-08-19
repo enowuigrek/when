@@ -101,20 +101,23 @@ type CalendarPickerProps = {
 };
 
 /**
- * Today, in both modes: the number in bold with a short rule under it.
+ * The mark for what is selected — the same one the navigation uses.
  *
- * There were three marking languages competing here — a ring on a
- * square-cornered cell in week mode, a ring on a rounded one in day mode, and
- * an accent tint for the current week — so the same idea looked like three
- * different ones depending where you were. A rule is the same mark the bottom
- * navigation uses for the tab you are on, and unlike a ring it survives being
- * drawn on top of a filled cell.
+ * A darkened cell with an accent rule along its bottom edge, which is how the
+ * sidebar and the bottom bar show the section you are in. Pinned to the edge
+ * and running nearly the full width, so it reads as part of the selected block
+ * rather than as decoration under the number.
+ *
+ * `edgeToEdge` is for week mode, where seven of these sit side by side and
+ * should join into one line under the row.
  */
-function TodayRule() {
+function SelectedRule({ edgeToEdge = false }: { edgeToEdge?: boolean }) {
   return (
     <span
       aria-hidden
-      className="mt-0.5 h-0.5 w-3.5 rounded-full bg-[var(--color-accent)]"
+      className={`pointer-events-none absolute bottom-0 h-0.5 bg-[var(--color-accent)] ${
+        edgeToEdge ? "inset-x-0" : "inset-x-1 rounded-full"
+      }`}
     />
   );
 }
@@ -305,13 +308,18 @@ export function CalendarPicker({
                 //   - current week: strong accent fill (real "now" anchor)
                 //   - viewed week:  soft sidebar-style gray (the row you're navigating to)
                 //   - hovered:      slightly darker than viewed (preview)
-                // The current week no longer gets a tint of its own: today
-                // sits inside it and is marked directly, so tinting the row as
-                // well said the same thing twice, in a second colour.
-                if (isViewedWeek) {
-                  cls += "bg-zinc-800 text-zinc-100 ";
-                } else if (isHoveredWeek) {
-                  cls += "bg-zinc-800 text-zinc-100 ";
+                // Selection darkens the row and draws the rule beneath it.
+                // Today is a colour, not a mark, so the two can sit on the
+                // same cell without competing.
+                const filled = isViewedWeek || isHoveredWeek;
+                if (filled) cls += "bg-zinc-800 ";
+                // Accent only on an unfilled cell. A pale tenant accent on the
+                // light theme's grey fill is roughly 1.4:1 — inside the
+                // selected week today stays bold and legible instead.
+                if (isToday && !filled) {
+                  cls += "text-[var(--color-accent)] ";
+                } else if (filled) {
+                  cls += "text-zinc-100 ";
                 } else if (isCurrentMonth) {
                   cls += "text-zinc-300 ";
                 } else {
@@ -320,10 +328,10 @@ export function CalendarPicker({
 
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
                 const cellInner = (
-                  <span className="flex flex-col items-center justify-center leading-none">
+                  <>
                     <span>{dayLabel}</span>
-                    {isToday && <TodayRule />}
-                  </span>
+                    {isViewedWeek && <SelectedRule edgeToEdge />}
+                  </>
                 );
 
                 // Square the corners on the inside edges of a row so the row reads as one bar.
@@ -382,21 +390,40 @@ export function CalendarPicker({
                 `relative flex ${cellH} w-full items-center justify-center rounded-lg ${cellText} ${
                   isToday ? "font-bold" : "font-medium"
                 } transition-all `;
+              // Selected reads exactly as a chosen nav item does: the cell
+              // darkens and an accent rule runs along its bottom edge. In the
+              // booking flow the pick stays a solid accent fill — there it is
+              // the answer to the question the page is asking, not a location.
+              const solidPick = isSelected && variant !== "browse";
               if (isSelected) {
-                // Filled, not outlined — the same statement the viewed week
-                // makes in week mode. A ring around a rounded cell next to a
-                // ring around a square one was two marks for one idea.
-                cls += variant === "browse"
-                  ? "bg-zinc-800 text-zinc-100 cursor-pointer"
-                  : "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
+                cls += solidPick
+                  ? "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer "
+                  : "bg-zinc-800 cursor-pointer ";
               } else if (isAvailable) {
                 cls += variant === "browse"
-                  ? "text-zinc-300 hover:bg-zinc-800/60 cursor-pointer"
-                  : "cal-day-available cursor-pointer";
+                  ? "hover:bg-zinc-800/60 cursor-pointer "
+                  : "cal-day-available cursor-pointer ";
               } else if (isClosed) {
-                cls += "text-zinc-700 cursor-not-allowed opacity-40";
+                cls += "cursor-not-allowed opacity-40 ";
               } else {
-                cls += "text-zinc-700/50 cursor-default font-normal";
+                cls += "cursor-default font-normal ";
+              }
+
+              // Today is bold and in the accent colour — the way the schedule
+              // marks the current day in its own gutter. Not on a solid accent
+              // fill, where accent on accent would disappear.
+              // Same reasoning as week mode: accent text needs an unfilled
+              // cell behind it to stay readable.
+              if (isToday && !isSelected) {
+                cls += "text-[var(--color-accent)] ";
+              } else if (!isSelected && isAvailable) {
+                cls += "text-zinc-300 ";
+              } else if (!isSelected && isClosed) {
+                cls += "text-zinc-700 ";
+              } else if (!isSelected) {
+                cls += "text-zinc-700/50 ";
+              } else if (!solidPick) {
+                cls += "text-zinc-100 ";
               }
 
               // The count sits under the number, not in the corner. As a
@@ -405,7 +432,6 @@ export function CalendarPicker({
               const cellInner = (
                 <span className="flex flex-col items-center justify-center leading-none">
                   <span>{dayLabel}</span>
-                  {isToday && <TodayRule />}
                   {badge ? (
                     <span
                       className={`mt-0.5 font-mono text-[9px] leading-none ${
@@ -417,6 +443,7 @@ export function CalendarPicker({
                       {badge}
                     </span>
                   ) : null}
+                  {isSelected && variant === "browse" && <SelectedRule />}
                 </span>
               );
 

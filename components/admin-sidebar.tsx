@@ -223,10 +223,18 @@ function NavWithStripe({
   isSuperAdmin?: boolean;
 }) {
   const navRef = useRef<HTMLElement>(null);
-  const [stripe, setStripe] = useState<{ y: number; visible: boolean }>({ y: 0, visible: false });
+  const [stripe, setStripe] = useState<{ x: number; y: number; h: number; visible: boolean }>({
+    x: 0, y: 0, h: 0, visible: false,
+  });
 
-  // The stripe lives at the active item only and slides on route change.
-  // Recomputed when pathname or sidebar geometry changes.
+  /**
+   * The rule sits on the left edge of the highlighted row and slides between
+   * rows on navigation.
+   *
+   * It used to be pinned to the nav's own left edge, which is the padding away
+   * from where the rows start — so it floated in the margin, detached from the
+   * block it was marking. Measured from the row now, so the two touch.
+   */
   useLayoutEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
@@ -237,9 +245,11 @@ function NavWithStripe({
     }
     const navRect = nav.getBoundingClientRect();
     const linkRect = link.getBoundingClientRect();
-    const stripeHeight = 20;
+    const h = Math.max(16, linkRect.height - 12);
     setStripe({
-      y: linkRect.top - navRect.top + linkRect.height / 2 - stripeHeight / 2,
+      x: linkRect.left - navRect.left,
+      y: linkRect.top - navRect.top + (linkRect.height - h) / 2,
+      h,
       visible: true,
     });
   }, [pathname, expanded]);
@@ -251,10 +261,10 @@ function NavWithStripe({
     >
       <span
         aria-hidden
-        className={`pointer-events-none absolute left-0 h-5 w-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
+        className={`pointer-events-none absolute left-0 top-0 w-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
           stripe.visible ? "opacity-100" : "opacity-0"
         }`}
-        style={{ transform: `translateY(${stripe.y}px)` }}
+        style={{ height: stripe.h, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
       {NAV_MAIN.map((item) => (
@@ -314,8 +324,8 @@ function NavWithStripe({
  */
 function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string | null }) {
   const navRef = useRef<HTMLDivElement>(null);
-  const [stripe, setStripe] = useState<{ x: number; w: number; visible: boolean }>({
-    x: 0, w: 0, visible: false,
+  const [stripe, setStripe] = useState<{ x: number; y: number; w: number; visible: boolean }>({
+    x: 0, y: 0, w: 0, visible: false,
   });
 
   const measure = useCallback(() => {
@@ -328,10 +338,14 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
     }
     const navRect = nav.getBoundingClientRect();
     const linkRect = link.getBoundingClientRect();
-    const w = 20;
+    // Along the bottom edge of the tab and nearly its full width, the way the
+    // sidebar's rule runs down the left edge of a row. A short mark floating
+    // below the tab read as a separate thing.
+    const inset = 10;
     setStripe({
-      x: linkRect.left - navRect.left + linkRect.width / 2 - w / 2,
-      w,
+      x: linkRect.left - navRect.left + inset,
+      y: linkRect.bottom - navRect.top - 2,
+      w: Math.max(16, linkRect.width - inset * 2),
       visible: true,
     });
   }, []);
@@ -365,10 +379,10 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
     >
       <span
         aria-hidden
-        className={`pointer-events-none absolute bottom-1 h-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
+        className={`pointer-events-none absolute left-0 top-0 h-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
           stripe.visible ? "opacity-100" : "opacity-0"
         }`}
-        style={{ width: stripe.w, transform: `translateX(${stripe.x}px)` }}
+        style={{ width: stripe.w, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
       {NAV_MAIN.map((item) => {
