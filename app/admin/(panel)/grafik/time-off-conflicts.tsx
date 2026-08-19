@@ -97,9 +97,9 @@ export function TimeOffConflicts({
                   booking={b}
                   allStaff={allStaff}
                   onResolved={(o) => setDone((prev) => ({ ...prev, [b.id]: o }))}
-                  className="flex w-full items-start gap-3 px-5 py-3 text-left transition-colors hover:bg-zinc-900/60"
+                  className="flex w-full flex-wrap items-start gap-x-3 gap-y-2 px-4 py-3 text-left transition-colors hover:bg-zinc-900/60 sm:flex-nowrap sm:px-5"
                 >
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-left sm:text-right">
                     <p className="font-mono text-sm text-zinc-300">{formatWarsawTime(b.startsAt)}</p>
                     <p className="font-mono text-xs text-zinc-600">{formatWarsawDate(b.startsAt)}</p>
                   </div>
@@ -108,8 +108,11 @@ export function TimeOffConflicts({
                     <p className="font-mono text-xs text-zinc-500">{b.customerPhone}</p>
                     {b.serviceName && <p className="text-xs text-zinc-500">{b.serviceName}</p>}
                   </div>
+                  {/* The outcome drops to its own line on a phone: "Nowy
+                      pracownik: Anna" beside a time and a name would leave the
+                      name about fifty pixels. */}
                   {outcome && (
-                    <span className="shrink-0 self-center rounded-full border border-emerald-700/50 px-2.5 py-1 text-xs text-emerald-400">
+                    <span className="w-full shrink-0 rounded-full border border-emerald-700/50 px-2.5 py-1 text-center text-xs text-emerald-400 sm:w-auto sm:self-center sm:text-left">
                       {outcomeLabel(outcome)}
                     </span>
                   )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -318,7 +318,7 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
     x: 0, w: 0, visible: false,
   });
 
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     const nav = navRef.current;
     if (!nav) return;
     const link = nav.querySelector('[data-active="true"]') as HTMLElement | null;
@@ -334,7 +334,29 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
       w,
       visible: true,
     });
-  }, [pathname]);
+  }, []);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [pathname, measure]);
+
+  /**
+   * Re-measure when the tabs actually change size.
+   *
+   * The first measurement runs before the web font has swapped in, and the
+   * labels are text — so every tab was a few pixels narrower than it would end
+   * up being, and the rule settled left of the centre it had been given.
+   * Rotating the phone moved it for the same reason.
+   */
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(nav);
+    for (const child of Array.from(nav.children)) ro.observe(child);
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => ro.disconnect();
+  }, [measure]);
 
   return (
     <nav

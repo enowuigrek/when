@@ -10,6 +10,7 @@ import {
   rescheduleBookingAction,
 } from "@/app/admin/(panel)/actions";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import { fieldClasses } from "@/components/ui/field";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -296,7 +297,7 @@ function BookingModal({
                 rows={4}
                 disabled={isCancelled}
                 placeholder="Dodaj uwagi do rezerwacji…"
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-60"
+                className={fieldClasses()}
               />
               {!isCancelled && (
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -326,23 +327,25 @@ function BookingModal({
           {!isCancelled && tab === "reschedule" && (
             <div className="space-y-3">
               <p className="text-xs text-zinc-500">Wybierz nowy termin. Czas trwania pozostaje bez zmian.</p>
-              <div className="flex gap-2">
-                <div className="flex-1">
+              {/* Stacked on a phone: a date input needs its whole value
+                  visible, and half a narrow dialog is not enough for one. */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="min-w-0">
                   <label className="mb-1 block text-xs text-zinc-500">Data</label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                    className={fieldClasses({ size: "sm", className: "font-mono" })}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="min-w-0">
                   <label className="mb-1 block text-xs text-zinc-500">Godzina</label>
                   <input
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                    className={fieldClasses({ size: "sm", className: "font-mono" })}
                   />
                 </div>
               </div>
@@ -365,7 +368,7 @@ function BookingModal({
               <select
                 value={staffSel}
                 onChange={(e) => setStaffSel(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                className={fieldClasses({ size: "sm" })}
               >
                 <option value="">— bez pracownika —</option>
                 {allStaff.map((s) => (
@@ -398,7 +401,7 @@ function BookingModal({
                   // booking or hand it to somebody else. What is left here is
                   // the customer dropping out.
                   placeholder="np. klient zrezygnował"
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  className={fieldClasses({ size: "sm" })}
                 />
               </div>
               <div className="flex justify-end">

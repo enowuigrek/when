@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import type { ServiceFormState } from "./actions";
 import type { Service, PaymentMode } from "@/lib/types";
 import { Toggle } from "@/components/ui/toggle";
@@ -42,7 +43,7 @@ export function ServiceForm({
           name="description"
           rows={3}
           defaultValue={service?.description ?? ""}
-          className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+          className={fieldClasses()}
         />
       </label>
 
@@ -74,7 +75,7 @@ export function ServiceForm({
             max={480}
             step={5}
             defaultValue={service?.duration_min ?? 30}
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+            className={fieldClasses()}
           />
           {state.status === "error" && state.fieldErrors?.duration_min && (
             <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.duration_min}</span>
@@ -92,7 +93,7 @@ export function ServiceForm({
             min={0}
             max={9999}
             defaultValue={service?.price_pln ?? 0}
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+            className={fieldClasses()}
           />
           {state.status === "error" && state.fieldErrors?.price_pln && (
             <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.price_pln}</span>
@@ -131,7 +132,7 @@ export function ServiceForm({
               min={1}
               max={500}
               defaultValue={service?.max_participants ?? 10}
-              className="w-32 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+              className={fieldClasses({ className: "w-32" })}
             />
             <span className="ml-2 text-xs text-zinc-500">osób max</span>
             {state.status === "error" && state.fieldErrors?.max_participants && (
@@ -185,7 +186,7 @@ export function ServiceForm({
                 min={1}
                 max={9999}
                 defaultValue={service?.deposit_amount_pln ?? ""}
-                className="w-32 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+                className={fieldClasses({ className: "w-32" })}
               />
               <span className="text-sm text-zinc-500">zł</span>
               <span className="text-xs text-zinc-600">(reszta płatna na miejscu)</span>
@@ -237,7 +238,7 @@ function Field({
         name={name}
         required={required}
         defaultValue={defaultValue}
-        className="w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50"
+        className={fieldClasses()}
       />
       {hint && !error && <span className="mt-1 block text-xs text-zinc-500">{hint}</span>}
       {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}

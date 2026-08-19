@@ -49,8 +49,11 @@ export function TimeOffForm({
         </select>
       </label>
 
-      <div className="flex items-start gap-2">
-        <label className="min-w-0 flex-1">
+      {/* Stacked on a phone. Two date inputs side by side left each about
+          70px, and "21 sie 2026" does not fit in 70px — the value ran out past
+          the field's own border. */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label className="min-w-0">
           <span className={fieldLabel}>Od</span>
           <input
             type="date"
@@ -60,7 +63,7 @@ export function TimeOffForm({
             className={`${input} font-mono`}
           />
         </label>
-        <label className="min-w-0 flex-1">
+        <label className="min-w-0">
           <span className={fieldLabel}>Do</span>
           <input
             type="date"

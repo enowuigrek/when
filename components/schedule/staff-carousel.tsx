@@ -35,12 +35,15 @@ const PHONE = "(max-width: 639px)";
 export function StaffCarousel({
   staff,
   gutter,
+  phoneGutter,
   fitViewport = true,
   children,
 }: {
   staff: Staff[];
   /** Width of the frozen first column, so a snapped column lands beside it. */
   gutter: number;
+  /** Narrower first column on a phone, where the default eats the screen. */
+  phoneGutter?: number;
   /** Cap the height to the viewport and scroll inside. Off for short tables. */
   fitViewport?: boolean;
   children: ReactNode;
@@ -59,8 +62,9 @@ export function StaffCarousel({
     setMobile(on);
     // The container still decides how wide a column is — it is the phone that
     // decides whether there is a carousel at all.
-    setColW(on ? Math.max(200, el.clientWidth - gutter) : 0);
-  }, [staff.length, gutter]);
+    const g = on && phoneGutter !== undefined ? phoneGutter : gutter;
+    setColW(on ? Math.max(200, el.clientWidth - g) : 0);
+  }, [staff.length, gutter, phoneGutter]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -95,7 +99,7 @@ export function StaffCarousel({
     if (!el) return;
     const th = el.querySelector<HTMLElement>(`th[data-staff-id="${id}"]`);
     if (!th) return;
-    el.scrollTo({ left: th.offsetLeft - gutter, behavior: "smooth" });
+    el.scrollTo({ left: th.offsetLeft - (mobile && phoneGutter !== undefined ? phoneGutter : gutter), behavior: "smooth" });
     setActiveId(id);
   }
 
@@ -131,12 +135,6 @@ export function StaffCarousel({
               );
             })}
           </div>
-          {active && (
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-300">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active.color }} />
-              {active.name}
-            </p>
-          )}
         </div>
       )}
 
@@ -154,6 +152,8 @@ export function StaffCarousel({
             // Read by the table and its header cells; unset on desktop, where
             // the server-rendered widths apply as before.
             "--sched-col-w": colW ? `${colW}px` : undefined,
+            "--sched-gutter":
+              mobile && phoneGutter !== undefined ? `${phoneGutter}px` : undefined,
             "--sched-snap": mobile ? "start" : "none",
           } as CSSProperties
         }

@@ -42,7 +42,7 @@ import {
   formatShortDate,
   formatWarsawTime,
 } from "@/lib/slots";
-import { dayLabels } from "@/lib/business";
+import { dayLabels, dayLabelsShort } from "@/lib/business";
 
 export const metadata = { title: "Harmonogram", robots: { index: false } };
 
@@ -555,21 +555,21 @@ function WeekView({
   }
 
   return (
-    <StaffCarousel staff={visibleStaff} gutter={112} fitViewport={false}>
+    <StaffCarousel staff={visibleStaff} gutter={112} phoneGutter={64} fitViewport={false}>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"
         style={{
           tableLayout: "fixed",
           width: "100%",
-          minWidth: `calc(112px + ${visibleStaff.length} * var(--sched-col-w, 200px))`,
+          minWidth: `calc(var(--sched-gutter, 112px) + ${visibleStaff.length} * var(--sched-col-w, 200px))`,
         }}
       >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
             <th
               className="sticky left-0 top-0 z-30 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
-              style={{ width: 112 }}
+              style={{ width: "var(--sched-gutter, 112px)" }}
             >
               Dzień
             </th>
@@ -578,7 +578,7 @@ function WeekView({
                 key={s.id}
                 data-staff-id={s.id}
                 className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider"
-                style={{ color: s.color, scrollSnapAlign: "var(--sched-snap, none)" as string, scrollMarginLeft: 112 }}
+                style={{ color: s.color, scrollSnapAlign: "var(--sched-snap, none)" as string, scrollMarginLeft: "var(--sched-gutter, 112px)" }}
               >
                 {s.name}
               </th>
@@ -595,11 +595,24 @@ function WeekView({
 
             return (
               <tr key={d} className="border-b border-dashed border-zinc-800/40">
-                <td className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-4 py-3 align-top">
+                <td className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-2 py-3 align-top sm:px-4">
                   <Link href={navUrl("dzien", d)} className="block hover:opacity-70">
-                    <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>{dayLabels[dow]}</p>
-                    <p className="font-mono text-xs text-zinc-600">{formatShortDate(d)}</p>
-                    {totalForDay > 0 && <p className="mt-1 text-xs text-zinc-500">{totalForDay} rez.</p>}
+                    {/* "Poniedziałek" and "17 sie" need 112px of gutter, which
+                        on a phone is a third of the screen spent on the label
+                        for the row. Short forms there, full from sm up — and
+                        nowrap either way, since the date wrapping onto a second
+                        line was what made these rows tall. */}
+                    <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
+                      <span className="sm:hidden">{dayLabelsShort[dow]}</span>
+                      <span className="hidden sm:inline">{dayLabels[dow]}</span>
+                    </p>
+                    <p className="whitespace-nowrap font-mono text-xs text-zinc-600">
+                      <span className="sm:hidden">{d.slice(8)}.{d.slice(5, 7)}</span>
+                      <span className="hidden sm:inline">{formatShortDate(d)}</span>
+                    </p>
+                    {totalForDay > 0 && (
+                      <p className="mt-1 whitespace-nowrap text-xs text-zinc-500">{totalForDay} rez.</p>
+                    )}
                   </Link>
                 </td>
                 {visibleStaff.map((s) => {

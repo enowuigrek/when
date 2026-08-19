@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
@@ -33,8 +34,7 @@ function formatDateLabel(dateStr: string): string {
 }
 
 // text-base on mobile (16px) prevents iOS Safari auto-zoom on focus
-const inp =
-  "w-full rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-base text-zinc-100 placeholder-zinc-600 focus:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-700/50 sm:text-sm";
+const inp = fieldClasses();
 
 export function WidgetBookingFlow({
   tenantSlug,

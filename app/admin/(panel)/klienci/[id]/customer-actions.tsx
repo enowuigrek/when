@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import { deleteCustomerAction, updateCustomerContactAction } from "../actions";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useAdminBase } from "@/lib/use-admin-base";
@@ -94,7 +95,7 @@ export function CustomerActions({
                 name="phone"
                 defaultValue={customerPhone}
                 required
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                className={fieldClasses({ size: "sm" })}
               />
             </div>
             <div>
@@ -103,7 +104,7 @@ export function CustomerActions({
                 type="email"
                 name="email"
                 defaultValue={customerEmail ?? ""}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                className={fieldClasses({ size: "sm" })}
               />
             </div>
           </div>

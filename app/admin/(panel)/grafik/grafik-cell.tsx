@@ -5,6 +5,7 @@ import { updateDayScheduleAction, addTimeOffFromGrafikAction, deleteTimeOffFromG
 import type { StaffScheduleRow, StaffTimeOff } from "@/lib/db/staff-schedule";
 import { TimeOffConflicts } from "./time-off-conflicts";
 import { TimeOffForm } from "./time-off-form";
+import { fieldClasses } from "@/components/ui/field";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -225,14 +226,14 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
                   type="time"
                   name="start"
                   defaultValue={currentStart}
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  className={fieldClasses({ size: "sm", className: "font-mono" })}
                 />
                 <span className="text-zinc-600">–</span>
                 <input
                   type="time"
                   name="end"
                   defaultValue={currentEnd}
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 font-mono text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                  className={fieldClasses({ size: "sm", className: "font-mono" })}
                 />
               </div>
 

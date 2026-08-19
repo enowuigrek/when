@@ -95,12 +95,29 @@ type CalendarPickerProps = {
    *
    * "browse" — moving around the schedule. Every day is openable, so plates
    *   distinguish nothing and only add noise; cells stay flat and lift on
-   *   hover. The current day is tinted like week mode's band, plus a ring —
-   *   which a seven-cell band does not need, since it is found by its shape
-   *   while one tinted square is not.
+   *   hover, and the day you are on is filled the way the viewed week is.
    */
   variant?: "picker" | "browse";
 };
+
+/**
+ * Today, in both modes: the number in bold with a short rule under it.
+ *
+ * There were three marking languages competing here — a ring on a
+ * square-cornered cell in week mode, a ring on a rounded one in day mode, and
+ * an accent tint for the current week — so the same idea looked like three
+ * different ones depending where you were. A rule is the same mark the bottom
+ * navigation uses for the tab you are on, and unlike a ring it survives being
+ * drawn on top of a filled cell.
+ */
+function TodayRule() {
+  return (
+    <span
+      aria-hidden
+      className="mt-0.5 h-0.5 w-3.5 rounded-full bg-[var(--color-accent)]"
+    />
+  );
+}
 
 export function CalendarPicker({
   days = [],
@@ -277,17 +294,21 @@ export function CalendarPicker({
                 const isCurrentWeek = !!currentWeekStart && cellWeek === currentWeekStart;
                 const isHoveredWeek = hoveredWeek === cellWeek;
 
+                // Weight set once, not layered: font-bold added after
+                // font-medium loses to it, since both write font-weight and
+                // the winner is decided by the stylesheet, not the class list.
                 let cls =
-                  `relative flex ${cellH} w-full items-center justify-center ${cellText} font-medium transition-colors `;
+                  `relative flex ${cellH} w-full items-center justify-center ${cellText} ${
+                    isToday ? "font-bold" : "font-medium"
+                  } transition-colors `;
                 // Row tinting priority (current > viewed > hovered > base):
                 //   - current week: strong accent fill (real "now" anchor)
                 //   - viewed week:  soft sidebar-style gray (the row you're navigating to)
                 //   - hovered:      slightly darker than viewed (preview)
-                if (isCurrentWeek) {
-                  // A tint rather than a solid fill: seven saturated cells
-                  // shout, and the row only needs to read as "this is now".
-                  cls += "bg-[var(--color-accent)]/15 text-[var(--color-accent)] ";
-                } else if (isViewedWeek) {
+                // The current week no longer gets a tint of its own: today
+                // sits inside it and is marked directly, so tinting the row as
+                // well said the same thing twice, in a second colour.
+                if (isViewedWeek) {
                   cls += "bg-zinc-800 text-zinc-100 ";
                 } else if (isHoveredWeek) {
                   cls += "bg-zinc-800 text-zinc-100 ";
@@ -297,20 +318,12 @@ export function CalendarPicker({
                   cls += "text-zinc-600 ";
                 }
 
-                // Today is ringed, matching day mode. The old white dot was
-                // hard-coded white to survive the solid accent fill, and against
-                // a coloured row it read as a stray mark.
-                const weekCellStyle = isToday
-                  ? ({ boxShadow: "inset 0 0 0 1.5px var(--color-accent)" } as const)
-                  : undefined;
-                const todayDot = null;
-
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
                 const cellInner = (
-                  <>
-                    {todayDot}
+                  <span className="flex flex-col items-center justify-center leading-none">
                     <span>{dayLabel}</span>
-                  </>
+                    {isToday && <TodayRule />}
+                  </span>
                 );
 
                 // Square the corners on the inside edges of a row so the row reads as one bar.
@@ -325,7 +338,6 @@ export function CalendarPicker({
                       key={date}
                       href={href}
                       className={cls}
-                      style={weekCellStyle}
                       onMouseEnter={() => setHoveredWeek(cellWeek)}
                       onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     >
@@ -338,7 +350,6 @@ export function CalendarPicker({
                     key={date}
                     type="button"
                     className={cls}
-                    style={weekCellStyle}
                     onMouseEnter={() => setHoveredWeek(cellWeek)}
                     onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     onClick={() => onPick?.(cellWeek)}
@@ -368,10 +379,15 @@ export function CalendarPicker({
               }
 
               let cls =
-                `relative flex ${cellH} w-full items-center justify-center rounded-lg ${cellText} font-medium transition-all `;
+                `relative flex ${cellH} w-full items-center justify-center rounded-lg ${cellText} ${
+                  isToday ? "font-bold" : "font-medium"
+                } transition-all `;
               if (isSelected) {
+                // Filled, not outlined — the same statement the viewed week
+                // makes in week mode. A ring around a rounded cell next to a
+                // ring around a square one was two marks for one idea.
                 cls += variant === "browse"
-                  ? "bg-[var(--color-accent)]/15 text-[var(--color-accent)] cursor-pointer"
+                  ? "bg-zinc-800 text-zinc-100 cursor-pointer"
                   : "bg-[var(--color-accent)] text-[var(--color-accent-fg)] shadow-sm cursor-pointer";
               } else if (isAvailable) {
                 cls += variant === "browse"
@@ -383,29 +399,19 @@ export function CalendarPicker({
                 cls += "text-zinc-700/50 cursor-default font-normal";
               }
 
-              // Today reads as a ring around the number rather than a dot:
-              // at these cell sizes a dot competes with the badge for the same
-              // few pixels and ends up looking like a smudge.
-              // Inline box-shadow, not a ring utility: Tailwind is not
-              // generating ring-[var(--color-accent)] in this project, so the
-              // class silently fell back to the default grey and today looked
-              // like any other day.
-              const ACCENT_RING = { boxShadow: "inset 0 0 0 1.5px var(--color-accent)" } as const;
-              const cellStyle =
-                (isSelected && variant === "browse") || (isToday && !isSelected)
-                  ? ACCENT_RING
-                  : undefined;
-
               // The count sits under the number, not in the corner. As a
               // corner pill it overlapped the digit in anything but the
               // largest cells.
               const cellInner = (
                 <span className="flex flex-col items-center justify-center leading-none">
                   <span>{dayLabel}</span>
+                  {isToday && <TodayRule />}
                   {badge ? (
                     <span
                       className={`mt-0.5 font-mono text-[9px] leading-none ${
-                        isSelected ? "text-[var(--color-accent-fg)]/70" : "text-zinc-500"
+                        isSelected && variant !== "browse"
+                          ? "text-[var(--color-accent-fg)]/70"
+                          : "text-zinc-500"
                       }`}
                     >
                       {badge}
@@ -416,7 +422,7 @@ export function CalendarPicker({
 
               if (href) {
                 return (
-                  <Link key={date} href={href} className={cls} style={cellStyle}>
+                  <Link key={date} href={href} className={cls}>
                     {cellInner}
                   </Link>
                 );
@@ -429,7 +435,6 @@ export function CalendarPicker({
                   disabled={!isAvailable}
                   onClick={() => isAvailable && onPick?.(date)}
                   className={cls}
-                  style={cellStyle}
                 >
                   {cellInner}
                 </button>
