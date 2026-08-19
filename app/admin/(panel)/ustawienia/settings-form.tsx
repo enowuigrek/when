@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
@@ -62,13 +63,8 @@ export function SettingsForm({
 
   const err = state.status === "error" ? state.fieldErrors ?? {} : {};
 
-  function handleSubmit() {
-    const hoursForm = document.getElementById("hours-form") as HTMLFormElement | null;
-    hoursForm?.requestSubmit();
-  }
-
   return (
-    <form action={action} onSubmit={handleSubmit} className="space-y-6">
+    <form action={action} className="space-y-6">
       {state.status === "ok" && (
         <p className="rounded-lg bg-emerald-900/30 border border-emerald-700/50 px-4 py-3 text-sm text-emerald-300">
           Zapisano pomyślnie.
@@ -170,7 +166,7 @@ export function SettingsForm({
           </Field>
         </fieldset>
 
-        {/* Godziny otwarcia — rendered from server, has its own form */}
+        {/* Godziny otwarcia — server-rendered fields of this same form */}
         {hoursSection && (
           <div className="mt-2">
             <div className="mb-2">
@@ -198,7 +194,7 @@ export function SettingsForm({
                 name="color_accent"
                 value={accentColor}
                 onChange={(e) => setAccentColor(e.target.value)}
-                className="h-9 w-14 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-0.5"
+                className="h-9 w-14 cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900 p-0.5"
               />
               <input
                 type="text"
@@ -260,8 +256,7 @@ export function SettingsForm({
   );
 }
 
-const input =
-  "w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
+const input = fieldClasses();
 
 function Field({
   label,

@@ -221,7 +221,7 @@ export default async function GrafikPage({
                       the header row alike — and opaque, since anything sliding
                       visibly underneath reads as a rendering fault. */}
                   <th
-                    className="sticky left-0 top-0 z-30 border-b border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
+                    className="sticky left-0 top-0 z-30 border-b border-r border-zinc-800/60 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
                     style={{ width: GUTTER_W }}
                   >
                     Dzień
@@ -229,7 +229,7 @@ export default async function GrafikPage({
                   {visibleStaff.map((s) => (
                     <th
                       key={s.id}
-                      className="sticky top-0 z-10 border-b border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                      className="sticky top-0 z-10 border-b border-r border-zinc-800/60 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
                       style={{ color: s.color }}
                     >
                       {s.name}
@@ -243,8 +243,8 @@ export default async function GrafikPage({
                   const isToday = date === today;
                   const [, m, d] = date.split("-");
                   return (
-                    <tr key={date} className="border-b border-dashed border-zinc-800/40">
-                      <td className="sticky left-0 z-20 border-r border-dashed border-zinc-800/40 bg-zinc-950 px-3 py-2.5 align-top">
+                    <tr key={date} className="border-b border-zinc-800/60">
+                      <td className="sticky left-0 z-20 border-r border-zinc-800/60 bg-zinc-950 px-3 py-2.5 align-top">
                         <p className={`text-sm font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
                           {dayLabels[dow]}
                         </p>
@@ -253,7 +253,7 @@ export default async function GrafikPage({
                         </p>
                       </td>
                       {visibleStaff.map((s) => (
-                        <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-2 py-2 align-top">
+                        <td key={s.id} className="border-r border-zinc-800/60 px-2 py-2 align-top">
                           <GrafikCell
                             staffId={s.id}
                             staffColor={s.color}

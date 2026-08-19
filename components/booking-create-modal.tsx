@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, type ReactNode } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import { useRouter } from "next/navigation";
 import { createBookingAtSlotAction } from "@/app/admin/(panel)/actions";
 import { searchCustomersAction } from "@/app/admin/(panel)/rezerwacja/nowa/actions";
@@ -10,8 +11,7 @@ type Staff = { id: string; name: string; color: string };
 export type ServiceOption = { id: string; name: string; duration_min: number; price_pln: number };
 type CustomerHit = { id: string; name: string; phone: string; email: string | null };
 
-const inputCls =
-  "w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
+const inputCls = fieldClasses();
 const labelCls = "block text-xs uppercase tracking-wider text-zinc-500";
 
 /**

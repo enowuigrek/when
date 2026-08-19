@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import type { BusinessHours } from "@/lib/types";
-import { updateBusinessHoursAction, type HoursFormState } from "./actions";
 import { dayLabels } from "@/lib/business";
+import { fieldClasses } from "@/components/ui/field";
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0] as const; // Mon → Sun
 
@@ -12,12 +12,15 @@ function formatTime(t: string | null | undefined): string {
   return t.slice(0, 5); // "10:00:00" → "10:00"
 }
 
+/**
+ * The opening-hours rows.
+ *
+ * Renders fields, not a form: it sits inside the settings form, and a nested
+ * <form> is invalid HTML — it was failing hydration on this page and needed a
+ * requestSubmit() call from the parent to save at all. Saving the settings now
+ * saves these too, and the parent's own status line reports it.
+ */
 export function HoursSection({ hours }: { hours: BusinessHours[] }) {
-  const [state, action, pending] = useActionState<HoursFormState, FormData>(
-    updateBusinessHoursAction,
-    { status: "idle" }
-  );
-
   const getRow = (dow: number) => hours.find((h) => h.day_of_week === dow);
 
   const [closedDays, setClosedDays] = useState<Record<number, boolean>>(() => {
@@ -31,22 +34,10 @@ export function HoursSection({ hours }: { hours: BusinessHours[] }) {
   const toggleClosed = (dow: number) =>
     setClosedDays((prev) => ({ ...prev, [dow]: !prev[dow] }));
 
-  const inputCls =
-    "rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm text-zinc-100 font-mono focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-30 disabled:cursor-not-allowed w-24";
+  const inputCls = fieldClasses({ size: "sm", className: "w-28 font-mono" });
 
   return (
-    <form id="hours-form" action={action} className="space-y-4">
-      {state.status === "ok" && (
-        <p className="rounded-lg border border-emerald-700/50 bg-emerald-900/30 px-4 py-3 text-sm text-emerald-300">
-          Godziny zapisane.
-        </p>
-      )}
-      {state.status === "error" && (
-        <p className="rounded-lg border border-red-700/50 bg-red-900/30 px-4 py-3 text-sm text-red-300">
-          {state.message}
-        </p>
-      )}
-
+    <div className="space-y-4">
       <div className="divide-y divide-zinc-800/60 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-900/40">
         {ORDERED_DAYS.map((dow) => {
           const row = getRow(dow);
@@ -91,7 +82,6 @@ export function HoursSection({ hours }: { hours: BusinessHours[] }) {
           );
         })}
       </div>
-
-    </form>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import type { StaffTimeOff } from "@/lib/db/staff-schedule";
 import { addTimeOffAction, deleteTimeOffAction, type TimeOffState } from "./schedule-actions";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,7 @@ const TYPE_COLORS: Record<StaffTimeOff["type"], string> = {
   other: "text-zinc-400 border-zinc-700",
 };
 
-const input =
-  "rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
+const input = fieldClasses();
 
 export function TimeOffSection({
   staffId,

@@ -72,6 +72,9 @@ export async function updateSettingsAction(
 
   if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
 
+  const hoursError = await saveBusinessHours(formData);
+  if (hoursError) return { status: "error", message: hoursError };
+
   revalidatePath("/", "layout");
   return { status: "ok" };
 }
@@ -83,16 +86,22 @@ export type HoursFormState =
   | { status: "ok" }
   | { status: "error"; message: string };
 
-export async function updateBusinessHoursAction(
-  _prev: HoursFormState,
-  formData: FormData
-): Promise<HoursFormState> {
-  await requireAdmin();
-
+/**
+ * Write the opening hours carried by a settings submission.
+ *
+ * The hours used to live in their own <form> nested inside the settings form —
+ * invalid HTML, which broke hydration on this page, and a hidden
+ * requestSubmit() call to fire the second one. They are ordinary fields of the
+ * settings form now, so saving the page saves them.
+ *
+ * Returns an error message, or null when everything was written.
+ */
+async function saveBusinessHours(formData: FormData): Promise<string | null> {
   const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
 
   for (const dow of [0, 1, 2, 3, 4, 5, 6]) {
+    if (!formData.has(`closed_${dow}`)) continue; // hours not on this form
     const closed = formData.get(`closed_${dow}`) === "1";
     const open_time = formData.get(`open_${dow}`)?.toString() || null;
     const close_time = formData.get(`close_${dow}`)?.toString() || null;
@@ -105,12 +114,9 @@ export async function updateBusinessHoursAction(
       close_time: closed ? null : close_time,
     }, { onConflict: "tenant_id,day_of_week" });
 
-    if (error) return { status: "error", message: `Błąd zapisu: ${error.message}` };
+    if (error) return `Błąd zapisu godzin: ${error.message}`;
   }
-
-  revalidatePath("/", "layout");
-  revalidatePath("/admin/ustawienia");
-  return { status: "ok" };
+  return null;
 }
 
 // ── Time filters ──────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { fieldClasses } from "@/components/ui/field";
 import type { TimeFilter } from "@/lib/db/settings";
 import {
   createFilterAction,
@@ -120,5 +121,4 @@ export function FiltersSection({ filters }: { filters: TimeFilter[] }) {
   );
 }
 
-const input =
-  "w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
+const input = fieldClasses();

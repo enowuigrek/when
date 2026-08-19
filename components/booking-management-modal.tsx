@@ -29,6 +29,21 @@ export type BookingForModal = {
 
 type Tab = "info" | "reschedule" | "reassign" | "cancel";
 
+/**
+ * What the modal did, reported back to whoever opened it.
+ *
+ * A list that opened this modal cannot see the result otherwise: the server
+ * data behind it was fetched before the change, and a router.refresh() does
+ * not reach state the caller is holding — such as the conflicts left by a new
+ * absence. Handing the outcome back lets that list say what happened to each
+ * row instead of looking untouched.
+ */
+export type BookingOutcome =
+  | { kind: "reschedule"; date: string; time: string }
+  | { kind: "reassign"; staffName: string }
+  | { kind: "cancel" }
+  | { kind: "no_show" };
+
 function warsawDateStr(iso: string): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Warsaw",
@@ -40,11 +55,14 @@ export function BookingManagementButton({
   booking,
   allStaff,
   className,
+  onResolved,
   children,
 }: {
   booking: BookingForModal;
   allStaff: Staff[];
   className?: string;
+  /** Called with what was done, before the modal closes. */
+  onResolved?: (outcome: BookingOutcome) => void;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -53,7 +71,14 @@ export function BookingManagementButton({
       <button type="button" onClick={() => setOpen(true)} className={className}>
         {children}
       </button>
-      {open && <BookingModal booking={booking} allStaff={allStaff} onClose={() => setOpen(false)} />}
+      {open && (
+        <BookingModal
+          booking={booking}
+          allStaff={allStaff}
+          onResolved={onResolved}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -61,10 +86,12 @@ export function BookingManagementButton({
 function BookingModal({
   booking,
   allStaff,
+  onResolved,
   onClose,
 }: {
   booking: BookingForModal;
   allStaff: Staff[];
+  onResolved?: (outcome: BookingOutcome) => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -117,7 +144,14 @@ function BookingModal({
     start(async () => {
       const res = await assignStaffAction(fd);
       if (!res.ok) setError(res.message);
-      else { refresh(); onClose(); }
+      else {
+        refresh();
+        onResolved?.({
+          kind: "reassign",
+          staffName: allStaff.find((s) => s.id === staffSel)?.name ?? "—",
+        });
+        onClose();
+      }
     });
   }
 
@@ -130,7 +164,11 @@ function BookingModal({
     start(async () => {
       const res = await rescheduleBookingAction(fd);
       if (!res.ok) setError(res.message);
-      else { refresh(); onClose(); }
+      else {
+        refresh();
+        onResolved?.({ kind: "reschedule", date, time });
+        onClose();
+      }
     });
   }
 
@@ -143,6 +181,7 @@ function BookingModal({
       try {
         await cancelBookingAction(fd);
         refresh();
+        onResolved?.({ kind: "cancel" });
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Błąd anulowania");
@@ -158,6 +197,7 @@ function BookingModal({
       try {
         await markNoShowAction(fd);
         refresh();
+        onResolved?.({ kind: "no_show" });
         onClose();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Błąd");

@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { fieldClasses, fieldLabel } from "@/components/ui/field";
 
-const input =
-  "w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
+const input = fieldClasses({ size: "sm" });
 
 /**
  * The one form for entering an absence.
@@ -40,7 +40,7 @@ export function TimeOffForm({
       {header}
 
       <label className="block">
-        <span className="mb-1 block text-xs text-zinc-500">Typ</span>
+        <span className={fieldLabel}>Typ</span>
         <select name="type" defaultValue="vacation" className={input}>
           <option value="vacation">Urlop</option>
           <option value="sick">L4 (chorobowe)</option>
@@ -51,7 +51,7 @@ export function TimeOffForm({
 
       <div className="flex items-start gap-2">
         <label className="min-w-0 flex-1">
-          <span className="mb-1 block text-xs text-zinc-500">Od</span>
+          <span className={fieldLabel}>Od</span>
           <input
             type="date"
             name="start_date"
@@ -61,7 +61,7 @@ export function TimeOffForm({
           />
         </label>
         <label className="min-w-0 flex-1">
-          <span className="mb-1 block text-xs text-zinc-500">Do</span>
+          <span className={fieldLabel}>Do</span>
           <input
             type="date"
             name="end_date"
@@ -73,7 +73,7 @@ export function TimeOffForm({
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-xs text-zinc-500">Notatka (opcj.)</span>
+        <span className={fieldLabel}>Notatka (opcj.)</span>
         <input type="text" name="note" placeholder="np. wyjazd" className={input} />
       </label>
 
