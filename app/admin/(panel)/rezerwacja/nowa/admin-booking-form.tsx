@@ -241,7 +241,13 @@ export function AdminBookingForm({
         <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">
           {staff.length > 0 ? "4" : "3"} · Dzień
         </p>
-        <CalendarPicker days={days} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        {/* Capped, like the calendar in the schedule and the roster. Left to
+            fill this form it stretched to 780px and the day cells turned into
+            wide rectangles — the same component, no longer reading as a
+            calendar. A little wider than the rail's 320 for touch. */}
+        <div className="max-w-[26rem]">
+          <CalendarPicker days={days} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        </div>
       </div>
 
       {/* STEP 5 — SLOTS */}

@@ -13,6 +13,7 @@ import { calendarWindow } from "@/lib/calendar-window";
 import { dayLabels } from "@/lib/business";
 import { PageShell } from "@/components/ui/page-shell";
 import { StaffChip } from "@/components/ui/staff-chip";
+import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "../harmonogram/schedule-date-picker";
 import { GrafikCell } from "./grafik-cell";
 import { TimeOffPanel, type TimeOffEntry } from "./time-off-panel";
@@ -178,12 +179,11 @@ export default async function GrafikPage({
         </aside>
 
         <div className="min-w-0 lg:order-1 lg:flex-1">
-          {/* Shown on phones as well, unlike the schedule's row: there the day
-              view collapses into a one-person carousel whose strip of initials
-              already does the jumping, so a chip row would be a second control
-              for the same thing. The roster has no such carousel. */}
+          {/* Hidden on phones, as in the schedule: there the grid collapses into
+              a one-person carousel whose strip of initials already does the
+              jumping, so this would be a second control for the same thing. */}
           {staff.length > 1 && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="hidden flex-wrap items-center gap-2 sm:flex">
               <StaffChip selected={!filtering} dimmed={filtering} href={navUrl(weekStart, [])}>
                 Wszyscy
               </StaffChip>
@@ -200,19 +200,17 @@ export default async function GrafikPage({
             </div>
           )}
 
-          <div
-            // Unconditional mt-4, matching the schedule: with one person there
-            // is no chip row on either page, and the gap has to survive its
-            // absence or the two grids start at different heights.
-            className="mt-4 overflow-x-auto rounded-xl border border-zinc-800/60"
-            style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}
-          >
+          {/* Unconditional mt-4, matching the schedule: with one person there is
+              no chip row on either page, and the gap has to survive its absence
+              or the two grids start at different heights. */}
+          <div className="mt-4">
+            <StaffCarousel staff={visibleStaff} gutter={GUTTER_W} fitViewport={false}>
             <table
               className="border-collapse text-sm"
               style={{
                 tableLayout: "fixed",
                 width: "100%",
-                minWidth: `calc(${GUTTER_W}px + ${Math.max(visibleStaff.length, 1)} * 180px)`,
+                minWidth: `calc(${GUTTER_W}px + ${Math.max(visibleStaff.length, 1)} * var(--sched-col-w, 180px))`,
               }}
             >
               <thead>
@@ -229,8 +227,13 @@ export default async function GrafikPage({
                   {visibleStaff.map((s) => (
                     <th
                       key={s.id}
+                      data-staff-id={s.id}
                       className="sticky top-0 z-10 border-b border-r border-zinc-800/60 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
-                      style={{ color: s.color }}
+                      style={{
+                        color: s.color,
+                        scrollSnapAlign: "var(--sched-snap, none)" as string,
+                        scrollMarginLeft: GUTTER_W,
+                      }}
                     >
                       {s.name}
                     </th>
@@ -272,6 +275,7 @@ export default async function GrafikPage({
                 })}
               </tbody>
             </table>
+            </StaffCarousel>
           </div>
 
           <p className="mt-3 text-xs text-zinc-600">

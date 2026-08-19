@@ -34,6 +34,66 @@ const TYPE_COLORS: Record<string, string> = {
 
 type Tab = "schedule" | "timeoff";
 
+/** The anchored card's footprint, used to keep it inside the viewport. */
+const POPOVER_W = 288;
+const POPOVER_MAX_H = 380;
+
+/**
+ * The cell's card: a sheet on a phone, an anchored popover on a desktop.
+ *
+ * Anchoring to the cell works when there is room beside it. On a phone the
+ * grid is already scrolled sideways and the cell you tapped is often at the
+ * edge, so an anchored card opened half off-screen — the whole form was there
+ * but you could not see it. Below `sm` it becomes a centred sheet over a
+ * backdrop instead, which needs no room at all.
+ */
+function CellCard({
+  style,
+  width,
+  onClose,
+  children,
+}: {
+  style: { top: number; left: number };
+  width: number;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const [sheet, setSheet] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 639px)");
+    const sync = () => setSheet(m.matches);
+    sync();
+    m.addEventListener("change", sync);
+    return () => m.removeEventListener("change", sync);
+  }, []);
+
+  if (sheet) {
+    return (
+      <div
+        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={onClose}
+      >
+        <div
+          className="max-h-[85dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="fixed z-[300] max-h-[85dvh] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl"
+      style={{ top: style.top, left: style.left, width }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRow, timeOff, businessOpen, businessClose, allStaff }: Props) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("schedule");
@@ -66,9 +126,18 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
   function handleToggle() {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      // Prefer left-aligned, but flip left if near right edge
-      const left = rect.left + rect.width / 2 + window.scrollX;
-      const top = rect.bottom + 4 + window.scrollY;
+      // Viewport coordinates, not document ones: the card is position:fixed,
+      // and the panel scrolls its <main>, not the window.
+      //
+      // Clamped to the viewport on both axes. Anchoring to the cell's centre
+      // sent the card off the right edge in the last column, and a cell near
+      // the bottom opened a card that ran past the fold with its buttons on it.
+      const w = POPOVER_W;
+      const left = Math.min(Math.max(8, rect.left), window.innerWidth - w - 8);
+      const below = rect.bottom + 4;
+      const top = below + POPOVER_MAX_H > window.innerHeight
+        ? Math.max(8, window.innerHeight - POPOVER_MAX_H - 8)
+        : below;
       setPopupStyle({ top, left });
     }
     setTab("schedule");
@@ -107,10 +176,7 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
       </button>
 
       {open && !timeOff && popupStyle && (
-        <div
-          className="fixed z-[300] w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl"
-          style={{ top: popupStyle.top, left: popupStyle.left }}
-        >
+        <CellCard style={popupStyle} width={POPOVER_W} onClose={() => setOpen(false)}>
           {/* Tab switcher */}
           <div className="mb-3 flex gap-1 rounded-md border border-zinc-800 p-0.5">
             <button
@@ -193,14 +259,12 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
               onCancel={() => setOpen(false)}
             />
           )}
-        </div>
+        </CellCard>
       )}
 
       {open && timeOff && popupStyle && (
-        <div
-          className="fixed z-[300] w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl text-sm text-zinc-300"
-          style={{ top: popupStyle.top, left: popupStyle.left }}
-        >
+        <CellCard style={popupStyle} width={256} onClose={() => setOpen(false)}>
+          <div className="text-sm text-zinc-300">
           <p className="font-medium">{TYPE_LABELS[timeOff.type]}</p>
           <p className="mt-1 font-mono text-xs text-zinc-500">{timeOff.start_date} — {timeOff.end_date}</p>
           {timeOff.note && <p className="mt-1 text-xs text-zinc-500">{timeOff.note}</p>}
@@ -218,7 +282,8 @@ export function GrafikCell({ staffId, staffColor, dayOfWeek, dateStr, scheduleRo
               </button>
             </form>
           </div>
-        </div>
+          </div>
+        </CellCard>
       )}
 
       {showConflicts && timeOffState.status === "ok" && timeOffState.conflicts.length > 0 && (

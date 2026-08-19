@@ -5,53 +5,56 @@ import { useViewportFit } from "./use-viewport-fit";
 
 type Staff = { id: string; name: string; color: string };
 
-/** Width of the hour gutter, mirrored from the day table. */
-const GUTTER = 64;
-/** The day table's natural column width. */
-const COL = 180;
-/**
- * Below this the container cannot show two whole columns, so it would always
- * be rendering a fragment of somebody — that is where the carousel earns its
- * place. Measured on the container rather than the window: the panel sits
- * next to a sidebar, so the window says nothing useful about the room left
- * for columns.
- */
-const CAROUSEL_BELOW = GUTTER + 2 * COL;
+/** A staff column's natural width, unless the caller says otherwise. */
+const DEFAULT_COL = 180;
 
 /**
- * Turns the day table into a one-person-at-a-time carousel on phones.
+ * One person at a time on a phone, for any of the panel's staff-column grids.
  *
- * At 375px the table showed the hour gutter plus one and a half staff columns,
- * so you were always reading someone alongside a fragment of the next person.
- * Here each column is widened to fill the container and scroll-snapped, and a
- * strip of initials above tracks which one you are on.
+ * At 375px these tables showed the frozen first column plus one and a half
+ * staff columns, so you were always reading someone alongside a fragment of
+ * the next person. Here each column is widened to fill the container and
+ * scroll-snapped, and a strip of initials above tracks which one you are on.
  *
  * The strip navigates, it does not filter: picking a subset is meaningless
  * when only one column is visible at a time, so filtering stays a desktop
  * affordance and one tap has one meaning.
  *
- * Above `sm` this renders its children unchanged.
+ * Shared by the day schedule, the week schedule and the roster — all three are
+ * days against people, and they only differ in how wide the frozen column is.
+ * Wide enough for two whole columns, this renders its children unchanged.
  */
-export function DayStaffCarousel({
+export function StaffCarousel({
   staff,
+  gutter,
+  col = DEFAULT_COL,
+  fitViewport = true,
   children,
 }: {
   staff: Staff[];
+  /** Width of the frozen first column, so a snapped column lands beside it. */
+  gutter: number;
+  /** This grid's natural column width — the week view runs wider than the day. */
+  col?: number;
+  /** Cap the height to the viewport and scroll inside. Off for short tables. */
+  fitViewport?: boolean;
   children: ReactNode;
 }) {
+  const CAROUSEL_BELOW = gutter + 2 * col;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [mobile, setMobile] = useState(false);
   const [colW, setColW] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(staff[0]?.id ?? null);
-  const fitH = useViewportFit(scrollRef);
+  const viewportH = useViewportFit(scrollRef);
+  const fitH = fitViewport ? viewportH : undefined;
 
   const measure = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const on = staff.length > 1 && el.clientWidth < CAROUSEL_BELOW;
     setMobile(on);
-    setColW(on ? Math.max(200, el.clientWidth - GUTTER) : 0);
-  }, [staff.length]);
+    setColW(on ? Math.max(200, el.clientWidth - gutter) : 0);
+  }, [staff.length, gutter, CAROUSEL_BELOW]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -81,7 +84,7 @@ export function DayStaffCarousel({
     if (!el) return;
     const th = el.querySelector<HTMLElement>(`th[data-staff-id="${id}"]`);
     if (!th) return;
-    el.scrollTo({ left: th.offsetLeft - GUTTER, behavior: "smooth" });
+    el.scrollTo({ left: th.offsetLeft - gutter, behavior: "smooth" });
     setActiveId(id);
   }
 

@@ -5,8 +5,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
-import { DayStaffCarousel } from "./day-staff-carousel";
-import { WeekViewport } from "./week-viewport";
+import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
 import { DaySummary } from "./day-summary";
 import { StaffChip } from "@/components/ui/staff-chip";
@@ -373,13 +372,13 @@ function DayView({
   const isToday = date === today;
 
   return (
-    <DayStaffCarousel staff={visibleStaff}>
+    <StaffCarousel staff={visibleStaff} gutter={64}>
       {/* width:100% + minWidth keeps both ends working: with many staff the
           table exceeds the container and scrolls at ~180px per column; with
           one or two it stretches to fill instead of leaving the page empty.
           Staff columns carry no width so `table-layout: fixed` splits the
           remaining space between them evenly. */}
-      {/* --sched-col-w is set by DayStaffCarousel on phones, where each column
+      {/* --sched-col-w is set by StaffCarousel on phones, where each column
           is widened to fill the screen; on desktop it is unset and the 180px
           fallback applies exactly as before. */}
       <table
@@ -514,7 +513,7 @@ function DayView({
       {dayHours?.closed && (
         <p className="px-4 py-6 text-center text-sm text-zinc-600">Dzień wolny według godzin biznesu.</p>
       )}
-    </DayStaffCarousel>
+    </StaffCarousel>
   );
 }
 
@@ -546,11 +545,15 @@ function WeekView({
   }
 
   return (
-    <WeekViewport>
+    <StaffCarousel staff={visibleStaff} gutter={112} col={200} fitViewport={false}>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"
-        style={{ tableLayout: "fixed", width: "100%", minWidth: 112 + visibleStaff.length * 200 }}
+        style={{
+          tableLayout: "fixed",
+          width: "100%",
+          minWidth: `calc(112px + ${visibleStaff.length} * var(--sched-col-w, 200px))`,
+        }}
       >
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-900/60">
@@ -561,7 +564,14 @@ function WeekView({
               Dzień
             </th>
             {visibleStaff.map((s) => (
-              <th key={s.id} className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: s.color }}>{s.name}</th>
+              <th
+                key={s.id}
+                data-staff-id={s.id}
+                className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                style={{ color: s.color, scrollSnapAlign: "var(--sched-snap, none)" as string, scrollMarginLeft: 112 }}
+              >
+                {s.name}
+              </th>
             ))}
             {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
           </tr>
@@ -625,7 +635,7 @@ function WeekView({
           })}
         </tbody>
       </table>
-    </WeekViewport>
+    </StaffCarousel>
   );
 }
 

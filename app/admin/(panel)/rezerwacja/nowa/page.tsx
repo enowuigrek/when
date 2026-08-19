@@ -4,6 +4,7 @@ import { getBookingsInRange } from "@/lib/db/bookings";
 import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/lib/slots";
 import { getAllStaff } from "@/lib/db/staff";
 import { AdminBookingForm } from "./admin-booking-form";
+import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata = { title: "Nowa rezerwacja", robots: { index: false } };
 
@@ -53,9 +54,11 @@ export default async function AdminNewBookingPage({
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">Nowa rezerwacja</h1>
-      <p className="text-sm text-zinc-500 mb-8">Rezerwacja przez telefon lub wizytę osobistą.</p>
+    <PageShell
+      narrow
+      title="Nowa rezerwacja"
+      subtitle="Rezerwacja przez telefon lub wizytę osobistą."
+    >
       <AdminBookingForm
         services={services}
         staff={activeStaff}
@@ -70,6 +73,6 @@ export default async function AdminNewBookingPage({
         prefilledName={name ?? null}
         prefilledEmail={email ?? null}
       />
-    </section>
+    </PageShell>
   );
 }

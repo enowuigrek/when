@@ -142,7 +142,10 @@ export function BookingFlow({
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
           Wybierz dzień
         </h2>
-        <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        {/* Capped so the day cells stay square — see the admin form. */}
+        <div className="max-w-[26rem]">
+          <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        </div>
       </div>
 
       {/* SLOTS */}

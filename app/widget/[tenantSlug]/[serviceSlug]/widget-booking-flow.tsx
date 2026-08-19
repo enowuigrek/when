@@ -117,7 +117,10 @@ export function WidgetBookingFlow({
       {/* CALENDAR */}
       <div>
         <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Dzień</p>
-        <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        {/* Capped so the day cells stay square — see the admin form. */}
+        <div className="max-w-[26rem]">
+          <CalendarPicker days={daysWithLeave} selectedDate={selectedDate} onPick={pickDate} today={today} />
+        </div>
       </div>
 
       {/* SLOTS */}
