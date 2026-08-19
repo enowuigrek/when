@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
 
 export type ChipStaff = { id: string; name: string; color: string; photo_url?: string | null };
@@ -73,9 +74,12 @@ export function StaffChip({
 
   if (href) {
     return (
-      <a href={href} aria-current={selected ? "true" : undefined} title={title} className={cls} style={style}>
+      // next/link, not a bare anchor: an anchor reloads the whole document,
+      // and the theme is only applied to <html> after hydration, so every
+      // filter click flashed the default dark palette on its way back.
+      <Link href={href} aria-current={selected ? "true" : undefined} title={title} className={cls} style={style}>
         {inner}
-      </a>
+      </Link>
     );
   }
   return (

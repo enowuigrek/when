@@ -29,6 +29,11 @@ export function TenantThemeWrapper({
       // actually visible and the page scrolls by exactly that difference.
       className="flex min-h-dvh flex-col"
       style={{
+        // Painted here, server-side, rather than inherited from <body>: the
+        // root only learns the theme once ThemeApplier runs after hydration,
+        // so on a hard load the dark body showed through first. This wrapper
+        // covers the viewport, so nothing flashes.
+        backgroundColor: theme === "light" ? "#f4f4f5" : "#09090b",
         "--accent": accent,
         "--accent-hover": accentHover,
         "--color-accent": accent,
