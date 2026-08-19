@@ -9,6 +9,7 @@ import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
 import { DaySummary } from "./day-summary";
 import { StaffChip } from "@/components/ui/staff-chip";
+import { NoteBadge } from "@/components/ui/note-badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { calendarWindow } from "@/lib/calendar-window";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
@@ -607,9 +608,10 @@ function WeekView({
                                 allStaff={allStaff}
                                 className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
                               >
-                                <div style={{ backgroundColor: `${s.color}18`, borderLeft: `2px solid ${s.color}`, padding: "2px 6px", borderRadius: 4 }}>
+                                <div className="relative" style={{ backgroundColor: `${s.color}18`, borderLeft: `2px solid ${s.color}`, padding: "2px 6px", borderRadius: 4 }}>
+                                  {b.notes && <NoteBadge note={b.notes} />}
                                   <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
-                                  <p className="text-xs font-medium text-zinc-200">{b.customer_name}</p>
+                                  <p className="pr-3 text-xs font-medium text-zinc-200">{b.customer_name}</p>
                                   {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
                                 </div>
                               </BookingManagementButton>

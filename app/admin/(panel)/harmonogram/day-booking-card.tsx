@@ -1,6 +1,7 @@
 "use client";
 
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
+import { NoteBadge } from "@/components/ui/note-badge";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -33,7 +34,7 @@ export function DayBookingCard({
       className="block h-full w-full text-left transition-colors hover:brightness-125"
     >
       <div
-        className="flex h-full flex-col overflow-hidden"
+        className="relative flex h-full flex-col overflow-hidden"
         style={{
           backgroundColor: `${color}18`,
           borderLeft: `2px solid ${color}`,
@@ -41,18 +42,20 @@ export function DayBookingCard({
           borderRadius: 3,
         }}
       >
+        {booking.notes && <NoteBadge note={booking.notes} />}
+
         {compact ? (
           // A half-hour block is ~30px, and two stacked lines need more than
           // that — the name was being cut through the middle. Side by side
           // they fit, and the range still leads.
           <p className="flex items-baseline gap-1.5 truncate">
             <span className="font-mono text-[11px] text-zinc-300">{timeLabel}</span>
-            <span className="truncate text-xs font-medium text-zinc-200">{booking.customerName}</span>
+            <span className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</span>
           </p>
         ) : (
           <>
             <p className="font-mono text-xs text-zinc-300">{timeLabel}</p>
-            <p className="truncate text-xs font-medium text-zinc-200">{booking.customerName}</p>
+            <p className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</p>
             {booking.serviceName && (
               <p className="truncate text-[10px] text-zinc-500">{booking.serviceName}</p>
             )}
