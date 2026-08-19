@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
+import { LinkPendingWash } from "@/components/ui/link-pending";
 
 export type ChipStaff = { id: string; name: string; color: string; photo_url?: string | null };
 
@@ -43,7 +44,7 @@ export function StaffChip({
   // to a 38px "everyone" chip in the same row, with the name sitting 2px above
   // centre. The count keeps its baseline inside its own span instead.
   const base =
-    "flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors";
+    "relative flex shrink-0 items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors";
 
   const state = selected
     ? "text-zinc-100"
@@ -85,6 +86,7 @@ export function StaffChip({
       // filter click flashed the default dark palette on its way back.
       <Link href={href} aria-current={selected ? "true" : undefined} title={title} className={cls} style={style}>
         {inner}
+        <LinkPendingWash />
       </Link>
     );
   }

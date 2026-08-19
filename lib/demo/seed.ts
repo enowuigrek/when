@@ -316,14 +316,26 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
     .select("id, name");
   const staffByName = new Map((insertedStaff ?? []).map((s) => [s.name as string, s.id as string]));
 
-  // staff_services: every staff offers every service (demo)
-  const ssRows = (insertedStaff ?? []).flatMap((st) =>
-    (insertedServices ?? []).map((sv) => ({
-      tenant_id: tenantId,
-      staff_id: st.id as string,
-      service_id: sv.id as string,
-    }))
-  );
+  // staff_services: everyone offers everything, and the price variation that
+  // used to come from staff groups now sits on the person. Demos are meant to
+  // show that one stylist can charge more than another; they just no longer
+  // need a group in between to say it.
+  const multiplierByStaff = new Map<string, number>();
+  for (const g of groups) {
+    for (const sn of g.staffNames) multiplierByStaff.set(sn, g.priceMultiplier);
+  }
+  const ssRows = (insertedStaff ?? []).flatMap((st) => {
+    const mult = multiplierByStaff.get(st.name as string) ?? 1;
+    return (insertedServices ?? []).map((sv) => {
+      const base = services.find((x) => serviceByName.get(x.slug) === sv.id);
+      return {
+        tenant_id: tenantId,
+        staff_id: st.id as string,
+        service_id: sv.id as string,
+        price_pln: mult === 1 || !base ? null : Math.round(base.price_pln * mult),
+      };
+    });
+  });
   if (ssRows.length) await supabase.from("staff_services").insert(ssRows);
 
   // Staff schedules: same as business hours for everyone
@@ -339,39 +351,6 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
       }))
   );
   if (scheduleRows.length) await supabase.from("staff_schedules").insert(scheduleRows);
-
-  // Groups
-  const { data: insertedGroups } = await supabase
-    .from("staff_groups")
-    .insert(groups.map((g) => ({ tenant_id: tenantId, name: g.name, sort_order: g.sort_order })))
-    .select("id, name");
-  const groupByName = new Map((insertedGroups ?? []).map((g) => [g.name as string, g.id as string]));
-
-  // Group memberships
-  const memberRows = groups.flatMap((g) => {
-    const groupId = groupByName.get(g.name);
-    if (!groupId) return [];
-    return g.staffNames
-      .map((sn) => staffByName.get(sn))
-      .filter((id): id is string => Boolean(id))
-      .map((staffId) => ({ tenant_id: tenantId, staff_id: staffId, group_id: groupId }));
-  });
-  if (memberRows.length) await supabase.from("staff_group_members").insert(memberRows);
-
-  // Group price overrides (when multiplier !== 1)
-  const overrideRows = groups.flatMap((g) => {
-    if (g.priceMultiplier === 1) return [];
-    const groupId = groupByName.get(g.name);
-    if (!groupId) return [];
-    return services.map((s) => ({
-      tenant_id: tenantId,
-      service_id: serviceByName.get(s.slug)!,
-      group_id: groupId,
-      price_pln: Math.round(s.price_pln * g.priceMultiplier),
-      duration_min: null,
-    }));
-  });
-  if (overrideRows.length) await supabase.from("service_group_prices").insert(overrideRows);
 
   // Customers
   const customerRows = customerSeed.map(([name, phone, email]) => ({

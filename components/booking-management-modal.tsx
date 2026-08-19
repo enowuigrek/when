@@ -139,7 +139,12 @@ function BookingModal({
     start(async () => {
       const res = await editBookingNotesAction(fd);
       if (!res.ok) setError(res.message);
-      else refresh();
+      else {
+        // Closing is the acknowledgement. Staying open after a save left you
+        // looking at the same form with nothing to say whether it had worked.
+        refresh();
+        onClose();
+      }
     });
   }
 
@@ -389,7 +394,10 @@ function BookingModal({
                   type="text"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="np. choroba pracownika"
+                  // Staff illness belongs to time off, which offers to move the
+                  // booking or hand it to somebody else. What is left here is
+                  // the customer dropping out.
+                  placeholder="np. klient zrezygnował"
                   className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                 />
               </div>

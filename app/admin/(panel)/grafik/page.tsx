@@ -42,12 +42,20 @@ export default async function GrafikPage({
   const weekStart = tydzien && /^\d{4}-\d{2}-\d{2}$/.test(tydzien) ? mondayOfWeek(tydzien) : todayMonday;
   const weekEnd = addDays(weekStart, 6);
 
-  const [staff, hours, allSchedules, timeOffWeek, upcoming] = await Promise.all([
+  // The calendar window depends only on the week, so its counts join the same
+  // batch instead of waiting behind it.
+  const { start: calStart, end: calEnd, days: calendarDays } = calendarWindow(weekStart);
+
+  const [staff, hours, allSchedules, timeOffWeek, upcoming, dayCounts] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getAllStaffSchedules(),
     getTimeOffInRange(weekStart, weekEnd),
     getUpcomingTimeOff(today),
+    getBookingCountsByDay(
+      warsawDayBoundsUtc(calStart).startIso,
+      warsawDayBoundsUtc(calEnd).endIso
+    ),
   ]);
 
   // Same filter contract as the schedule: no selection means everyone, and the
@@ -74,17 +82,11 @@ export default async function GrafikPage({
   }
 
   // ── Calendar, identical to the schedule's ─────────────────────────────────
-  const { start: calStart, end: calEnd, days: calendarDays } = calendarWindow(weekStart);
   const weekHrefMap: Record<string, string> = {};
   for (const { date } of calendarDays) {
     const monday = mondayOfWeek(date);
     if (!weekHrefMap[monday]) weekHrefMap[monday] = navUrl(monday);
   }
-  const dayCounts = await getBookingCountsByDay(
-    warsawDayBoundsUtc(calStart).startIso,
-    warsawDayBoundsUtc(calEnd).endIso
-  );
-
   // ── Week rows ─────────────────────────────────────────────────────────────
   const weekDates = ORDERED_DAYS
     .map((dow, i) => ({ dow, date: addDays(weekStart, i) }))

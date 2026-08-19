@@ -12,7 +12,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
 import { recordBookingEvent } from "@/lib/db/booking-events";
-import { resolveEffectivePricing } from "@/lib/db/staff-groups";
+import { resolveEffectivePricing } from "@/lib/db/pricing";
 import { notifyStaff } from "@/lib/email/notify-staff";
 import type { Slot } from "@/lib/slots";
 

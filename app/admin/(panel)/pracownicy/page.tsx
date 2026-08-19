@@ -19,12 +19,6 @@ export default async function PracownicyPage() {
       actions={
         <>
           <AdminLink
-            href="/admin/pracownicy/grupy"
-            className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
-          >
-            Grupy
-          </AdminLink>
-          <AdminLink
             href="/admin/pracownicy/nowy"
             className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)]"
           >

@@ -12,7 +12,7 @@ import { getAdminTenantId } from "@/lib/tenant";
 import { getServiceById } from "@/lib/db/services";
 import { createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
-import { resolveEffectivePricing } from "@/lib/db/staff-groups";
+import { resolveEffectivePricing } from "@/lib/db/pricing";
 import { upsertCustomer } from "@/lib/db/customers";
 import { requirePanelAccess } from "@/lib/auth/panel-access";
 

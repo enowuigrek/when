@@ -14,7 +14,7 @@ import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
 import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
-import { resolveEffectivePricing } from "@/lib/db/staff-groups";
+import { resolveEffectivePricing } from "@/lib/db/pricing";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 

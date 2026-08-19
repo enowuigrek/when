@@ -106,12 +106,21 @@ export default async function HarmonogramPage({
   const startIso = warsawDayBoundsUtc(startDate).startIso;
   const endIso = warsawDayBoundsUtc(endDate).endIso;
 
-  // Fetch all in parallel
-  const [allStaff, hours, all, allServicesRaw] = await Promise.all([
+  // The calendar's window depends only on the date, so its counts can be
+  // fetched with everything else rather than after it. They used to be awaited
+  // at the bottom of the function, which put a whole round trip in series
+  // behind four that were already parallel.
+  const { start: calWindowStart, end: calWindowEnd, days: calendarDays } = calendarWindow(baseDate);
+
+  const [allStaff, hours, all, allServicesRaw, dayCounts] = await Promise.all([
     getActiveStaff(),
     getBusinessHours(),
     getBookingsBetween(startIso, endIso),
     getServices(),
+    getBookingCountsByDay(
+      warsawDayBoundsUtc(calWindowStart).startIso,
+      warsawDayBoundsUtc(calWindowEnd).endIso
+    ),
   ]);
   // Feeds the create-booking modal opened from an empty slot.
   const services: ServiceOption[] = allServicesRaw.map((s) => ({
@@ -153,7 +162,6 @@ export default async function HarmonogramPage({
     ? `${dayLabels[warsawDayOfWeek(baseDate)]}, ${formatShortDate(baseDate)}`
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
-  const { start: calWindowStart, end: calWindowEnd, days: calendarDays } = calendarWindow(baseDate);
   // Hrefs are built here rather than passed as callbacks: functions cannot
   // cross from a server component into a client one.
   const dayHrefMap: Record<string, string> = {};
@@ -163,11 +171,6 @@ export default async function HarmonogramPage({
     const monday = mondayOf(date);
     if (!weekHrefMap[monday]) weekHrefMap[monday] = navUrl("tydzien", monday);
   }
-
-  const dayCounts = await getBookingCountsByDay(
-    warsawDayBoundsUtc(calWindowStart).startIso,
-    warsawDayBoundsUtc(calWindowEnd).endIso
-  );
 
   // Counts come from activeAll, not `active`, so a tile keeps showing its own
   // number while it is filtered out.

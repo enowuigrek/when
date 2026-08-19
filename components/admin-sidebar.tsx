@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminNotificationBell } from "./admin-notification-bell";
+import { LinkSpinner, LinkPendingSwap } from "./ui/link-pending";
 
 const STORAGE_KEY = "when_sidebar_expanded_v1";
 
@@ -370,9 +371,11 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
       <Link
         href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
         aria-label="Nowa rezerwacja"
-        className="my-0.5 flex w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
+        className="my-0.5 flex w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-fg)] transition-opacity active:opacity-80"
       >
-        <IcPlus />
+        <LinkPendingSwap>
+          <IcPlus />
+        </LinkPendingSwap>
       </Link>
     </nav>
   );
@@ -465,7 +468,11 @@ function SidebarBody({
           title={!expanded ? "Nowa rezerwacja" : undefined}
           className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-[var(--color-accent-fg)] transition-opacity hover:opacity-85"
         >
-          <span className="shrink-0"><IcPlus /></span>
+          <span className="shrink-0">
+            <LinkPendingSwap>
+              <IcPlus />
+            </LinkPendingSwap>
+          </span>
           {expanded && (
             <span className="ml-2 whitespace-nowrap">Nowa rezerwacja</span>
           )}
