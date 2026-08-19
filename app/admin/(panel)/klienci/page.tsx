@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminLink } from "@/components/admin-link";
+import { PageShell } from "@/components/ui/page-shell";
 import { ListRow, ListRows, InitialAvatar } from "@/components/ui/list-row";
 import { getAllCustomersWithStats } from "@/lib/db/customers";
 import { formatWarsawDate } from "@/lib/slots";
@@ -24,14 +25,12 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
   // default: updated_at (already sorted)
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Klienci</h1>
-          <p className="mt-1 text-sm text-zinc-500">{customers.length} klientów</p>
-        </div>
-        <NewCustomerDialog />
-      </div>
+    <PageShell
+      title="Klienci"
+      subtitle={`${customers.length} klientów`}
+      narrow
+      actions={<NewCustomerDialog />}
+    >
 
       <div className="mb-5 flex flex-wrap gap-3">
         <form method="get" className="flex-1">
@@ -115,6 +114,6 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
           ))}
         </ListRows>
       )}
-    </div>
+    </PageShell>
   );
 }

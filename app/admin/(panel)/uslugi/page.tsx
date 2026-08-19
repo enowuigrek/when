@@ -1,4 +1,5 @@
 import { AdminLink } from "@/components/admin-link";
+import { PageShell } from "@/components/ui/page-shell";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
@@ -25,19 +26,19 @@ export default async function ServicesPage() {
   const inactive = services.filter((s) => !s.active);
 
   return (
-    <section className="mx-auto max-w-4xl px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Usługi</h1>
-          <p className="mt-1 text-sm text-zinc-500">{active.length} aktywnych</p>
-        </div>
+    <PageShell
+      title="Usługi"
+      subtitle={`${active.length} aktywnych`}
+      narrow
+      actions={
         <AdminLink
           href="/admin/uslugi/nowa"
           className={buttonClasses({ variant: "primary", size: "md", radius: "full" })}
         >
           + Dodaj usługę
         </AdminLink>
-      </div>
+      }
+    >
 
       <div className="space-y-2">
         {active.map((s) => <ServiceRow key={s.id} service={s} />)}
@@ -53,7 +54,7 @@ export default async function ServicesPage() {
           </div>
         </details>
       )}
-    </section>
+    </PageShell>
   );
 }
 

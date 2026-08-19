@@ -1,4 +1,5 @@
 import { getSettings, getAllTimeFilters } from "@/lib/db/settings";
+import { PageShell } from "@/components/ui/page-shell";
 import { getBusinessHours } from "@/lib/db/services";
 import { getAdminTenantKind, getAdminTenantSlug } from "@/lib/tenant";
 import { SettingsForm } from "./settings-form";
@@ -26,13 +27,8 @@ export default async function UstawieniaPage() {
   const isDemo = tenantKind === "demo" || tenantKind === "trial";
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Ustawienia</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Dane firmy widoczne na stronie i w mailach do klientów.
-      </p>
-
-      <div className="mt-8">
+    <PageShell title="Ustawienia" subtitle="Dane firmy widoczne na stronie i w mailach do klientów." narrow>
+      <div>
         <SettingsForm
           settings={settings}
           hoursSection={<HoursSection hours={hours} />}
@@ -119,6 +115,6 @@ export default async function UstawieniaPage() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

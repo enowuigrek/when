@@ -1,4 +1,5 @@
 import { AdminLink } from "@/components/admin-link";
+import { PageShell } from "@/components/ui/page-shell";
 import { ListRow, ListRows } from "@/components/ui/list-row";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
 import { getAllStaff } from "@/lib/db/staff";
@@ -11,15 +12,12 @@ export default async function PracownicyPage() {
   const staff = await getAllStaff();
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pracownicy</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Każdy pracownik może obsługiwać klientów równolegle.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageShell
+      title="Pracownicy"
+      subtitle="Każdy pracownik może obsługiwać klientów równolegle."
+      narrow
+      actions={
+        <>
           <AdminLink
             href="/admin/pracownicy/grupy"
             className="rounded-full border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500"
@@ -28,14 +26,14 @@ export default async function PracownicyPage() {
           </AdminLink>
           <AdminLink
             href="/admin/pracownicy/nowy"
-            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-[var(--color-accent-hover)]"
+            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)]"
           >
             <span className="hidden sm:inline">+ Dodaj</span>
             <span className="sm:hidden">+</span>
           </AdminLink>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {staff.length === 0 ? (
         <p className="text-sm text-zinc-500">Brak pracowników.</p>
       ) : (
@@ -72,6 +70,6 @@ export default async function PracownicyPage() {
           ))}
         </ListRows>
       )}
-    </div>
+    </PageShell>
   );
 }
