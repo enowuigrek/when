@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition, useEffect, useRef } from "react";
+import { sectionHeading } from "@/components/ui/surface";
 import type { Slot } from "@/lib/slots";
 import type { Service } from "@/lib/types";
 import type { Staff } from "@/lib/db/staff";
@@ -139,7 +140,7 @@ export function AdminBookingForm({
 
       {/* STEP 1 — CUSTOMER SEARCH */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">1 · Klient</p>
+        <p className={`mb-3 ${sectionHeading}`}>1 · Klient</p>
         <div className="space-y-3">
           <div className="relative" ref={suggestionsRef}>
             <label className="mb-1.5 block text-sm text-zinc-400">Telefon *</label>
@@ -195,7 +196,7 @@ export function AdminBookingForm({
 
       {/* STEP 2 — SERVICE */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">2 · Usługa</p>
+        <p className={`mb-3 ${sectionHeading}`}>2 · Usługa</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {services.map((s) => {
             const isSelected = s.id === selectedServiceId;
@@ -231,14 +232,14 @@ export function AdminBookingForm({
       {/* STEP 3 — STAFF (only if multiple) */}
       {staff.length > 0 && (
         <div>
-          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">3 · Pracownik</p>
+          <p className={`mb-3 ${sectionHeading}`}>3 · Pracownik</p>
           <StaffPicker staff={staff} selectedStaffId={selectedStaffId} onPick={pickStaff} />
         </div>
       )}
 
       {/* STEP 4 — CALENDAR */}
       <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">
+        <p className={`mb-3 ${sectionHeading}`}>
           {staff.length > 0 ? "4" : "3"} · Dzień
         </p>
         {/* Capped, like the calendar in the schedule and the roster. Left to
@@ -253,7 +254,7 @@ export function AdminBookingForm({
       {/* STEP 5 — SLOTS */}
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+          <p className={sectionHeading}>
             {staff.length > 0 ? "5" : "4"} · Godzina
           </p>
           <TimeFilterBar

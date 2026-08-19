@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
+import { sectionHeading } from "@/components/ui/surface";
 import { AdminLink } from "@/components/admin-link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { getActiveStaff } from "@/lib/db/staff";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { CustomerActions } from "./customer-actions";
-import { BookingManagementButton } from "@/components/booking-management-modal";
+import { BookingRow, StaffLine } from "@/components/ui/booking-row";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PageShell } from "@/components/ui/page-shell";
+import { StatTile } from "@/components/ui/stat-tile";
 
 export const metadata = { title: "Profil klienta", robots: { index: false } };
 
@@ -60,24 +62,24 @@ export default async function CustomerProfilePage({ params }: { params: Params }
     >
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Wizyty" value={String(stats.totalVisits)} />
-        <StatCard label="Wydatki" value={`${stats.totalSpent} zł`} accent />
-        <StatCard label="Anulowane" value={String(stats.cancelledCount)} dim={stats.cancelledCount === 0} />
-        <StatCard label="Nie przyszedł" value={String(stats.noShowCount)} warn={stats.noShowCount > 0} />
+        <StatTile label="Wizyty" value={String(stats.totalVisits)} />
+        <StatTile label="Wydatki" value={`${stats.totalSpent} zł`} tone="accent" />
+        <StatTile label="Anulowane" value={String(stats.cancelledCount)} tone={stats.cancelledCount === 0 ? "muted" : "default"} />
+        <StatTile label="Nie przyszedł" value={String(stats.noShowCount)} tone={stats.noShowCount > 0 ? "warn" : "default"} />
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {stats.favoriteService && (
-          <InfoCard label="Ulubiona usługa" value={stats.favoriteService} />
+          <StatTile label="Ulubiona usługa" value={stats.favoriteService} size="sm" />
         )}
         {stats.avgDaysBetweenVisits !== null && (
-          <InfoCard label="Średnio co" value={`${stats.avgDaysBetweenVisits} dni`} />
+          <StatTile label="Średnio co" value={`${stats.avgDaysBetweenVisits} dni`} size="sm" />
         )}
         {stats.lastVisit && (
-          <InfoCard label="Ostatnia wizyta" value={formatWarsawDate(stats.lastVisit)} />
+          <StatTile label="Ostatnia wizyta" value={formatWarsawDate(stats.lastVisit)} size="sm" />
         )}
         {stats.nextVisit && (
-          <InfoCard label="Następna wizyta" value={`${formatWarsawDate(stats.nextVisit)}, ${formatWarsawTime(stats.nextVisit)}`} highlight />
+          <StatTile label="Następna wizyta" value={`${formatWarsawDate(stats.nextVisit)}, ${formatWarsawTime(stats.nextVisit)}`} size="sm" tone="accent" />
         )}
       </div>
 
@@ -96,7 +98,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
       {/* Upcoming bookings */}
       {upcoming.length > 0 && (
         <div className="mt-10">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">Nadchodzące</h2>
+          <h2 className={`mb-3 ${sectionHeading}`}>Nadchodzące</h2>
           <ul className="space-y-2">
             {upcoming.map((b) => (
               <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} />
@@ -107,7 +109,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
 
       {/* History */}
       <div className="mt-10">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">Historia wizyt</h2>
+        <h2 className={`mb-3 ${sectionHeading}`}>Historia wizyt</h2>
         {past.length === 0 ? (
           <p className="text-sm text-zinc-600">Brak historii.</p>
         ) : (
@@ -122,25 +124,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
   );
 }
 
-function StatCard({ label, value, accent, dim, warn }: { label: string; value: string; accent?: boolean; dim?: boolean; warn?: boolean }) {
-  return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`mt-1 text-xl font-semibold ${accent ? "text-[var(--color-accent)]" : warn ? "text-amber-400" : dim ? "text-zinc-700" : "text-zinc-100"}`}>
-        {value}
-      </p>
-    </div>
-  );
-}
 
-function InfoCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 px-4 py-3">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`mt-1 text-sm font-medium ${highlight ? "text-[var(--color-accent)]" : "text-zinc-200"}`}>{value}</p>
-    </div>
-  );
-}
 
 function BookingItem({
   b,
@@ -157,44 +141,27 @@ function BookingItem({
     ? b.status
     : "confirmed";
   return (
-    <li>
-      <BookingManagementButton
-        booking={{
-          id: b.id,
-          startsAt: b.starts_at,
-          endsAt: b.ends_at,
-          customerName: customer.name,
-          customerPhone: customer.phone,
-          serviceName: b.service?.name ?? null,
-          staffId: b.staff_id,
-          staffName: b.staff?.name ?? null,
-          staffColor: b.staff?.color ?? null,
-          notes: b.notes,
-          status,
-        }}
-        allStaff={allStaff}
-        className="flex w-full items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900/30 px-4 py-3 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900/50"
-      >
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-sm text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
-          <p className="font-mono text-xs text-zinc-600">{formatWarsawDate(b.starts_at)}</p>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-zinc-200">{b.service?.name ?? "—"}</span>
-            {badge}
-          </div>
-          {b.staff && (
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: b.staff.color }} />
-              <span className="text-xs text-zinc-500">{b.staff.name}</span>
-            </div>
-          )}
-        </div>
-        {b.service && (
-          <span className="shrink-0 font-mono text-sm text-zinc-400">{b.service.price_pln} zł</span>
-        )}
-      </BookingManagementButton>
-    </li>
+    <BookingRow
+      allStaff={allStaff}
+      badge={badge}
+      price={b.service?.price_pln ?? null}
+      // On a customer's page the service is what distinguishes one visit from
+      // the next; who performed it is the supporting line.
+      title={b.service?.name ?? "—"}
+      subtitle={b.staff && <StaffLine name={b.staff.name} color={b.staff.color} />}
+      booking={{
+        id: b.id,
+        startsAt: b.starts_at,
+        endsAt: b.ends_at,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        serviceName: b.service?.name ?? null,
+        staffId: b.staff_id,
+        staffName: b.staff?.name ?? null,
+        staffColor: b.staff?.color ?? null,
+        notes: b.notes,
+        status,
+      }}
+    />
   );
 }

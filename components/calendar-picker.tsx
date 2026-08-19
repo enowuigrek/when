@@ -429,12 +429,16 @@ export function CalendarPicker({
               // The count sits under the number, not in the corner. As a
               // corner pill it overlapped the digit in anything but the
               // largest cells.
+              // The number stays on the cell's centre line whether or not there
+              // is a count under it. Stacking the two in a column moved every
+              // day with bookings a few pixels up, so a month grid rippled
+              // depending on which days were busy.
               const cellInner = (
-                <span className="flex flex-col items-center justify-center leading-none">
-                  <span>{dayLabel}</span>
+                <>
+                  <span className="leading-none">{dayLabel}</span>
                   {badge ? (
                     <span
-                      className={`mt-0.5 font-mono text-[9px] leading-none ${
+                      className={`pointer-events-none absolute inset-x-0 bottom-[3px] text-center font-mono text-[9px] leading-none ${
                         isSelected && variant !== "browse"
                           ? "text-[var(--color-accent-fg)]/70"
                           : "text-zinc-500"
@@ -444,7 +448,7 @@ export function CalendarPicker({
                     </span>
                   ) : null}
                   {isSelected && variant === "browse" && <SelectedRule />}
-                </span>
+                </>
               );
 
               if (href) {

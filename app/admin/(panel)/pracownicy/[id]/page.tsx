@@ -9,9 +9,11 @@ import {
 } from "@/lib/db/staff";
 import { formatWarsawDate, formatWarsawTime, warsawToday } from "@/lib/slots";
 import { PageShell } from "@/components/ui/page-shell";
+import { StatTile } from "@/components/ui/stat-tile";
+import { card, sectionHeading as heading } from "@/components/ui/surface";
 import { Segmented } from "@/components/ui/segmented";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
+import { BookingRow } from "@/components/ui/booking-row";
 import { buttonClasses } from "@/components/ui/button";
 import { ServicePrices } from "./service-prices";
 
@@ -19,8 +21,7 @@ export const metadata = { title: "Pracownik", robots: { index: false } };
 
 type Tab = "nadchodzace" | "historia";
 
-const card = "rounded-xl border border-zinc-800/60 bg-zinc-900/40";
-const heading = "text-xs font-medium uppercase tracking-wider text-zinc-500";
+
 
 export default async function StaffProfilePage({
   params,
@@ -103,10 +104,10 @@ export default async function StaffProfilePage({
       }
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Nadchodzące" value={String(upcoming.length)} />
-        <Stat label="Zrealizowane — 30 dni" value={String(done.length)} />
-        <Stat label="Przychód — 30 dni" value={`${revenue.toLocaleString("pl-PL")} zł`} accent />
-        <Stat label="Usługi" value={String(services.length)} />
+        <StatTile label="Nadchodzące" value={String(upcoming.length)} />
+        <StatTile label="Zrealizowane — 30 dni" value={String(done.length)} />
+        <StatTile label="Przychód — 30 dni" value={`${revenue.toLocaleString("pl-PL")} zł`} tone="accent" />
+        <StatTile label="Usługi" value={String(services.length)} />
       </div>
 
       {/* ── Services and prices ─────────────────────────────────────────── */}
@@ -140,45 +141,33 @@ export default async function StaffProfilePage({
           </p>
         ) : (
           <ul className="space-y-1.5">
-            {shown.slice(0, 40).map((b) => {
-              const modal: BookingForModal = {
-                id: b.id,
-                startsAt: b.startsAt,
-                endsAt: b.endsAt,
-                customerName: b.customerName,
-                customerPhone: b.customerPhone,
-                serviceName: b.serviceName,
-                staffId: staff!.id,
-                staffName: staff!.name,
-                staffColor: staff!.color,
-                notes: b.notes,
-                status: b.status,
-              };
-              return (
-                <li key={b.id}>
-                  <BookingManagementButton
-                    booking={modal}
-                    allStaff={allStaff}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:border-zinc-700 ${card}`}
-                  >
-                    <div className="shrink-0 text-right">
-                      <p className="font-mono text-sm text-zinc-300">{formatWarsawTime(b.startsAt)}</p>
-                      <p className="font-mono text-xs text-zinc-600">{formatWarsawDate(b.startsAt)}</p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-zinc-200">{b.customerName}</span>
-                        {b.status !== "confirmed" && <StatusBadge status={b.status} />}
-                      </div>
-                      {b.serviceName && <p className="truncate text-xs text-zinc-500">{b.serviceName}</p>}
-                    </div>
-                    {b.pricePln !== null && (
-                      <span className="shrink-0 font-mono text-sm text-zinc-400">{b.pricePln} zł</span>
-                    )}
-                  </BookingManagementButton>
-                </li>
-              );
-            })}
+            {shown.slice(0, 40).map((b) => (
+              <BookingRow
+                key={b.id}
+                allStaff={allStaff}
+                price={b.pricePln}
+                badge={b.status !== "confirmed" ? <StatusBadge status={b.status} /> : undefined}
+                // Mirror of the customer page: there the service leads and the
+                // person supports; here it is the other way round.
+                title={b.customerName}
+                subtitle={
+                  b.serviceName && <span className="truncate text-xs text-zinc-500">{b.serviceName}</span>
+                }
+                booking={{
+                  id: b.id,
+                  startsAt: b.startsAt,
+                  endsAt: b.endsAt,
+                  customerName: b.customerName,
+                  customerPhone: b.customerPhone,
+                  serviceName: b.serviceName,
+                  staffId: staff!.id,
+                  staffName: staff!.name,
+                  staffColor: staff!.color,
+                  notes: b.notes,
+                  status: b.status,
+                }}
+              />
+            ))}
           </ul>
         )}
       </div>
@@ -186,13 +175,3 @@ export default async function StaffProfilePage({
   );
 }
 
-function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className={`${card} p-4`}>
-      <p className={heading}>{label}</p>
-      <p className={`mt-2 text-xl font-semibold ${accent ? "text-[var(--color-accent)]" : "text-zinc-100"}`}>
-        {value}
-      </p>
-    </div>
-  );
-}

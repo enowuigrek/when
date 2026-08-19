@@ -6,6 +6,8 @@ import { formatWarsawTime, formatWarsawDate, warsawToday } from "@/lib/slots";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PageShell } from "@/components/ui/page-shell";
+import { StatTile } from "@/components/ui/stat-tile";
+import { card, sectionHeading as heading } from "@/components/ui/surface";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
 
@@ -18,8 +20,7 @@ function shortDate(day: string) {
   return new Date(day + "T12:00:00Z").toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
 }
 
-const card = "rounded-xl border border-zinc-800/60 bg-zinc-900/40";
-const heading = "text-xs font-medium uppercase tracking-wider text-zinc-500";
+
 
 export default async function DashboardPage() {
   const [s, allStaff] = await Promise.all([getDashboardStats(), getActiveStaff()]);
@@ -48,25 +49,25 @@ export default async function DashboardPage() {
       {/* Every tile goes somewhere: the number you are looking at is usually
           the start of a question, and the answer lives one click away. */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
+        <StatTile
           label="Rezerwacje dziś"
           value={String(s.todayBookings)}
           sub="zobacz harmonogram"
           href={`${base}/harmonogram?widok=dzien&od=${today}`}
         />
-        <Kpi
+        <StatTile
           label="Rezerwacje w tym miesiącu"
           value={String(s.thisMonthBookings)}
           sub="potwierdzone i zakończone"
           href={`${base}/harmonogram?widok=tydzien&od=${today}`}
         />
-        <Kpi
+        <StatTile
           label="Przychód w tym miesiącu"
           value={pln(s.thisMonthRevenue)}
           sub="z rezerwacji"
           href={`${base}/harmonogram?widok=tydzien&od=${today}`}
         />
-        <Kpi
+        <StatTile
           label="Klienci w bazie"
           value={String(s.totalCustomers)}
           sub="przejdź do listy"
@@ -272,15 +273,3 @@ export default async function DashboardPage() {
   );
 }
 
-function Kpi({ label, value, sub, href }: { label: string; value: string; sub: string; href: string }) {
-  return (
-    <AdminLink
-      href={href}
-      className={`${card} block p-4 transition-colors hover:border-zinc-700`}
-    >
-      <p className={heading}>{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-zinc-100">{value}</p>
-      <p className="mt-0.5 text-xs text-zinc-600">{sub}</p>
-    </AdminLink>
-  );
-}

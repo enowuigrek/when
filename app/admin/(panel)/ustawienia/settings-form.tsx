@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { sectionHeading } from "@/components/ui/surface";
 import { fieldClasses } from "@/components/ui/field";
 import { useRouter } from "next/navigation";
 import type { Settings } from "@/lib/db/settings";
@@ -97,7 +98,7 @@ export function SettingsForm({
       {/* ── TAB: FIRMA ── */}
       <div className={activeTab === "firma" ? "space-y-6" : "hidden"}>
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <legend className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          <legend className={`mb-2 ${sectionHeading}`}>
             Podstawowe
           </legend>
 
@@ -125,7 +126,7 @@ export function SettingsForm({
         </fieldset>
 
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <legend className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          <legend className={`mb-2 ${sectionHeading}`}>
             Kontakt i adres
           </legend>
 
@@ -170,7 +171,7 @@ export function SettingsForm({
         {hoursSection && (
           <div className="mt-2">
             <div className="mb-2">
-              <p className="text-sm font-medium uppercase tracking-widest text-zinc-500">Godziny otwarcia</p>
+              <p className={sectionHeading}>Godziny otwarcia</p>
             </div>
             {hoursSection}
           </div>
@@ -180,7 +181,7 @@ export function SettingsForm({
       {/* ── TAB: NARZĘDZIE ── */}
       <div className={activeTab === "narzedzie" ? "space-y-6" : "hidden"}>
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <legend className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          <legend className={`mb-2 ${sectionHeading}`}>
             Wygląd
           </legend>
 
@@ -220,7 +221,7 @@ export function SettingsForm({
         </fieldset>
 
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
-          <legend className="mb-2 text-sm font-medium uppercase tracking-widest text-zinc-500">
+          <legend className={`mb-2 ${sectionHeading}`}>
             Konfiguracja rezerwacji
           </legend>
 
