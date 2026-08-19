@@ -21,7 +21,10 @@ export function fieldClasses({
     "w-full min-w-0 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-100",
     "placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]",
     "disabled:cursor-not-allowed disabled:opacity-40",
-    size === "sm" ? "px-2 py-1.5 text-sm" : "px-3 py-2 text-sm",
+    // Explicit heights: iOS gives input[type=time] and input[type=date] their
+    // own inner padding, so a time field ended up visibly taller than the
+    // select beside it even with identical classes.
+    size === "sm" ? "min-h-9 px-2 py-1.5 text-sm" : "min-h-10 px-3 py-2 text-sm",
     className,
   ]
     .filter(Boolean)

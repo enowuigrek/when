@@ -296,6 +296,88 @@ function NavWithStripe({
   );
 }
 
+
+// ── Bottom bar (phones) ───────────────────────────────────────────────────
+
+/**
+ * The three sections you actually work in, plus adding a booking.
+ *
+ * A phone had one way in: open the drawer, find the row, tap. That is three
+ * gestures for the thing you do twenty times a day, at the top of the screen,
+ * which is the part of a phone a thumb reaches last. The drawer stays for
+ * everything else — services, staff, customers, settings — which you set up
+ * once and revisit rarely.
+ *
+ * The active tab carries the same treatment as the sidebar: the filled row and
+ * the accent stripe, laid along the bottom edge here rather than down the left.
+ */
+function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string | null }) {
+  const navRef = useRef<HTMLDivElement>(null);
+  const [stripe, setStripe] = useState<{ x: number; w: number; visible: boolean }>({
+    x: 0, w: 0, visible: false,
+  });
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const link = nav.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (!link) {
+      setStripe((s) => ({ ...s, visible: false }));
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    const w = 20;
+    setStripe({
+      x: linkRect.left - navRect.left + linkRect.width / 2 - w / 2,
+      w,
+      visible: true,
+    });
+  }, [pathname]);
+
+  return (
+    <nav
+      ref={navRef}
+      className="fixed bottom-0 left-0 right-0 z-[250] flex items-stretch gap-1 border-t border-zinc-800/60 bg-zinc-900/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur"
+    >
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute bottom-1 h-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
+          stripe.visible ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ width: stripe.w, transform: `translateX(${stripe.x}px)` }}
+      />
+
+      {NAV_MAIN.map((item) => {
+        const href = rewriteAdminHref(item.href, demoSlug);
+        const active = item.exact ? pathname === href : pathname.startsWith(href);
+        return (
+          <Link
+            key={item.href}
+            href={href}
+            data-href={href}
+            data-active={active ? "true" : "false"}
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 pb-2 pt-1.5 text-[11px] font-medium transition-colors ${
+              active ? "bg-zinc-800 text-zinc-100" : "text-zinc-400"
+            }`}
+          >
+            <span className="shrink-0">{item.icon}</span>
+            {item.label}
+          </Link>
+        );
+      })}
+
+      <Link
+        href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
+        aria-label="Nowa rezerwacja"
+        className="my-0.5 flex w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
+      >
+        <IcPlus />
+      </Link>
+    </nav>
+  );
+}
+
 // ── Shared sidebar body (reused for desktop + mobile drawer) ──────────────
 
 function SidebarBody({
@@ -310,6 +392,7 @@ function SidebarBody({
   onNavClick,
   demoSlug,
   isSuperAdmin,
+  showNotifications = true,
 }: {
   expanded: boolean;
   businessName: string;
@@ -322,6 +405,8 @@ function SidebarBody({
   onNavClick?: () => void;
   demoSlug: string | null;
   isSuperAdmin?: boolean;
+  /** Off in the mobile drawer — the top bar already carries the bell. */
+  showNotifications?: boolean;
 }) {
   // Sidebar pixel width — used to position the notification side panel
   const sidebarPx = expanded ? 220 : 60;
@@ -400,12 +485,14 @@ function SidebarBody({
 
       {/* ── Bottom: notifications + logout ── */}
       <div className="shrink-0 border-t border-zinc-800/60 px-2 py-3 space-y-0.5">
-        <AdminNotificationBell
-          tenantId={tenantId}
-          panelLeft={sidebarPx}
-          navMode
-          sidebarExpanded={expanded}
-        />
+        {showNotifications && (
+          <AdminNotificationBell
+            tenantId={tenantId}
+            panelLeft={sidebarPx}
+            navMode
+            sidebarExpanded={expanded}
+          />
+        )}
 
         {isDemo ? (
           <Link
@@ -529,17 +616,10 @@ export function AdminSidebar({
           ) : (
             <span className="truncate text-sm font-semibold text-zinc-100">{businessName}</span>
           )}
-          <div className="flex items-center gap-0.5">
-            <Link
-              href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-accent-fg)]"
-              aria-label="Nowa rezerwacja"
-            >
-              <IcPlus />
-            </Link>
-            {/* Bell in compact mode (no navMode) — shows legacy dropdown on mobile */}
-            <AdminNotificationBell tenantId={tenantId} />
-          </div>
+          {/* Only the bell here. Adding a booking moved to the bottom bar,
+              where the thumb is, and where it sits beside the sections it
+              creates something in. */}
+          <AdminNotificationBell tenantId={tenantId} />
         </div>
 
         {/* Backdrop */}
@@ -566,8 +646,11 @@ export function AdminSidebar({
             pathname={pathname}
             onNavClick={() => setMobileOpen(false)}
             demoSlug={demoSlug}
+            showNotifications={false}
           />
         </aside>
+
+        <BottomNav pathname={pathname} demoSlug={demoSlug} />
       </div>
     </>
   );

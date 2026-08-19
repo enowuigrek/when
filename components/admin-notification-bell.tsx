@@ -70,9 +70,18 @@ const TITLE: Record<EventType, string> = {
   rescheduled: "Zmiana terminu",
   cancelled: "Anulowana rezerwacja",
 };
+/**
+ * A new booking is the tenant's own accent, not a fixed green.
+ *
+ * Emerald against an amber panel, or blue against a pink one, read as somebody
+ * else's palette dropped into the page — and "new booking" is the good news
+ * this product exists to deliver, so it belongs in the colour the business
+ * chose. Only cancellation keeps a colour of its own, because red means
+ * something no theme should be able to take away.
+ */
 const ACCENT: Record<EventType, string> = {
-  created: "text-emerald-400",
-  rescheduled: "text-blue-400",
+  created: "text-[var(--color-accent)]",
+  rescheduled: "text-zinc-300",
   cancelled: "text-red-400",
 };
 
@@ -85,13 +94,11 @@ const ACCENT: Record<EventType, string> = {
  * titles already use.
  */
 function EventIcon({ type }: { type: EventType }) {
-  const tint: Record<EventType, string> = {
-    created: "bg-emerald-500/15 text-emerald-400",
-    rescheduled: "bg-blue-500/15 text-blue-400",
-    cancelled: "bg-red-500/15 text-red-400",
-  };
+  // One neutral chip, the glyph carrying the colour. A tinted chip per type
+  // would need the accent at an alpha this cannot compute from a CSS variable,
+  // and three filled chips in a column shouted louder than the panel wanted.
   return (
-    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tint[type]}`}>
+    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-800/60 ${ACCENT[type]}`}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {type === "created" && <><path d="M8 2v4M16 2v4M3 10h18" /><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M12 14v4M10 16h4" /></>}
         {type === "rescheduled" && <><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></>}
@@ -400,40 +407,6 @@ export function AdminNotificationBell({
   );
 
   // ── Panel content (shared between side-panel and dropdown) ────────────
-  const panelContent = (
-    <>
-      <div className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-3">
-        <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
-        <div className="flex items-center gap-3">
-          {unread > 0 && (
-            <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
-              Przeczytane
-            </button>
-          )}
-          {items.length > 0 && (
-            <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
-              Wyczyść
-            </button>
-          )}
-        </div>
-      </div>
-      {items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
-      ) : (
-        <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
-          {items.map((item) => (
-            <NotifRow
-              key={item.id}
-              item={item}
-              onOpen={() => openNotif(item)}
-              onDelete={() => deleteNotif(item.id)}
-            />
-          ))}
-        </ul>
-      )}
-    </>
-  );
-
   // ── Side panel (portalised into body) ─────────────────────────────────
   const sidePanel = panelLeft !== undefined && open
     ? createPortal(
@@ -489,21 +462,57 @@ export function AdminNotificationBell({
     : null;
 
   // ── Legacy dropdown (when panelLeft not provided) ─────────────────────
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open || panelLeft !== undefined) return;
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open, panelLeft]);
+  /**
+   * Compact mode is the phone's top bar, and there a dropdown was a 320px card
+   * hanging off the right edge of a 375px screen with its own little scroll
+   * area inside. Full screen instead — same header, same rows, same actions as
+   * the panel on a desktop, just given the whole display.
+   */
+  const mobileSheet = panelLeft === undefined && open
+    ? createPortal(
+        <div className="fixed inset-0 z-[300] flex flex-col bg-zinc-950">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800/60 px-4">
+            <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  Przeczytane
+                </button>
+              )}
+              {items.length > 0 && (
+                <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  Wyczyść
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-2xl leading-none text-zinc-500 hover:text-zinc-200"
+                aria-label="Zamknij"
+              >
+                ×
+              </button>
+            </div>
+          </div>
 
-  const legacyDropdown = panelLeft === undefined && open ? (
-    <div className="absolute right-0 top-full z-[200] mt-2 w-80 overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950 shadow-2xl flex flex-col max-h-96">
-      {panelContent}
-    </div>
-  ) : null;
+          {items.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-zinc-500">Brak powiadomień.</p>
+          ) : (
+            <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto">
+              {items.map((item) => (
+                <NotifRow
+                  key={item.id}
+                  item={item}
+                  onOpen={() => openNotif(item)}
+                  onDelete={() => deleteNotif(item.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>,
+        document.body
+      )
+    : null;
 
   return (
     <>
@@ -515,9 +524,9 @@ export function AdminNotificationBell({
         trigger
       ) : (
         // Legacy dropdown mode: wrap in relative container
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative">
           {trigger}
-          {legacyDropdown}
+          {mobileSheet}
         </div>
       )}
     </>

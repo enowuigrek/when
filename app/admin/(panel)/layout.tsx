@@ -56,7 +56,7 @@ export default async function PanelLayout({
             isSuperAdmin={false}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
-            <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+            <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
           </div>
         </div>
       </TenantThemeWrapper>
@@ -119,7 +119,7 @@ export default async function PanelLayout({
               />
             </div>
           )}
-          <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+          <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
         </div>
       </div>
     </TenantThemeWrapper>

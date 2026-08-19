@@ -42,17 +42,14 @@ export default async function PracownicyPage() {
             <ListRow
               key={s.id}
               dimmed={!s.active}
+              // The row opens the person, the same as in Klienci. Editing is
+              // one of several things you might do to them, not the only one.
+              href={`/admin/pracownicy/${s.id}`}
               avatar={<StaffAvatar photoUrl={s.photo_url} color={s.color} name={s.name} size={40} />}
               title={s.name}
               subtitle={s.active ? s.bio : (s.bio ? `${s.bio} · nieaktywny` : "nieaktywny")}
               right={
                 <>
-                  <AdminLink
-                    href={`/admin/pracownicy/${s.id}`}
-                    className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
-                  >
-                    Edytuj
-                  </AdminLink>
                   <form action={toggleStaffActiveAction}>
                     <input type="hidden" name="id" value={s.id} />
                     <input type="hidden" name="active" value={String(s.active)} />

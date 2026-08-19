@@ -11,6 +11,7 @@ import {
   toggleStaffActive,
   deleteStaff,
   setStaffServices,
+  setStaffServicePrice,
 } from "@/lib/db/staff";
 
 async function requireAdmin() {
@@ -119,5 +120,27 @@ export async function deleteStaffAction(formData: FormData) {
   await requireAdmin();
   const id = formData.get("id")?.toString()!;
   await deleteStaff(id);
+  revalidatePath("/admin/pracownicy");
+}
+
+/**
+ * Set or clear one person's price for one service.
+ *
+ * An empty field means "charges the base price" rather than "charges nothing",
+ * so it clears the override instead of storing a zero — which would otherwise
+ * be the easiest way to accidentally make a service free.
+ */
+export async function setStaffServicePriceAction(formData: FormData) {
+  await requireAdmin();
+  const staffId = formData.get("staffId")?.toString();
+  const serviceId = formData.get("serviceId")?.toString();
+  const raw = formData.get("price")?.toString().trim() ?? "";
+
+  if (!staffId || !serviceId) return;
+
+  const price = raw === "" ? null : Number.parseInt(raw, 10);
+  if (price !== null && (!Number.isFinite(price) || price < 0)) return;
+
+  await setStaffServicePrice(staffId, serviceId, price);
   revalidatePath("/admin/pracownicy");
 }

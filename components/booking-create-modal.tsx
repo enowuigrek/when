@@ -230,10 +230,12 @@ function NewBookingModal({
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jan Kowalski" className={`mt-1.5 ${inputCls}`} />
           </div>
 
-          {/* min-w-0 on both cells: grid items default to min-width:auto, so the
-              time input kept its intrinsic width and slid under the staff
-              select on a narrow phone. */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Stacked on a phone. Side by side, the time input kept sliding under
+              the staff select: it carries a UA intrinsic width that min-w-0 and
+              w-full together still lose to on iOS, and two controls of
+              different natural heights in one row never lined up anyway. There
+              is vertical room in this dialog and no reason to fight for it. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="min-w-0">
               <label className={labelCls}>Godzina</label>
               <input type="time" value={timeVal} onChange={(e) => setTimeVal(e.target.value)} className={`mt-1.5 ${inputCls} font-mono`} />

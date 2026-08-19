@@ -100,8 +100,12 @@ export async function deleteServiceGroupPrice(serviceId: string, groupId: string
 
 /**
  * Resolve effective price+duration for a service when performed by a given staff.
- * If the staff belongs to a group with an override, use it. If multiple, take the
- * highest price (premium wins).
+ *
+ * Order: the person's own override, then any group they belong to, then the
+ * service's base. A price set on the person is the most specific statement
+ * anyone made about it, so nothing above it should win; groups stay for the
+ * case they are good at, which is several people sharing one rate. With more
+ * than one group override the highest price wins, as before.
  */
 export async function resolveEffectivePricing(
   serviceId: string,
@@ -128,10 +132,26 @@ export async function resolveEffectivePricingForTenant(
   const base = { price_pln: service.price_pln as number, duration_min: service.duration_min as number };
   if (!staffId) return base;
 
-  const [memRes, priceRes] = await Promise.all([
+  const [ownRes, memRes, priceRes] = await Promise.all([
+    supabase
+      .from("staff_services")
+      .select("price_pln, duration_min")
+      .eq("tenant_id", tenantId)
+      .eq("staff_id", staffId)
+      .eq("service_id", serviceId)
+      .maybeSingle(),
     supabase.from("staff_group_members").select("group_id").eq("tenant_id", tenantId).eq("staff_id", staffId),
     supabase.from("service_group_prices").select("*").eq("tenant_id", tenantId).eq("service_id", serviceId),
   ]);
+
+  const own = ownRes.data as { price_pln: number | null; duration_min: number | null } | null;
+  if (own && (own.price_pln !== null || own.duration_min !== null)) {
+    return {
+      price_pln: own.price_pln ?? base.price_pln,
+      duration_min: own.duration_min ?? base.duration_min,
+    };
+  }
+
   const groupIds = new Set((memRes.data ?? []).map((r) => r.group_id as string));
   const overrides = (priceRes.data ?? []).filter((r) => groupIds.has(r.group_id as string));
   if (overrides.length === 0) return base;
