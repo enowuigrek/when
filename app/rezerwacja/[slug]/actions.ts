@@ -1,20 +1,38 @@
 "use server";
 
+/**
+ * Booking actions for the main site's own booking page (whenbooking.pl
+ * /rezerwacja/{usługa}) — the one prospects use to book a call.
+ *
+ * Everything here is pinned to MAIN_TENANT_ID, the way the page beside it
+ * already was. It used to call the session-reading helpers instead, so the page
+ * rendered the main tenant's service while the submit resolved whatever tenant
+ * the admin session happened to point at — a booking made while impersonating
+ * a client would have landed in that client's calendar. The repo has a lint
+ * rule forbidding exactly these imports on public pages; it was firing here.
+ */
+
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getServiceBySlug, getBusinessHours } from "@/lib/db/services";
-import { getBookingsInRange, createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { computeAvailableSlots, addDays } from "@/lib/slots";
-import { getActiveStaff } from "@/lib/db/staff";
-import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
+import {
+  getServiceBySlugForTenant,
+  getBusinessHoursForTenant,
+  getActiveStaffForTenant,
+  getSettingsForTenant,
+  getStaffAvailabilityMapForTenant,
+  getBookingsInRangeForTenant,
+  getBusyStaffIdsForTenant,
+  createBookingForTenant,
+} from "@/lib/db/for-tenant";
+import { MAIN_TENANT_ID } from "@/lib/tenant";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
 import { buildConfirmationEmail } from "@/lib/email/booking-confirmation";
-import { getSettings } from "@/lib/db/settings";
 import { signBookingToken } from "@/lib/booking-token";
 import { recordBookingEvent } from "@/lib/db/booking-events";
-import { resolveEffectivePricing } from "@/lib/db/pricing";
+import { resolveEffectivePricingForTenant } from "@/lib/db/pricing";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Bad date format");
 
@@ -41,14 +59,18 @@ export async function getSlotsForDate(
   const dateRes = dateSchema.safeParse(dateStr);
   if (!dateRes.success) return { ok: false, message: "Niepoprawna data." };
 
-  const service = await getServiceBySlug(serviceSlug);
+  const service = await getServiceBySlugForTenant(serviceSlug, MAIN_TENANT_ID);
   if (!service) return { ok: false, message: "Usługa nie istnieje." };
 
-  const [hours, settings, activeStaff] = await Promise.all([getBusinessHours(), getSettings(), getActiveStaff()]);
+  const [hours, settings, activeStaff] = await Promise.all([
+    getBusinessHoursForTenant(MAIN_TENANT_ID),
+    getSettingsForTenant(MAIN_TENANT_ID),
+    getActiveStaffForTenant(MAIN_TENANT_ID),
+  ]);
   const dayStartUtc = new Date(`${dateStr}T00:00:00Z`).toISOString();
   const dayEndUtc = new Date(`${addDays(dateStr, 1)}T00:00:00Z`).toISOString();
 
-  const availMap = await getStaffAvailabilityMap(activeStaff.map((s) => s.id), dateStr);
+  const availMap = await getStaffAvailabilityMapForTenant(activeStaff.map((s) => s.id), dateStr, MAIN_TENANT_ID);
 
   if (staffId) {
     const avail = availMap.get(staffId);
@@ -56,7 +78,7 @@ export async function getSlotsForDate(
 
     // Override business hours with this staff's personal schedule if set
     const effectiveHours = applyStaffHours(hours, dateStr, avail ?? null);
-    const existing = await getBookingsInRange(dayStartUtc, dayEndUtc, staffId);
+    const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID, staffId);
     const slots = computeAvailableSlots(dateStr, service.duration_min, effectiveHours, existing, settings.slot_granularity_min, 1, true);
     return { ok: true, slots };
   }
@@ -64,7 +86,7 @@ export async function getSlotsForDate(
   // "Dowolny" — count only staff available today
   const availableStaff = activeStaff.filter((s) => availMap.get(s.id)?.available !== false);
   const staffCount = Math.max(1, availableStaff.length);
-  const existing = await getBookingsInRange(dayStartUtc, dayEndUtc);
+  const existing = await getBookingsInRangeForTenant(dayStartUtc, dayEndUtc, MAIN_TENANT_ID);
   const slots = computeAvailableSlots(dateStr, service.duration_min, hours, existing, settings.slot_granularity_min, staffCount, true);
   return { ok: true, slots };
 }
@@ -120,7 +142,7 @@ export async function submitBooking(
     };
   }
 
-  const service = await getServiceBySlug(parsed.data.serviceSlug);
+  const service = await getServiceBySlugForTenant(parsed.data.serviceSlug, MAIN_TENANT_ID);
   if (!service) {
     return { status: "error", message: "Usługa nie istnieje." };
   }
@@ -132,19 +154,19 @@ export async function submitBooking(
   if (!resolvedStaffId) {
     const fallbackEnd = new Date(startsAt.getTime() + service.duration_min * 60_000);
     const [busyIds, allStaff] = await Promise.all([
-      getBusyStaffIds(startsAt.toISOString(), fallbackEnd.toISOString()),
-      getActiveStaff(),
+      getBusyStaffIdsForTenant(startsAt.toISOString(), fallbackEnd.toISOString(), MAIN_TENANT_ID),
+      getActiveStaffForTenant(MAIN_TENANT_ID),
     ]);
     const free = allStaff.filter((s) => !busyIds.includes(s.id));
     resolvedStaffId = free[0]?.id ?? null;
   }
 
-  const pricing = await resolveEffectivePricing(service.id, resolvedStaffId);
+  const pricing = await resolveEffectivePricingForTenant(service.id, resolvedStaffId, MAIN_TENANT_ID);
   const effectiveDuration = pricing?.duration_min ?? service.duration_min;
   const effectivePrice = pricing?.price_pln ?? service.price_pln;
   const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
-  const result = await createBooking({
+  const result = await createBookingForTenant({
     serviceId: service.id,
     customerName: parsed.data.customerName,
     customerPhone: parsed.data.customerPhone,
@@ -155,7 +177,7 @@ export async function submitBooking(
     staffId: resolvedStaffId,
     pricePlnSnapshot: effectivePrice,
     durationMinSnapshot: effectiveDuration,
-  });
+  }, MAIN_TENANT_ID);
 
   if (!result.ok) {
     return { status: "error", message: result.message };
@@ -168,11 +190,12 @@ export async function submitBooking(
     customerName: parsed.data.customerName,
     serviceName: service.name,
     startsAtIso: startsAt.toISOString(),
+    tenantId: MAIN_TENANT_ID,
   });
 
   // Send confirmation email — fire-and-forget, never blocks booking.
   if (parsed.data.customerEmail) {
-    const s = await getSettings();
+    const s = await getSettingsForTenant(MAIN_TENANT_ID);
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
     const cancelToken = signBookingToken(result.id, "cancel");
     const rescheduleToken = signBookingToken(result.id, "reschedule");
