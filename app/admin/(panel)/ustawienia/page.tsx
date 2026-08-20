@@ -32,6 +32,7 @@ export default async function UstawieniaPage() {
         <SettingsForm
           settings={settings}
           hoursSection={<HoursSection hours={hours} />}
+          showToolTab={!isDemo}
         />
       </div>
 

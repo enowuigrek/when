@@ -15,9 +15,16 @@ type Tab = "firma" | "narzedzie";
 export function SettingsForm({
   settings,
   hoursSection,
+  showToolTab = true,
 }: {
   settings: Settings;
   hoursSection?: React.ReactNode;
+  /**
+   * Off in a demo. Accent, logo and booking configuration are things we set up
+   * for a prospect before sending the link — one fewer tab to wander into, and
+   * the branding gets matched to their own colours by hand anyway.
+   */
+  showToolTab?: boolean;
 }) {
   const [state, action, pending] = useActionState<SettingsFormState, FormData>(
     updateSettingsAction,
@@ -77,7 +84,11 @@ export function SettingsForm({
         </p>
       )}
 
-      {/* Tab switcher */}
+      {/* Tab switcher — a bar with one tab on it is just a label, so with the
+          tool tab hidden there is nothing to switch between. The tab's fields
+          stay in the form (the panels toggle with `hidden`, not by unmounting),
+          so a save still carries the values it is not showing. */}
+      {showToolTab && (
       <div className="flex gap-1 rounded-lg border border-zinc-800 p-1 w-fit">
         {([["firma", "Moja firma"], ["narzedzie", "Narzędzie"]] as [Tab, string][]).map(([tab, label]) => (
           <button
@@ -94,6 +105,7 @@ export function SettingsForm({
           </button>
         ))}
       </div>
+      )}
 
       {/* ── TAB: FIRMA ── */}
       <div className={activeTab === "firma" ? "space-y-6" : "hidden"}>
@@ -179,7 +191,7 @@ export function SettingsForm({
       </div>
 
       {/* ── TAB: NARZĘDZIE ── */}
-      <div className={activeTab === "narzedzie" ? "space-y-6" : "hidden"}>
+      <div className={showToolTab && activeTab === "narzedzie" ? "space-y-6" : "hidden"}>
         <fieldset className="space-y-4 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-6">
           <legend className={`mb-2 ${sectionHeading}`}>
             Wygląd
