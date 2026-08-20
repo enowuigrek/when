@@ -52,6 +52,18 @@ const restrictedTenantImports = {
         "Reads admin session. Use getStaffAvailabilityMapForTenant(..., tenantId) on public/widget code.",
     },
     {
+      name: "@/lib/db/packages",
+      importNames: ["getCustomerPackages"],
+      message:
+        "Reads admin session. Use getCustomerPackagesForTenant(..., tenantId) on public/widget code.",
+    },
+    {
+      name: "@/lib/db/customers",
+      importNames: ["upsertCustomer"],
+      message:
+        "Reads admin session. Use upsertCustomerForTenant(..., tenantId) on public/widget code.",
+    },
+    {
       name: "@/lib/tenant",
       importNames: ["getAdminTenantId", "getAdminTenantSlug", "getAdminTenantKind"],
       message:

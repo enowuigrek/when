@@ -14,6 +14,7 @@ import { createBooking, getBusyStaffIds } from "@/lib/db/bookings";
 import { getActiveStaff } from "@/lib/db/staff";
 import { resolveEffectivePricing } from "@/lib/db/pricing";
 import { upsertCustomer } from "@/lib/db/customers";
+import { attachToPackageForTenant } from "@/lib/db/packages";
 import { requirePanelAccess } from "@/lib/auth/panel-access";
 
 export async function logoutAction() {
@@ -261,6 +262,17 @@ export async function createBookingAtSlotAction(
   const durationMin = pricing?.duration_min ?? service.duration_min;
   const pricePln = pricing?.price_pln ?? service.price_pln;
 
+  // A service sold as a package hangs its lessons off one purchase. This finds
+  // the customer's open package or opens the first one; an ordinary service
+  // gets null back and books exactly as before.
+  const packageId = await attachToPackageForTenant({
+    service,
+    customerName,
+    customerPhone,
+    customerEmail,
+    tenantId: await getAdminTenantId(),
+  });
+
   const result = await createBooking({
     serviceId: service.id,
     customerName,
@@ -272,6 +284,7 @@ export async function createBookingAtSlotAction(
     staffId: resolvedStaffId,
     pricePlnSnapshot: pricePln,
     durationMinSnapshot: durationMin,
+    packageId,
   });
 
   if (!result.ok) {

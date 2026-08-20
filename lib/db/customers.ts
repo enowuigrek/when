@@ -30,7 +30,17 @@ export async function upsertCustomer(data: {
   name: string;
   email: string | null;
 }): Promise<string> {
-  const tenantId = await getAdminTenantId();
+  return upsertCustomerForTenant(data, await getAdminTenantId());
+}
+
+/**
+ * Same, with the tenant handed in — for public and widget paths, which have no
+ * admin session to read one from.
+ */
+export async function upsertCustomerForTenant(
+  data: { phone: string; name: string; email: string | null },
+  tenantId: string
+): Promise<string> {
   const { data: result, error } = await createAdminClient()
     .from("customers")
     .upsert(

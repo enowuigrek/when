@@ -26,6 +26,7 @@ import {
   createBookingForTenant,
 } from "@/lib/db/for-tenant";
 import { MAIN_TENANT_ID } from "@/lib/tenant";
+import { attachToPackageForTenant } from "@/lib/db/packages";
 import type { Slot } from "@/lib/slots";
 import type { BusinessHours } from "@/lib/types";
 import { sendEmail } from "@/lib/email/send";
@@ -166,6 +167,17 @@ export async function submitBooking(
   const effectivePrice = pricing?.price_pln ?? service.price_pln;
   const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
+  // Package services attach the lesson to the customer's purchase. tenantId is
+  // passed in explicitly here — this path has no admin session to read one
+  // from, and guessing one is how tenants leak.
+  const packageId = await attachToPackageForTenant({
+    service,
+    customerName: parsed.data.customerName,
+    customerPhone: parsed.data.customerPhone,
+    customerEmail: parsed.data.customerEmail ?? null,
+    tenantId: MAIN_TENANT_ID,
+  });
+
   const result = await createBookingForTenant({
     serviceId: service.id,
     customerName: parsed.data.customerName,
@@ -177,6 +189,7 @@ export async function submitBooking(
     staffId: resolvedStaffId,
     pricePlnSnapshot: effectivePrice,
     durationMinSnapshot: effectiveDuration,
+    packageId,
   }, MAIN_TENANT_ID);
 
   if (!result.ok) {

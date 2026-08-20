@@ -13,6 +13,7 @@ import {
   createBookingForTenant,
   getStaffAvailabilityMapForTenant,
 } from "@/lib/db/for-tenant";
+import { attachToPackageForTenant } from "@/lib/db/packages";
 import { computeAvailableSlots, addDays, applyStaffHours } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { sendEmail } from "@/lib/email/send";
@@ -162,6 +163,17 @@ export async function submitWidgetBooking(
       ? service.deposit_amount_pln
       : service.price_pln;
 
+  // Package services attach the lesson to the customer's purchase. tenantId is
+  // passed in explicitly here — this path has no admin session to read one
+  // from, and guessing one is how tenants leak.
+  const packageId = await attachToPackageForTenant({
+    service,
+    customerName: parsed.data.customerName,
+    customerPhone: parsed.data.customerPhone,
+    customerEmail: parsed.data.customerEmail ?? null,
+    tenantId,
+  });
+
   const result = await createBookingForTenant(
     {
       serviceId: service.id,
@@ -174,6 +186,7 @@ export async function submitWidgetBooking(
       staffId: resolvedStaffId,
       pricePlnSnapshot: service.price_pln,
       durationMinSnapshot: service.duration_min,
+      packageId,
     },
     tenantId
   );

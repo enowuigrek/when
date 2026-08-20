@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
 import { TimeSlotGrid } from "@/components/booking/time-slot-grid";
 import { useAdminBase } from "@/lib/use-admin-base";
+import { serviceMeta } from "@/lib/service-label";
 import {
   getAdminSlotsForDate,
   createAdminBookingAction,
@@ -230,7 +231,7 @@ export function AdminBookingForm({
                   {s.description && (
                     <p className="mt-0.5 text-xs text-zinc-500 line-clamp-1">{s.description}</p>
                   )}
-                  <p className="mt-1 font-mono text-xs text-zinc-500">{s.duration_min} min</p>
+                  <p className="mt-1 font-mono text-xs text-zinc-500">{serviceMeta(s)}</p>
                 </div>
                 <div className={`shrink-0 font-mono text-lg font-semibold ${isSelected ? "text-[var(--color-accent)]" : "text-zinc-400"}`}>
                   {s.price_pln} zł

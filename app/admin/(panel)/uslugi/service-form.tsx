@@ -23,6 +23,7 @@ export function ServiceForm({
     { status: "idle" }
   );
   const [isGroup, setIsGroup] = useState(service?.is_group ?? false);
+  const [isPackage, setIsPackage] = useState((service?.total_lessons ?? null) !== null);
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(
     service?.payment_mode ?? "none"
   );
@@ -50,7 +51,8 @@ export function ServiceForm({
       <div className="grid grid-cols-2 gap-4">
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
-            Czas trwania <span className="text-[var(--color-accent)]">*</span>
+            {isPackage ? "Czas jednej lekcji" : "Czas trwania"}{" "}
+            <span className="text-[var(--color-accent)]">*</span>
           </span>
           <div className="flex flex-wrap gap-2 mb-2">
             {DURATION_PRESETS.map((min) => (
@@ -84,7 +86,8 @@ export function ServiceForm({
 
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
-            Cena (zł) <span className="text-[var(--color-accent)]">*</span>
+            {isPackage ? "Cena pakietu (zł)" : "Cena (zł)"}{" "}
+            <span className="text-[var(--color-accent)]">*</span>
           </span>
           <input
             type="number"
@@ -108,6 +111,49 @@ export function ServiceForm({
         defaultValue={String(service?.sort_order ?? 0)}
         hint="Niższy numer = wyżej na liście"
       />
+
+      {/* PACKAGE TOGGLE */}
+      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
+        <label className="flex cursor-pointer items-center justify-between gap-4">
+          <div>
+            <span className="block text-sm font-medium text-zinc-200">To pakiet lekcji</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Kilka lekcji sprzedawanych za jedną cenę — terminy ustalacie po kolei
+            </span>
+          </div>
+          <Toggle checked={isPackage} onChange={setIsPackage} label="To pakiet lekcji" />
+          <input type="hidden" name="is_package" value={isPackage ? "true" : "false"} />
+        </label>
+
+        {isPackage && (
+          <label className="block">
+            <span className="mb-1 block text-sm text-zinc-300">
+              Liczba lekcji w pakiecie <span className="text-[var(--color-accent)]">*</span>
+            </span>
+            <input
+              type="number"
+              name="total_lessons"
+              required={isPackage}
+              min={2}
+              max={100}
+              defaultValue={service?.total_lessons ?? 5}
+              className={fieldClasses({ className: "w-32" })}
+            />
+            <span className="ml-2 text-xs text-zinc-500">lekcji</span>
+            {/* Nothing is computed from this: the name and the price are what
+                the school actually charges, typed as they are on its price
+                list. Dividing one by the other would invent a per-lesson rate
+                nobody sells. */}
+            <span className="mt-2 block text-xs text-zinc-600">
+              Cena powyżej dotyczy całego pakietu. Czas trwania to długość jednej lekcji —
+              każdą można później skrócić lub wydłużyć osobno.
+            </span>
+            {state.status === "error" && state.fieldErrors?.total_lessons && (
+              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.total_lessons}</span>
+            )}
+          </label>
+        )}
+      </div>
 
       {/* GROUP CLASS TOGGLE */}
       <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">

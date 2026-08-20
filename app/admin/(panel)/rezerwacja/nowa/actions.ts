@@ -11,6 +11,8 @@ import { computeAvailableSlots, addDays, applyStaffHours, warsawToday, warsawDay
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
 import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
+import { attachToPackageForTenant } from "@/lib/db/packages";
+import { getAdminTenantId } from "@/lib/tenant";
 import { recordBookingEvent } from "@/lib/db/booking-events";
 import { resolveEffectivePricing } from "@/lib/db/pricing";
 import { notifyStaff } from "@/lib/email/notify-staff";
@@ -176,6 +178,17 @@ export async function createAdminBookingAction(
   const effectivePrice = pricing?.price_pln ?? service.price_pln;
   const endsAt = new Date(startsAt.getTime() + effectiveDuration * 60_000);
 
+  // A service sold as a package hangs its lessons off one purchase. This finds
+  // the customer's open package or opens the first one; an ordinary service
+  // gets null back and books exactly as before.
+  const packageId = await attachToPackageForTenant({
+    service,
+    customerName: parsed.data.customerName,
+    customerPhone: parsed.data.customerPhone,
+    customerEmail: parsed.data.customerEmail ?? null,
+    tenantId: await getAdminTenantId(),
+  });
+
   const result = await createBooking({
     serviceId: service.id,
     customerName: parsed.data.customerName,
@@ -187,6 +200,7 @@ export async function createAdminBookingAction(
     staffId: resolvedStaffId,
     pricePlnSnapshot: effectivePrice,
     durationMinSnapshot: effectiveDuration,
+    packageId,
   });
 
   if (!result.ok) return { status: "error", message: result.message };

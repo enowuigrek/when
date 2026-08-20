@@ -14,6 +14,13 @@ export type Service = {
   payment_mode: PaymentMode;
   /** Only used when payment_mode = 'deposit'. Null → use price_pln as deposit. */
   deposit_amount_pln: number | null;
+  /**
+   * Lessons in a package sold for one price. Null for an ordinary service.
+   * The length of one lesson is `duration_min` — a package does not get its
+   * own duration field, because that is the number slot computation reads and
+   * two of them would eventually disagree.
+   */
+  total_lessons: number | null;
 };
 
 export type BusinessHours = {

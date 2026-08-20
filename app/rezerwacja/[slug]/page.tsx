@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { serviceMeta } from "@/lib/service-label";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -87,8 +88,14 @@ export default async function BookingServicePage({ params }: { params: Params })
                 <p className="mt-1 text-sm text-zinc-400">{service.description}</p>
               )}
               <p className="mt-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
-                {service.duration_min} min
+                {serviceMeta(service)}
               </p>
+              {service.total_lessons && (
+                <p className="mt-2 text-sm text-zinc-400">
+                  Cena obejmuje cały pakiet. Teraz wybierasz termin pierwszej lekcji —
+                  kolejne ustalacie na bieżąco.
+                </p>
+              )}
             </div>
             <div className="shrink-0 text-right">
               <div className="whitespace-nowrap font-mono text-lg font-semibold text-[var(--color-accent)] sm:text-xl">

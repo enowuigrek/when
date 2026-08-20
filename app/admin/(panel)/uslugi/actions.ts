@@ -33,6 +33,14 @@ const serviceSchema = z.object({
     .max(500)
     .optional()
     .nullable(),
+  is_package: z.string().optional().transform((v) => v === "true"),
+  total_lessons: z.coerce
+    .number()
+    .int()
+    .min(2, "Pakiet ma co najmniej 2 lekcje")
+    .max(100)
+    .optional()
+    .nullable(),
   payment_mode: z.enum(["none", "deposit", "full"]).default("none"),
   deposit_amount_pln: z.coerce
     .number()
@@ -45,6 +53,9 @@ const serviceSchema = z.object({
   (d) => !d.is_group || (d.max_participants != null && d.max_participants >= 1),
   { message: "Podaj limit miejsc dla zajęć grupowych.", path: ["max_participants"] }
 ).refine(
+  (d) => !d.is_package || (d.total_lessons != null && d.total_lessons >= 2),
+  { message: "Podaj liczbę lekcji w pakiecie.", path: ["total_lessons"] }
+).refine(
   (d) => d.payment_mode !== "deposit" || (d.deposit_amount_pln != null && d.deposit_amount_pln >= 1),
   { message: "Podaj kwotę zadatku.", path: ["deposit_amount_pln"] }
 );
@@ -55,6 +66,7 @@ export type ServiceFormState =
 
 function parseForm(formData: FormData) {
   const isGroup = formData.get("is_group")?.toString() === "true";
+  const isPackage = formData.get("is_package")?.toString() === "true";
   const paymentMode = formData.get("payment_mode")?.toString() ?? "none";
   const raw = {
     name: formData.get("name")?.toString() ?? "",
@@ -65,6 +77,10 @@ function parseForm(formData: FormData) {
     is_group: formData.get("is_group")?.toString() ?? "false",
     max_participants: isGroup
       ? (formData.get("max_participants")?.toString() ?? "")
+      : null,
+    is_package: formData.get("is_package")?.toString() ?? "false",
+    total_lessons: isPackage
+      ? (formData.get("total_lessons")?.toString() ?? "")
       : null,
     payment_mode: paymentMode,
     deposit_amount_pln:
@@ -111,6 +127,7 @@ export async function createServiceAction(
     active: true,
     is_group: parsed.data.is_group,
     max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
+    total_lessons: parsed.data.is_package ? (parsed.data.total_lessons ?? null) : null,
     payment_mode: parsed.data.payment_mode,
     deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
   });
@@ -156,6 +173,7 @@ export async function updateServiceAction(
       sort_order: parsed.data.sort_order,
       is_group: parsed.data.is_group,
       max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
+      total_lessons: parsed.data.is_package ? (parsed.data.total_lessons ?? null) : null,
       payment_mode: parsed.data.payment_mode,
       deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
     })

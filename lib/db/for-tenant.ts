@@ -119,6 +119,7 @@ export async function createBookingForTenant(
       status: "confirmed",
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
+      package_id: input.packageId ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
     })
     .select("id")

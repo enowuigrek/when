@@ -49,6 +49,8 @@ export type CreateBookingInput = {
   staffId?: string | null;
   pricePlnSnapshot?: number | null;
   durationMinSnapshot?: number | null;
+  /** Set when the service is sold as a package of lessons. */
+  packageId?: string | null;
 };
 
 export type CreateBookingResult =
@@ -75,6 +77,7 @@ export async function createBooking(
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
+      package_id: input.packageId ?? null,
     })
     .select("id")
     .single();

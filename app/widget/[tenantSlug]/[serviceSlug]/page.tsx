@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { serviceMeta } from "@/lib/service-label";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getTenantIdBySlug } from "@/lib/tenant";
@@ -109,11 +110,17 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
                 <p className="mt-1 text-sm text-zinc-400">{service.description}</p>
               )}
               <p className="mt-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
-                {service.duration_min} min
+                {serviceMeta(service)}
               </p>
+              {service.total_lessons && (
+                <p className="mt-2 text-sm text-zinc-400">
+                  Cena obejmuje cały pakiet. Teraz wybierasz termin pierwszej lekcji —
+                  kolejne ustalacie na bieżąco.
+                </p>
+              )}
             </div>
             <div className="text-right">
-              <div className="font-mono text-xl font-semibold" style={{ color: accent }}>
+              <div className="whitespace-nowrap font-mono text-xl font-semibold" style={{ color: accent }}>
                 {service.price_pln} zł
               </div>
               <Link

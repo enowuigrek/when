@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { sectionHeading } from "@/components/ui/surface";
 import { AdminLink } from "@/components/admin-link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
+import { getCustomerPackages } from "@/lib/db/packages";
+import { CustomerPackages } from "./packages";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { getActiveStaff } from "@/lib/db/staff";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
@@ -23,9 +25,10 @@ export default async function CustomerProfilePage({ params }: { params: Params }
   const customer = all.find((c) => c.id === id);
   if (!customer) notFound();
 
-  const [stats, allStaff] = await Promise.all([
+  const [stats, allStaff, packages] = await Promise.all([
     getCustomerStats(customer.phone),
     getActiveStaff(),
+    getCustomerPackages(customer.id),
   ]);
   const now = new Date().toISOString();
 
@@ -82,6 +85,8 @@ export default async function CustomerProfilePage({ params }: { params: Params }
           <StatTile label="Następna wizyta" value={`${formatWarsawDate(stats.nextVisit)}, ${formatWarsawTime(stats.nextVisit)}`} size="sm" tone="accent" />
         )}
       </div>
+
+      <CustomerPackages packages={packages} />
 
       {/* Loyalty tag */}
       {stats.totalVisits >= 10 && (

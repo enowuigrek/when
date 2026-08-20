@@ -6,6 +6,7 @@ import { getServicesForTenant, getSettingsForTenant, getBusinessHoursForTenant }
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WidgetPoweredBy } from "@/components/widget-powered-by";
+import { serviceMeta } from "@/lib/service-label";
 
 type Props = {
   params: Promise<{ tenantSlug: string }>;
@@ -100,7 +101,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
                     <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{s.description}</p>
                   )}
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
-                    {s.duration_min} min
+                    {serviceMeta(s)}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-0.5">

@@ -1,4 +1,5 @@
 import { AdminLink } from "@/components/admin-link";
+import { lessonsLabel } from "@/lib/service-label";
 import { PageShell } from "@/components/ui/page-shell";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminTenantId } from "@/lib/tenant";
@@ -60,13 +61,20 @@ function ServiceRow({ service: s }: { service: Service }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="font-medium text-zinc-100">{s.name}</span>
+          {s.total_lessons && (
+            <span className="rounded border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
+              pakiet · {lessonsLabel(s.total_lessons)}
+            </span>
+          )}
           {s.is_group && (
             <span className="rounded border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
               grupowe · {s.max_participants} os.
             </span>
           )}
           <span className="font-mono text-sm text-[var(--color-accent)]">{s.price_pln} zł</span>
-          <span className="font-mono text-xs text-zinc-500">{s.duration_min} min</span>
+          <span className="font-mono text-xs text-zinc-500">
+            {s.total_lessons ? `${s.duration_min} min / lekcja` : `${s.duration_min} min`}
+          </span>
         </div>
         {s.description && (
           <p className="mt-1 text-sm text-zinc-500 line-clamp-1">{s.description}</p>

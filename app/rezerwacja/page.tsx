@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getMainServices } from "@/lib/db/main-tenant";
+import { serviceMeta } from "@/lib/service-label";
 
 export const metadata = {
   title: "Rezerwacja",
@@ -62,7 +63,7 @@ export default async function ServicePickPage({
                     <p className="mt-1 text-sm text-zinc-400 line-clamp-2">{s.description}</p>
                   )}
                   <p className="mt-2 font-mono text-xs uppercase tracking-wider text-zinc-500">
-                    {s.duration_min} min
+                    {serviceMeta(s)}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
