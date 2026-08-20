@@ -3,12 +3,11 @@
 import { useActionState, useState } from "react";
 import { fieldClasses } from "@/components/ui/field";
 import type { ServiceFormState } from "./actions";
-import type { Service, PaymentMode } from "@/lib/types";
+import type { Service } from "@/lib/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useAdminBase } from "@/lib/use-admin-base";
-
-const DURATION_PRESETS = [15, 30, 45, 60, 75, 90, 120];
+import { lessonsLabel } from "@/lib/service-label";
 
 export function ServiceForm({
   action,
@@ -22,11 +21,9 @@ export function ServiceForm({
     action,
     { status: "idle" }
   );
-  const [isGroup, setIsGroup] = useState(service?.is_group ?? false);
   const [isPackage, setIsPackage] = useState((service?.total_lessons ?? null) !== null);
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>(
-    service?.payment_mode ?? "none"
-  );
+  const [duration, setDuration] = useState(service?.duration_min ?? 30);
+  const [lessons, setLessons] = useState(service?.total_lessons ?? 5);
 
   return (
     <form action={formAction} className="space-y-5 max-w-lg">
@@ -48,37 +45,80 @@ export function ServiceForm({
         />
       </label>
 
+      {/* PACKAGE TOGGLE */}
+      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
+        <label className="flex cursor-pointer items-center justify-between gap-4">
+          <div>
+            <span className="block text-sm font-medium text-zinc-200">To pakiet lekcji</span>
+            <span className="mt-0.5 block text-xs text-zinc-500">
+              Kilka lekcji sprzedawanych za jedną cenę — terminy ustalacie po kolei
+            </span>
+          </div>
+          <Toggle checked={isPackage} onChange={setIsPackage} label="To pakiet lekcji" />
+          <input type="hidden" name="is_package" value={isPackage ? "true" : "false"} />
+        </label>
+
+        {isPackage && (
+          <label className="block">
+            <span className="mb-1 block text-sm text-zinc-300">
+              Liczba lekcji w pakiecie <span className="text-[var(--color-accent)]">*</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <input
+                type="number"
+                name="total_lessons"
+                required={isPackage}
+                min={2}
+                max={100}
+                value={lessons}
+                onChange={(e) => setLessons(Number(e.target.value))}
+                // w-32 alone loses to the w-full inside fieldClasses — same
+                // specificity, and Tailwind's own ordering decides. A wrapper
+                // with a fixed basis sidesteps the fight.
+                className={fieldClasses({ className: "!w-20" })}
+              />
+              <span className="text-sm text-zinc-500">lekcji</span>
+            </span>
+            {/* Nothing is computed from this: the name and the price are what
+                the school actually charges, typed as they are on its price
+                list. Dividing one by the other would invent a per-lesson rate
+                nobody sells. */}
+            {/* The owner sees the shape of what they are selling without
+                having to hold two fields in their head. */}
+            <span className="mt-2 block text-xs text-zinc-500">
+              Klient zobaczy: <span className="text-zinc-300">{lessonsLabel(lessons)} × {duration} min</span>
+            </span>
+            <span className="mt-1 block text-xs text-zinc-600">
+              Cena poniżej dotyczy całego pakietu. Terminy kolejnych lekcji ustalacie
+              po drodze — nikt nie musi podawać wszystkich dat z góry.
+            </span>
+            {state.status === "error" && state.fieldErrors?.total_lessons && (
+              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.total_lessons}</span>
+            )}
+          </label>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
             {isPackage ? "Czas jednej lekcji" : "Czas trwania"}{" "}
             <span className="text-[var(--color-accent)]">*</span>
           </span>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {DURATION_PRESETS.map((min) => (
-              <button
-                key={min}
-                type="button"
-                onClick={(e) => {
-                  const input = e.currentTarget.closest("label")?.querySelector("input");
-                  if (input) input.value = String(min);
-                }}
-                className="rounded border border-zinc-800 bg-zinc-900/40 px-2 py-1 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors"
-              >
-                {min} min
-              </button>
-            ))}
-          </div>
-          <input
-            type="number"
-            name="duration_min"
-            required
-            min={5}
-            max={480}
-            step={5}
-            defaultValue={service?.duration_min ?? 30}
-            className={fieldClasses()}
-          />
+          <span className="flex items-center gap-2">
+            <input
+              type="number"
+              name="duration_min"
+              required
+              min={5}
+              max={480}
+              step={5}
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
+              className={fieldClasses({ className: "!w-20" })}
+            />
+            <span className="text-sm text-zinc-500">min</span>
+          </span>
           {state.status === "error" && state.fieldErrors?.duration_min && (
             <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.duration_min}</span>
           )}
@@ -112,143 +152,15 @@ export function ServiceForm({
         hint="Niższy numer = wyżej na liście"
       />
 
-      {/* PACKAGE TOGGLE */}
-      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
-        <label className="flex cursor-pointer items-center justify-between gap-4">
-          <div>
-            <span className="block text-sm font-medium text-zinc-200">To pakiet lekcji</span>
-            <span className="mt-0.5 block text-xs text-zinc-500">
-              Kilka lekcji sprzedawanych za jedną cenę — terminy ustalacie po kolei
-            </span>
-          </div>
-          <Toggle checked={isPackage} onChange={setIsPackage} label="To pakiet lekcji" />
-          <input type="hidden" name="is_package" value={isPackage ? "true" : "false"} />
-        </label>
-
-        {isPackage && (
-          <label className="block">
-            <span className="mb-1 block text-sm text-zinc-300">
-              Liczba lekcji w pakiecie <span className="text-[var(--color-accent)]">*</span>
-            </span>
-            <input
-              type="number"
-              name="total_lessons"
-              required={isPackage}
-              min={2}
-              max={100}
-              defaultValue={service?.total_lessons ?? 5}
-              className={fieldClasses({ className: "w-32" })}
-            />
-            <span className="ml-2 text-xs text-zinc-500">lekcji</span>
-            {/* Nothing is computed from this: the name and the price are what
-                the school actually charges, typed as they are on its price
-                list. Dividing one by the other would invent a per-lesson rate
-                nobody sells. */}
-            <span className="mt-2 block text-xs text-zinc-600">
-              Cena powyżej dotyczy całego pakietu. Czas trwania to długość jednej lekcji —
-              każdą można później skrócić lub wydłużyć osobno.
-            </span>
-            {state.status === "error" && state.fieldErrors?.total_lessons && (
-              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.total_lessons}</span>
-            )}
-          </label>
-        )}
-      </div>
-
-      {/* GROUP CLASS TOGGLE */}
-      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
-        <label className="flex cursor-pointer items-center justify-between gap-4">
-          <div>
-            <span className="block text-sm font-medium text-zinc-200">Zajęcia grupowe</span>
-            <span className="block text-xs text-zinc-500 mt-0.5">Wiele osób może zarezerwować ten sam termin</span>
-          </div>
-          <Toggle checked={isGroup} onChange={setIsGroup} label="Zajęcia grupowe" />
-          <input type="hidden" name="is_group" value={isGroup ? "true" : "false"} />
-        </label>
-
-        {isGroup && (
-          <label className="block">
-            <span className="mb-1 block text-sm text-zinc-300">
-              Limit miejsc <span className="text-[var(--color-accent)]">*</span>
-            </span>
-            <input
-              type="number"
-              name="max_participants"
-              required={isGroup}
-              min={1}
-              max={500}
-              defaultValue={service?.max_participants ?? 10}
-              className={fieldClasses({ className: "w-32" })}
-            />
-            <span className="ml-2 text-xs text-zinc-500">osób max</span>
-            {state.status === "error" && state.fieldErrors?.max_participants && (
-              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.max_participants}</span>
-            )}
-          </label>
-        )}
-      </div>
-
-      {/* PAYMENT SECTION */}
-      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-4">
-        <div>
-          <p className="text-sm font-medium text-zinc-200">Płatność online</p>
-          <p className="text-xs text-zinc-500 mt-0.5">Wymagaj opłaty przy rezerwacji przez Tpay (BLIK, karta)</p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {([
-            { value: "none", label: "Bez płatności", desc: "Rezerwacja od razu potwierdzona" },
-            { value: "deposit", label: "Zadatek", desc: "Klient płaci zadatek, reszta na miejscu" },
-            { value: "full", label: "Pełna kwota", desc: "Klient płaci z góry całą cenę" },
-          ] as { value: PaymentMode; label: string; desc: string }[]).map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setPaymentMode(opt.value)}
-              className={`flex flex-col rounded-lg border px-4 py-3 text-left transition-colors ${
-                paymentMode === opt.value
-                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-zinc-100"
-                  : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
-              }`}
-            >
-              <span className="text-sm font-medium">{opt.label}</span>
-              <span className="text-xs opacity-70 mt-0.5">{opt.desc}</span>
-            </button>
-          ))}
-        </div>
-
-        <input type="hidden" name="payment_mode" value={paymentMode} />
-
-        {paymentMode === "deposit" && (
-          <label className="block">
-            <span className="mb-1 block text-sm text-zinc-300">
-              Kwota zadatku (zł) <span className="text-[var(--color-accent)]">*</span>
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                name="deposit_amount_pln"
-                required
-                min={1}
-                max={9999}
-                defaultValue={service?.deposit_amount_pln ?? ""}
-                className={fieldClasses({ className: "w-32" })}
-              />
-              <span className="text-sm text-zinc-500">zł</span>
-              <span className="text-xs text-zinc-600">(reszta płatna na miejscu)</span>
-            </div>
-            {state.status === "error" && state.fieldErrors?.deposit_amount_pln && (
-              <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.deposit_amount_pln}</span>
-            )}
-          </label>
-        )}
-
-        {paymentMode !== "none" && (
-          <p className="text-xs text-amber-500/80">
-            Wymaga skonfigurowania konta Tpay w ustawieniach.
-          </p>
-        )}
-      </div>
+      {/* Zajęcia grupowe i płatność online zdjęte z formularza — nikt ich
+          dziś nie używa poza demem jogi, a dwie sekcje na dole przykrywały to,
+          po co właściciel tu wchodzi. Wartości jadą dalej w ukrytych polach,
+          więc edycja usługi nie kasuje tego, co już ustawione, a przywrócenie
+          sekcji to jeden commit. */}
+      <input type="hidden" name="is_group" value={service?.is_group ? "true" : "false"} />
+      <input type="hidden" name="max_participants" value={service?.max_participants ?? 10} />
+      <input type="hidden" name="payment_mode" value={service?.payment_mode ?? "none"} />
+      <input type="hidden" name="deposit_amount_pln" value={service?.deposit_amount_pln ?? ""} />
 
       {state.status === "error" && !state.fieldErrors && (
         <p className="rounded-md border border-red-900/50 bg-red-950/30 p-3 text-sm text-red-300">

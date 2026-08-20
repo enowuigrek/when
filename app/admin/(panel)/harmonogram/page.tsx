@@ -360,7 +360,10 @@ function DayView({
   const cellPlans = new Map<string, CellPlan>();
 
   for (const b of dayBookings) {
-    if (!b.staff_id) continue;
+    // A tenant with nobody on the books yet has bookings with no staff_id.
+    // They get plans under the same pseudo-key the week view uses, so the
+    // single "Rezerwacje" column can render them like any other.
+    const staffKey = b.staff_id ?? "__none__";
     // Clamp to opening hours so a booking spilling past close can't rowSpan
     // beyond the last rendered row.
     const bStart = Math.max(warsawMinutes(b.starts_at), startMin);
@@ -370,7 +373,7 @@ function DayView({
     const firstSlot = startMin + Math.floor((bStart - startMin) / 30) * 30;
     const span = Math.max(1, Math.ceil((bEnd - firstSlot) / 30));
 
-    cellPlans.set(planKey(b.staff_id, firstSlot), {
+    cellPlans.set(planKey(staffKey, firstSlot), {
       kind: "start",
       booking: b,
       span,
@@ -378,7 +381,7 @@ function DayView({
       durationMin: bEnd - bStart,
     });
     for (let k = 1; k < span; k++) {
-      cellPlans.set(planKey(b.staff_id, firstSlot + k * 30), { kind: "covered" });
+      cellPlans.set(planKey(staffKey, firstSlot + k * 30), { kind: "covered" });
     }
   }
 
@@ -502,26 +505,47 @@ function DayView({
                   </td>
                 );
               }) : (
-                <td className="relative p-0 align-top">
-                  {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).map((b) => (
-                    <div key={b.id} className="mb-1 rounded border border-zinc-800 px-2 py-1">
-                      <p className="font-mono text-xs text-zinc-400">{formatWarsawTime(b.starts_at)}</p>
-                      <p className="text-xs text-zinc-300">{b.customer_name}</p>
-                    </div>
-                  ))}
-                  {dayBookings.filter((b) => warsawMinutes(b.starts_at) === slot.min).length === 0 && (
-                    <NewBookingButton
-                      services={services}
-                      allStaff={allStaff}
-                      date={date}
-                      time={slot.label}
-                      presetStaffId={null}
-                      className="slot-empty absolute inset-0"
-                    >
-                      <span className="sr-only">{`Dodaj rezerwację ${slot.label}`}</span>
-                    </NewBookingButton>
-                  )}
-                </td>
+                (() => {
+                  const plan = cellPlans.get(planKey("__none__", slot.min));
+                  if (plan?.kind === "covered") return null;
+
+                  if (plan?.kind === "start") {
+                    const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
+                    return (
+                      <td rowSpan={plan.span} className="relative align-top">
+                        <div
+                          className="absolute inset-x-2"
+                          style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
+                        >
+                          <DayBookingCard
+                            booking={toModalBooking(plan.booking)}
+                            allStaff={allStaff}
+                            openOnMount={plan.booking.id === openBookingId}
+                            timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
+                            // No staff member to borrow a colour from.
+                            color="var(--color-accent)"
+                            compact={blockH < 44}
+                          />
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td className="relative p-0 align-top">
+                      <NewBookingButton
+                        services={services}
+                        allStaff={allStaff}
+                        date={date}
+                        time={slot.label}
+                        presetStaffId={null}
+                        className="slot-empty absolute inset-0"
+                      >
+                        <span className="sr-only">{`Dodaj rezerwację ${slot.label}`}</span>
+                      </NewBookingButton>
+                    </td>
+                  );
+                })()
               )}
             </tr>
           ))}
