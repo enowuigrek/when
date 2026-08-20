@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Day = {
   date: string; // YYYY-MM-DD
@@ -122,6 +122,61 @@ function SelectedRule({ edgeToEdge = false }: { edgeToEdge?: boolean }) {
   );
 }
 
+
+/** Relative luminance of an "rgb(r, g, b)" or "#rrggbb" colour. */
+function luminance(color: string): number | null {
+  let r: number, g: number, b: number;
+  const hex = color.trim().match(/^#?([0-9a-f]{6})$/i);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  } else {
+    const m = color.match(/\d+(\.\d+)?/g);
+    if (!m || m.length < 3) return null;
+    [r, g, b] = m.slice(0, 3).map(Number);
+  }
+  const f = [r, g, b].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+}
+
+/** Selection fill for each theme — the value `bg-zinc-800` resolves to. */
+const FILL = { light: "#d4d4d8", dark: "#27272a" } as const;
+
+/**
+ * Whether today can keep the accent colour when its cell is filled.
+ *
+ * Today is the accent everywhere else, and it should be here too — but the
+ * accent belongs to the tenant, and a pale one on the light theme's grey fill
+ * lands around 1.4:1. Rather than ban it outright (which turned a deep violet
+ * into plain black for no reason) or allow it blindly, this measures the pair
+ * once and lets the accent through when it is actually readable.
+ */
+function useAccentReadableOnFill(): [React.RefObject<HTMLDivElement | null>, boolean] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ok, setOk] = useState(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Read from inside the tree, not from <html>: the tenant's accent is set
+    // inline on the theme wrapper and inherits down. The root only carries the
+    // stylesheet's default, so reading it there measures the wrong colour.
+    const accent = getComputedStyle(el).getPropertyValue("--color-accent");
+    const theme =
+      document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    const a = luminance(accent);
+    const b = luminance(FILL[theme]);
+    if (a === null || b === null) return;
+    const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    setOk(contrast >= 4.5);
+  }, []);
+
+  return [ref, ok];
+}
+
 export function CalendarPicker({
   days = [],
   selectedDate,
@@ -154,6 +209,7 @@ export function CalendarPicker({
   const [calYear, setCalYear] = useState(initialYM.year);
   const [calMonth, setCalMonth] = useState(initialYM.month);
   const [hoveredWeek, setHoveredWeek] = useState<string | null>(null);
+  const [accentProbeRef, accentOnFill] = useAccentReadableOnFill();
   const [pickerView, setPickerView] = useState<"days" | "months">("days");
 
   const year = controlled ? displayYearMonth!.year : calYear;
@@ -221,7 +277,7 @@ export function CalendarPicker({
   }
 
   return (
-    <div className={`rounded-xl border border-zinc-800/60 bg-zinc-900/40 ${wrapperPad} select-none`}>
+    <div ref={accentProbeRef} className={`rounded-xl border border-zinc-800/60 bg-zinc-900/40 ${wrapperPad} select-none`}>
       {/* Header */}
       {!controlled && (
         <div className={`${headerMb} flex items-center justify-between`}>
@@ -319,10 +375,7 @@ export function CalendarPicker({
                 // same cell without competing.
                 const filled = isViewedWeek || isHoveredWeek;
                 if (filled) cls += "bg-zinc-800 ";
-                // Accent only on an unfilled cell. A pale tenant accent on the
-                // light theme's grey fill is roughly 1.4:1 — inside the
-                // selected week today stays bold and legible instead.
-                if (isToday && !filled) {
+                if (isToday && (!filled || accentOnFill)) {
                   cls += "text-[var(--color-accent)] ";
                 } else if (filled) {
                   cls += "text-zinc-100 ";
@@ -418,9 +471,9 @@ export function CalendarPicker({
               // Today is bold and in the accent colour — the way the schedule
               // marks the current day in its own gutter. Not on a solid accent
               // fill, where accent on accent would disappear.
-              // Same reasoning as week mode: accent text needs an unfilled
-              // cell behind it to stay readable.
-              if (isToday && !isSelected) {
+              // The solid pick in the booking flow keeps its own foreground:
+              // accent on accent would vanish.
+              if (isToday && (!isSelected || (accentOnFill && !solidPick))) {
                 cls += "text-[var(--color-accent)] ";
               } else if (!isSelected && isAvailable) {
                 cls += "text-zinc-300 ";

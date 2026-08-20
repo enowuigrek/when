@@ -5,6 +5,7 @@ import { getAdminTenantId } from "@/lib/tenant";
 import { toggleServiceActiveAction } from "./actions";
 import { DeleteServiceButton } from "./delete-service-button";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { AddAction } from "@/components/ui/add-action";
 import type { Service } from "@/lib/types";
 
 export const metadata = { title: "Usługi", robots: { index: false } };
@@ -31,12 +32,7 @@ export default async function ServicesPage() {
       subtitle={`${active.length} aktywnych`}
       narrow
       actions={
-        <AdminLink
-          href="/admin/uslugi/nowa"
-          className={buttonClasses({ variant: "primary", size: "md", radius: "full" })}
-        >
-          + Dodaj usługę
-        </AdminLink>
+<AddAction label="Dodaj usługę" href="/admin/uslugi/nowa" />
       }
     >
 

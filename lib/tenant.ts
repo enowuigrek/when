@@ -32,6 +32,27 @@ const URL_ADDRESSABLE_KINDS = new Set(["demo", "trial"]);
  * impersonate an existing real tenant. Returns null when the tenant doesn't
  * exist, isn't URL-addressable, or has expired.
  */
+/**
+ * The demo tenant behind a slug, with its kind.
+ *
+ * Same lookup as getDemoTenantIdBySlug — the row already carries the kind, so
+ * callers that need to tell a prepared trial from a landing-page demo can have
+ * it without a second query.
+ */
+export async function getDemoTenantBySlug(
+  slug: string
+): Promise<{ id: string; kind: TenantKind } | null> {
+  if (!slug || !/^[a-z0-9-]+$/i.test(slug)) return null;
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("id, expires_at, kind")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!data || !URL_ADDRESSABLE_KINDS.has(data.kind as string)) return null;
+  if (data.expires_at && new Date(data.expires_at as string).getTime() < Date.now()) return null;
+  return { id: data.id as string, kind: data.kind as TenantKind };
+}
+
 export async function getDemoTenantIdBySlug(slug: string): Promise<string | null> {
   if (!slug || !/^[a-z0-9-]+$/i.test(slug)) return null;
   const { data } = await createAdminClient()

@@ -431,7 +431,10 @@ function DayView({
                 {s.name}
               </th>
             )) : (
-              <th className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
+              // Sticky like the hour gutter beside it: with nobody on the
+              // books this is the only column header there is, and it was
+              // scrolling away under the rows it labels.
+              <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
             )}
           </tr>
         </thead>
@@ -589,7 +592,11 @@ function WeekView({
                 {s.name}
               </th>
             ))}
-            {visibleStaff.length === 0 && <th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>}
+            {visibleStaff.length === 0 && (
+              <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Rezerwacje
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>

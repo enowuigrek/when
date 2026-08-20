@@ -1,4 +1,5 @@
 import { AdminLink } from "@/components/admin-link";
+import { AddAction } from "@/components/ui/add-action";
 import { PageShell } from "@/components/ui/page-shell";
 import { ListRow, ListRows } from "@/components/ui/list-row";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
@@ -17,15 +18,7 @@ export default async function PracownicyPage() {
       subtitle="Każdy pracownik może obsługiwać klientów równolegle."
       narrow
       actions={
-        <>
-          <AdminLink
-            href="/admin/pracownicy/nowy"
-            className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)]"
-          >
-            <span className="hidden sm:inline">+ Dodaj</span>
-            <span className="sm:hidden">+</span>
-          </AdminLink>
-        </>
+<AddAction label="Dodaj pracownika" href="/admin/pracownicy/nowy" />
       }
     >
       {staff.length === 0 ? (

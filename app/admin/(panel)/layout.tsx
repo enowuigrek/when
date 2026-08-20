@@ -12,6 +12,7 @@ import {
   getAdminTenantId,
   getAdminTenantKind,
   getDemoTenantIdBySlug,
+  getDemoTenantBySlug,
 } from "@/lib/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
@@ -35,11 +36,12 @@ export default async function PanelLayout({
   const demoSlug = (await headers()).get("x-demo-slug");
 
   if (demoSlug) {
-    const demoTenantId = await getDemoTenantIdBySlug(demoSlug);
-    if (!demoTenantId) {
+    const demo = await getDemoTenantBySlug(demoSlug);
+    if (!demo) {
       // Demo expired or slug doesn't exist
       notFound();
     }
+    const demoTenantId = demo.id;
     const settings = await getSettingsForTenant(demoTenantId);
     return (
       <TenantThemeWrapper settings={settings}>
@@ -54,6 +56,9 @@ export default async function PanelLayout({
             logoUrl={settings.logo_url ?? undefined}
             logoutAction={logoutAction}
             isDemo
+            // Landing-page demos keep the way back to the site; one prepared
+            // for a named prospect does not.
+            showHomeLink={demo.kind === "demo"}
             isSuperAdmin={false}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">

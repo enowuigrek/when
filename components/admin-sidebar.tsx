@@ -261,7 +261,10 @@ function NavWithStripe({
     >
       <span
         aria-hidden
-        className={`pointer-events-none absolute left-0 top-0 w-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
+        // z-10: the rule now sits on the row's own left edge rather than out in
+        // the nav's padding, and the rows are positioned elements that come
+        // later in the DOM — so without this their background paints over it.
+        className={`pointer-events-none absolute left-0 top-0 z-10 w-0.5 rounded-full bg-[var(--color-accent)] transition-[transform,opacity] duration-300 ease-out ${
           stripe.visible ? "opacity-100" : "opacity-0"
         }`}
         style={{ height: stripe.h, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
@@ -432,6 +435,7 @@ function SidebarBody({
   demoSlug,
   isSuperAdmin,
   showNotifications = true,
+  showHomeLink = true,
 }: {
   expanded: boolean;
   businessName: string;
@@ -446,6 +450,8 @@ function SidebarBody({
   isSuperAdmin?: boolean;
   /** Off in the mobile drawer — the top bar already carries the bell. */
   showNotifications?: boolean;
+  /** Off for a demo prepared for someone: no way out of the panel. */
+  showHomeLink?: boolean;
 }) {
   // Sidebar pixel width — used to position the notification side panel
   const sidebarPx = expanded ? 220 : 60;
@@ -514,9 +520,13 @@ function SidebarBody({
               sidebar was still widening around it — so for a frame or two it
               stuck out past the edge. Every nav row already grows its label
               from max-w-0; this one now does the same, on the same curve. */}
+          {/* The margin collapses with the label. At max-w-0 the label is
+              invisible but its ml-2 still occupies eight pixels, and since this
+              button centres its contents, that pushed the plus four pixels off
+              centre whenever the sidebar was closed. */}
           <span
-            className={`ml-2 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${
-              expanded ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+            className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-200 ${
+              expanded ? "ml-2 max-w-[160px] opacity-100" : "ml-0 max-w-0 opacity-0"
             }`}
           >
             Nowa rezerwacja
@@ -546,7 +556,13 @@ function SidebarBody({
           />
         )}
 
-        {isDemo ? (
+        {/* A landing-page demo is something someone opened out of curiosity, so
+            it keeps a way back to the site. A demo prepared for a named
+            prospect does not: they were sent this link, and a door marked
+            "Strona główna" only leads them out of the thing we asked them to
+            look at. There is no login here either — a password would be a
+            bigger barrier than the wandering it prevents. */}
+        {isDemo && !showHomeLink ? null : isDemo ? (
           <Link
             href="/"
             title={!expanded ? "Strona główna" : undefined}
@@ -587,6 +603,7 @@ function SidebarBody({
 // ── Main export ───────────────────────────────────────────────────────────
 
 export function AdminSidebar({
+  showHomeLink = true,
   tenantId,
   businessName,
   logoUrl,
@@ -600,6 +617,8 @@ export function AdminSidebar({
   logoutAction: () => Promise<void>;
   isDemo?: boolean;
   isSuperAdmin?: boolean;
+  /** Off for a demo prepared for a named prospect — no way out of the panel. */
+  showHomeLink?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -643,6 +662,7 @@ export function AdminSidebar({
           logoutAction={logoutAction}
           isDemo={isDemo}
           isSuperAdmin={isSuperAdmin}
+          showHomeLink={showHomeLink}
           onToggle={toggleExpanded}
           pathname={pathname}
           demoSlug={demoSlug}
@@ -694,6 +714,7 @@ export function AdminSidebar({
             logoutAction={logoutAction}
             isDemo={isDemo}
             isSuperAdmin={isSuperAdmin}
+            showHomeLink={showHomeLink}
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
             onNavClick={() => setMobileOpen(false)}

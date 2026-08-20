@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomerAction, type CreateCustomerState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { AddAction } from "@/components/ui/add-action";
 import { useAdminBase } from "@/lib/use-admin-base";
 
 const inp =
@@ -29,15 +30,7 @@ export function NewCustomerDialog() {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="primary"
-        radius="full"
-        onClick={() => setOpen(true)}
-        className="py-1.5"
-      >
-        + Dodaj
-      </Button>
+<AddAction label="Dodaj klienta" onClick={() => setOpen(true)} />
 
       {open && (
         <div
