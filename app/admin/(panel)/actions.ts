@@ -196,6 +196,20 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     return { ok: false, message: `Błąd: ${error.message}` };
   }
 
+  // Nothing moved, nothing to report: the modal can submit the time a booking
+  // already has, and a notice saying a booking was changed to exactly where it
+  // already was is noise pretending to be news.
+  // Compared as instants, not as strings: Postgres hands back
+  // "2026-08-26 10:00:00+00" while toISOString() builds
+  // "2026-08-26T10:00:00.000Z", so text comparison called every move a change
+  // of the hour — and a booking merely handed to someone else was announced as
+  // a change of time it never had.
+  const timeChanged = new Date(booking.starts_at).getTime() !== startsAt.getTime();
+  if (!timeChanged && !staffChanged) {
+    revalidatePath("/admin/harmonogram");
+    return { ok: true };
+  }
+
   await recordBookingEvent({
     bookingId: id,
     eventType: "rescheduled",
@@ -206,6 +220,7 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     // Only when it changed: a plain move of the hour should not repeat a name
     // nobody asked about. "Bez pracownika" is itself news worth stating.
     staffName: staffChanged ? (staffName ?? "bez pracownika") : null,
+    changeKind: timeChanged && staffChanged ? "both" : staffChanged ? "staff" : "time",
     // Dragging a booking into place takes a few goes. One notice, showing
     // where it landed, not one per nudge.
     coalesceWithinMinutes: 5,

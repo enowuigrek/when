@@ -4,6 +4,8 @@ import { getAdminTenantId } from "@/lib/tenant";
 
 export type BookingEventType = "created" | "rescheduled" | "cancelled" | "confirmed" | "payment_confirmed";
 export type BookingEventSource = "customer" | "admin" | "system";
+/** What a move changed. A drag can do both at once, so "both" is its own case. */
+export type ChangeKind = "time" | "staff" | "both";
 
 export type BookingEvent = {
   id: string;
@@ -14,9 +16,17 @@ export type BookingEvent = {
   service_name: string | null;
   /** Who it moved to — set only when the move changed the staff member. */
   staff_name: string | null;
+  /** For a move: what it actually changed. Null on rows written before this. */
+  change_kind: ChangeKind | null;
   starts_at: string;
   created_at: string;
 };
+
+function mergeChangeKind(existing: ChangeKind | null, incoming: ChangeKind | null | undefined): ChangeKind | null {
+  if (!existing) return incoming ?? null;
+  if (!incoming || incoming === existing) return existing;
+  return "both";
+}
 
 export async function recordBookingEvent(input: {
   bookingId: string;
@@ -26,6 +36,8 @@ export async function recordBookingEvent(input: {
   serviceName: string | null;
   /** Pass only when this event changed who is doing the booking. */
   staffName?: string | null;
+  /** For a move: what it changed, so the reader can name it correctly. */
+  changeKind?: ChangeKind | null;
   startsAtIso: string;
   /** Override tenant (for system/webhook contexts without admin session). */
   tenantId?: string;
@@ -48,7 +60,7 @@ export async function recordBookingEvent(input: {
     const since = new Date(Date.now() - input.coalesceWithinMinutes * 60_000).toISOString();
     const { data: recent } = await supabase
       .from("booking_events")
-      .select("id")
+      .select("id, change_kind")
       .eq("tenant_id", tenantId)
       .eq("booking_id", input.bookingId)
       .eq("event_type", input.eventType)
@@ -66,6 +78,10 @@ export async function recordBookingEvent(input: {
           // particular" is an answer too — so this overwrites rather than
           // filling in only when set.
           staff_name: input.staffName ?? null,
+          // Kinds accumulate rather than overwrite: nudge the hour, then hand
+          // it to someone else, and the one notice left behind has to say both
+          // happened — neither half stopped being true.
+          change_kind: mergeChangeKind(recent.change_kind as ChangeKind | null, input.changeKind),
           created_at: new Date().toISOString(),
         })
         .eq("tenant_id", tenantId)
@@ -84,6 +100,7 @@ export async function recordBookingEvent(input: {
     customer_name: input.customerName,
     service_name: input.serviceName,
     staff_name: input.staffName ?? null,
+    change_kind: input.changeKind ?? null,
     starts_at: input.startsAtIso,
   });
   if (error) {

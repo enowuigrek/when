@@ -5,22 +5,21 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { rescheduleBookingAction } from "../actions";
 import { DragTimeContext } from "./drag-time-context";
+import { UNASSIGNED_COLUMN } from "./columns";
 
 /**
- * A booking you can shove up or down the day to move it.
+ * A booking you can shove around the day to move it.
  *
- * Press and hold, drag, let go: the block follows the pointer in five-minute
- * steps and the time on it updates as it moves, so the drop lands where the
- * clock says rather than where the pixels roughly are. A press that does not
- * move is still a click and still opens the management modal — the two have to
- * live on the same element, so a few pixels of slop decide which one happened.
+ * Press and hold, drag, let go. Up and down changes the hour in five-minute
+ * steps; sideways hands it to whoever owns the column you drop it on. The time
+ * on the card updates as it moves, so the drop lands where the clock says
+ * rather than where the pixels roughly are. A press that does not move is
+ * still a click and still opens the management modal — the two share one
+ * element, so a few pixels of slop decide which one happened.
  *
  * Nothing about the drag decides whether the move is allowed. The server holds
  * the overlap constraint, and a refused drop springs back with its reason.
  */
-/** Matches the day view's pseudo-column for bookings with nobody assigned. */
-const UNASSIGNED_COLUMN = "__none__";
-
 export function DraggableBooking({
   bookingId,
   date,
@@ -77,14 +76,16 @@ export function DraggableBooking({
    * Zeroing it the moment the save returns puts the block back where it was
    * for as long as the refreshed schedule takes to render — a visible bounce
    * back to the old time and then a jump to the new one. Instead the offset
-   * stands until `startMinutes` comes back changed, at which point the block
+   * stands until the server's own values come back changed, at which point the block
    * is already drawn in the right place and dropping the offset moves nothing.
    * This is React's documented way of adjusting state when a prop changes.
    */
-  const [lastStart, setLastStart] = useState(startMinutes);
-  if (startMinutes !== lastStart) {
-    setLastStart(startMinutes);
+  const [lastMove, setLastMove] = useState({ startMinutes, staffId });
+  if (startMinutes !== lastMove.startMinutes || staffId !== lastMove.staffId) {
+    setLastMove({ startMinutes, staffId });
     setOffsetMin(0);
+    setColumn(null);
+    columnRef.current = null;
   }
   const [error, setError] = useState<string | null>(null);
   const startY = useRef(0);
@@ -114,11 +115,7 @@ export function DraggableBooking({
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       e.preventDefault();
-      moved.current = false;
-      pressed.current = false;
-      offsetRef.current = 0;
-      setDragging(false);
-      setOffsetMin(0);
+      abandon();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -145,6 +142,25 @@ export function DraggableBooking({
   /** The card's own button — the only thing in here that is a drag handle. */
   function cardButton(): HTMLButtonElement | null {
     return dragRoot.current?.querySelector(":scope > button") ?? null;
+  }
+
+  /**
+   * Put everything back as it was and save nothing.
+   *
+   * Escape and a cancelled pointer are the same event as far as the block is
+   * concerned, and they used to unwind different halves of the state: the
+   * sideways offset was left standing by both, so abandoning a drag that had
+   * crossed into another person's column left the block sitting over that
+   * column while belonging to the old one.
+   */
+  function abandon() {
+    moved.current = false;
+    pressed.current = false;
+    offsetRef.current = 0;
+    columnRef.current = null;
+    setDragging(false);
+    setOffsetMin(0);
+    setColumn(null);
   }
 
   const pxPerMinute = rowHeight / 30;
@@ -251,7 +267,7 @@ export function DraggableBooking({
     setSaving(false);
 
     if (res.ok) {
-      // Offset deliberately left standing — see `lastStart` above.
+      // Offsets deliberately left standing — see `lastMove` above.
       startTransition(() => router.refresh());
     } else {
       offsetRef.current = 0;
@@ -293,7 +309,7 @@ export function DraggableBooking({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => { pressed.current = false; offsetRef.current = 0; setDragging(false); setOffsetMin(0); }}
+      onPointerCancel={abandon}
       onClickCapture={(e) => {
         if (justDragged.current) {
           e.preventDefault();

@@ -6,6 +6,7 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { DraggableBooking } from "./draggable-booking";
+import { UNASSIGNED_COLUMN, withUnassignedColumn } from "./columns";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
@@ -292,7 +293,7 @@ export default async function HarmonogramPage({
 
 
           <div className="mt-4">
-            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
             {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
           </div>
         </div>
@@ -302,22 +303,102 @@ export default async function HarmonogramPage({
 }
 
 /**
- * Bookings taken before anyone was on the roster keep `staff_id = null`
- * forever. With no staff at all they get the single "Rezerwacje" column, but
- * the moment the first person is added the grid is built from the roster and
- * those bookings have no column to land in — they vanish from the schedule
- * while still counting in the day totals. They get their own column instead,
- * and only when there is something to put in it.
+ * Height of one 30-minute row, in px. Bookings are sized against this.
+ *
+ * 52 rather than 36 so the shortest common booking — half an hour — still
+ * has room for time, name and service, the same three lines a longer one
+ * gets. At 36 a half-hour block was 30px, which fitted two lines only by
+ * putting the name beside the time and dropping the service entirely.
  */
-const UNASSIGNED = "__none__";
-const unassignedColumn = { id: UNASSIGNED, name: "Bez pracownika", color: "var(--color-accent)" };
+const ROW_H = 52;
 
-function withUnassignedColumn(
-  staff: { id: string; name: string; color: string }[],
-  bookings: { staff_id: string | null }[]
-) {
-  if (staff.length === 0) return staff;
-  return bookings.some((b) => b.staff_id === null) ? [...staff, unassignedColumn] : staff;
+/**
+ * Where each booking sits in the grid.
+ *
+ * A booking claims the row containing its start plus every row it runs into,
+ * via rowSpan — so an hour-long lesson reads as one block covering 11:00
+ * through 12:00 instead of a card followed by a leftover stub. Within that
+ * cell the block is positioned from the real start and sized from the real
+ * duration, so a 45-minute service covers exactly a row and a half and a
+ * booking starting off the half-hour still lands in the right place.
+ */
+type CellPlan =
+  | {
+      kind: "start";
+      booking: Awaited<ReturnType<typeof getBookingsBetween>>[number];
+      span: number;
+      offsetMin: number;
+      durationMin: number;
+    }
+  | { kind: "covered" };
+
+/**
+ * One booking drawn in the grid: the card, the drag, and the outline the drag
+ * leaves behind.
+ *
+ * Both columns render exactly this — a staff member's and the "Bez pracownika"
+ * one — and they had drifted into two copies of twenty-five lines differing
+ * only in which colour they passed.
+ */
+function BookingBlock({
+  plan,
+  color,
+  date,
+  dayStartMinutes,
+  dayEndMinutes,
+  allStaff,
+  lessonPositions,
+  openBookingId,
+}: {
+  plan: Extract<CellPlan, { kind: "start" }>;
+  color: string;
+  date: string;
+  dayStartMinutes: number;
+  dayEndMinutes: number;
+  allStaff: { id: string; name: string; color: string }[];
+  lessonPositions: Map<string, LessonPosition>;
+  openBookingId: string | null;
+}) {
+  // Under ~45 minutes the third line would be squeezed to the point of being
+  // unreadable, so the card falls back to one line.
+  const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
+  const compact = blockH < 44;
+  const booking = toModalBooking(plan.booking, lessonPositions);
+  const timeLabel = `${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`;
+
+  return (
+    <DraggableBooking
+      bookingId={plan.booking.id}
+      date={date}
+      staffId={plan.booking.staff_id}
+      startMinutes={warsawMinutes(plan.booking.starts_at)}
+      durationMin={plan.durationMin}
+      dayStartMinutes={dayStartMinutes}
+      dayEndMinutes={dayEndMinutes}
+      rowHeight={ROW_H}
+      top={(plan.offsetMin / 30) * ROW_H + 3}
+      height={blockH}
+      ghost={
+        <DayBookingCard
+          booking={booking}
+          allStaff={allStaff}
+          timeLabel={timeLabel}
+          color={color}
+          compact={compact}
+          ghost
+        />
+      }
+    >
+      <DayBookingCard
+        booking={booking}
+        allStaff={allStaff}
+        openOnMount={plan.booking.id === openBookingId}
+        timeLabel={timeLabel}
+        color={color}
+        compact={compact}
+      />
+    </DraggableBooking>
+  );
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
@@ -328,7 +409,6 @@ function DayView({
   allStaff,
   hours,
   today,
-  adminBase,
   services,
   openBookingId,
   lessonPositions,
@@ -339,7 +419,6 @@ function DayView({
   allStaff: { id: string; name: string; color: string }[];
   hours: Awaited<ReturnType<typeof getBusinessHours>>;
   today: string;
-  adminBase: string;
   services: ServiceOption[];
   /** Booking to open on arrival — see BookingManagementButton.openOnMount. */
   openBookingId: string | null;
@@ -364,36 +443,6 @@ function DayView({
 
   const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
 
-  /**
-   * Height of one 30-minute row, in px. Bookings are sized against this.
-   *
-   * 52 rather than 36 so the shortest common booking — half an hour — still
-   * has room for time, name and service, the same three lines a longer one
-   * gets. At 36 a half-hour block was 30px, which fitted two lines only by
-   * putting the name beside the time and dropping the service entirely.
-   */
-  const ROW_H = 52;
-
-  /**
-   * Where each booking sits in the grid.
-   *
-   * A booking claims the row containing its start plus every row it runs into,
-   * via rowSpan — so an hour-long lesson reads as one block covering 11:00
-   * through 12:00 instead of a card followed by a leftover stub. Within that
-   * cell the block is positioned from the real start and sized from the real
-   * duration, so a 45-minute service covers exactly a row and a half and a
-   * booking starting off the half-hour still lands in the right place.
-   */
-  type CellPlan =
-    | {
-        kind: "start";
-        booking: (typeof dayBookings)[number];
-        span: number;
-        offsetMin: number;
-        durationMin: number;
-      }
-    | { kind: "covered" };
-
   const planKey = (staffId: string, slotMin: number) => `${staffId}@${slotMin}`;
   const columns = withUnassignedColumn(visibleStaff, dayBookings);
   const cellPlans = new Map<string, CellPlan>();
@@ -402,7 +451,7 @@ function DayView({
     // A tenant with nobody on the books yet has bookings with no staff_id.
     // They get plans under the same pseudo-key the week view uses, so the
     // single "Rezerwacje" column can render them like any other.
-    const staffKey = b.staff_id ?? UNASSIGNED;
+    const staffKey = b.staff_id ?? UNASSIGNED_COLUMN;
     // Clamp to opening hours so a booking spilling past close can't rowSpan
     // beyond the last rendered row.
     const bStart = Math.max(warsawMinutes(b.starts_at), startMin);
@@ -481,12 +530,12 @@ function DayView({
               // Sticky like the hour gutter beside it: with nobody on the
               // books this is the only column header there is, and it was
               // scrolling away under the rows it labels.
-              <th data-col-staff={UNASSIGNED} className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
+              <th data-col-staff={UNASSIGNED_COLUMN} className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
             )}
           </tr>
         </thead>
         <tbody>
-          {slots.map((slot, i) => (
+          {slots.map((slot) => (
             <tr
               key={slot.label}
               style={{ height: ROW_H }}
@@ -512,42 +561,18 @@ function DayView({
                 if (plan?.kind === "covered") return null;
 
                 if (plan?.kind === "start") {
-                  const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
                   return (
                     <td key={s.id} rowSpan={plan.span} className="relative border-r border-dashed border-zinc-800/40 align-top">
-                      <DraggableBooking
-                        bookingId={plan.booking.id}
+                      <BookingBlock
+                        plan={plan}
+                        color={s.color}
                         date={date}
-                        staffId={plan.booking.staff_id}
-                        startMinutes={warsawMinutes(plan.booking.starts_at)}
-                        durationMin={plan.durationMin}
                         dayStartMinutes={startMin}
                         dayEndMinutes={endMin}
-                        rowHeight={ROW_H}
-                        top={(plan.offsetMin / 30) * ROW_H + 3}
-                        height={blockH}
-                        ghost={
-                          <DayBookingCard
-                            booking={toModalBooking(plan.booking, lessonPositions)}
-                            allStaff={allStaff}
-                            timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
-                            color={s.color}
-                            compact={blockH < 44}
-                            ghost
-                          />
-                        }
-                      >
-                        <DayBookingCard
-                          booking={toModalBooking(plan.booking, lessonPositions)}
-                          allStaff={allStaff}
-                          openOnMount={plan.booking.id === openBookingId}
-                          timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
-                          color={s.color}
-                          // Under ~45 minutes the third line would be squeezed
-                          // to the point of being unreadable.
-                          compact={blockH < 44}
-                        />
-                      </DraggableBooking>
+                        allStaff={allStaff}
+                        lessonPositions={lessonPositions}
+                        openBookingId={openBookingId}
+                      />
                     </td>
                   );
                 }
@@ -559,7 +584,7 @@ function DayView({
                       allStaff={allStaff}
                       date={date}
                       time={slot.label}
-                      presetStaffId={s.id === UNASSIGNED ? null : s.id}
+                      presetStaffId={s.id === UNASSIGNED_COLUMN ? null : s.id}
                       className="slot-empty absolute inset-0"
                     >
                       <span className="sr-only">{`Dodaj rezerwację ${slot.label}, ${s.name}`}</span>
@@ -568,45 +593,22 @@ function DayView({
                 );
               }) : (
                 (() => {
-                  const plan = cellPlans.get(planKey(UNASSIGNED, slot.min));
+                  const plan = cellPlans.get(planKey(UNASSIGNED_COLUMN, slot.min));
                   if (plan?.kind === "covered") return null;
 
                   if (plan?.kind === "start") {
-                    const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
                     return (
                       <td rowSpan={plan.span} className="relative align-top">
-                        <DraggableBooking
-                          bookingId={plan.booking.id}
+                        <BookingBlock
+                          plan={plan}
+                          color="var(--color-accent)"
                           date={date}
-                          staffId={plan.booking.staff_id}
-                          startMinutes={warsawMinutes(plan.booking.starts_at)}
-                          durationMin={plan.durationMin}
                           dayStartMinutes={startMin}
                           dayEndMinutes={endMin}
-                          rowHeight={ROW_H}
-                          top={(plan.offsetMin / 30) * ROW_H + 3}
-                          height={blockH}
-                          ghost={
-                            <DayBookingCard
-                              booking={toModalBooking(plan.booking, lessonPositions)}
-                              allStaff={allStaff}
-                              timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
-                              color="var(--color-accent)"
-                              compact={blockH < 44}
-                              ghost
-                            />
-                          }
-                        >
-                          <DayBookingCard
-                            booking={toModalBooking(plan.booking, lessonPositions)}
-                            allStaff={allStaff}
-                            openOnMount={plan.booking.id === openBookingId}
-                            timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
-                            // No staff member to borrow a colour from.
-                            color="var(--color-accent)"
-                            compact={blockH < 44}
-                          />
-                        </DraggableBooking>
+                          allStaff={allStaff}
+                          lessonPositions={lessonPositions}
+                          openBookingId={openBookingId}
+                        />
                       </td>
                     );
                   }
@@ -664,7 +666,7 @@ function WeekView({
   for (const b of active) {
     const ds = warsawDate(b.starts_at);
     if (!byDayStaff.has(ds)) byDayStaff.set(ds, new Map());
-    const sid = b.staff_id ?? UNASSIGNED;
+    const sid = b.staff_id ?? UNASSIGNED_COLUMN;
     const dm = byDayStaff.get(ds)!;
     if (!dm.has(sid)) dm.set(sid, []);
     dm.get(sid)!.push(b);
@@ -707,7 +709,7 @@ function WeekView({
           </tr>
         </thead>
         <tbody>
-          {days.map((d, i) => {
+          {days.map((d) => {
             const dow = warsawDayOfWeek(d);
             const isToday = d === today;
             const dayMap = byDayStaff.get(d);

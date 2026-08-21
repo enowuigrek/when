@@ -17,6 +17,7 @@ type RawEvent = {
   customer_name: string;
   service_name: string | null;
   staff_name: string | null;
+  change_kind: ChangeKind | null;
   starts_at: string;
   created_at: string;
 };
@@ -31,6 +32,7 @@ type NotifItem = {
   serviceName: string | null;
   /** Set when the move also changed who is doing it. */
   staffName: string | null;
+  changeKind: ChangeKind | null;
   startsAt: string;
   createdAt: string;
   read: boolean;
@@ -68,11 +70,31 @@ function warsawDateStr(iso: string) {
   }).format(new Date(iso));
 }
 
+type ChangeKind = "time" | "staff" | "both";
+
 const TITLE: Record<EventType, string> = {
   created: "Nowa rezerwacja",
   rescheduled: "Zmiana terminu",
   cancelled: "Anulowana rezerwacja",
 };
+
+/**
+ * What to call a move, given what it moved.
+ *
+ * One drag can change the hour, the person, or both, and "zmiana terminu" is
+ * simply untrue for two of those. Events written before the schedule could
+ * hand a booking to somebody else carry no kind at all, and every one of them
+ * was a time change — hence the fallback rather than a vaguer wording for all.
+ */
+function moveTitle(kind: ChangeKind | null, staffName: string | null): string {
+  if (kind === "staff") return "Zmiana pracownika";
+  if (kind === "both") return "Zmiana terminu i pracownika";
+  // No kind recorded. If a name came with it the staff member certainly
+  // changed, but whether the hour did too is not knowable from the row — so
+  // this says neither rather than asserting the wrong one.
+  if (!kind && staffName) return "Zmiana rezerwacji";
+  return TITLE.rescheduled;
+}
 /**
  * A new booking is the tenant's own accent, not a fixed green.
  *
@@ -147,7 +169,9 @@ function NotifRow({
       )}
       <EventIcon type={item.eventType} />
       <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{TITLE[item.eventType]}</p>
+        <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>
+          {item.eventType === "rescheduled" ? moveTitle(item.changeKind, item.staffName) : TITLE[item.eventType]}
+        </p>
         <p className={`truncate text-sm ${item.read ? "text-zinc-400" : "text-zinc-100"}`}>{item.customerName}</p>
         {item.serviceName && <p className="truncate text-xs text-zinc-500">{item.serviceName}</p>}
         {/* One drag can change the hour and the person, and that is one piece
@@ -238,6 +262,7 @@ export function AdminNotificationBell({
             customerName: e.customer_name,
             serviceName: e.service_name,
             staffName: e.staff_name ?? null,
+            changeKind: e.change_kind ?? null,
             startsAt: e.starts_at,
             createdAt: e.created_at,
             read: initialLoad.current,
@@ -362,7 +387,9 @@ export function AdminNotificationBell({
             >
               <EventIcon type={t.eventType} />
               <div>
-                <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
+                <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>
+                  {t.eventType === "rescheduled" ? moveTitle(t.changeKind, t.staffName) : TITLE[t.eventType]}
+                </p>
                 <p className="text-xs text-zinc-300">{t.customerName}{t.serviceName ? ` · ${t.serviceName}` : ""}</p>
                 <p className="text-xs text-zinc-500">
                   {formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}
