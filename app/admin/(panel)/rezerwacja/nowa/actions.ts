@@ -10,7 +10,7 @@ import { getSettings } from "@/lib/db/settings";
 import { computeAvailableSlots, addDays, applyStaffHours, warsawToday, warsawDayOfWeek } from "@/lib/slots";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getStaffAvailabilityMap } from "@/lib/db/staff-schedule";
-import { searchCustomersByPhone, upsertCustomer } from "@/lib/db/customers";
+import { searchCustomers, upsertCustomer } from "@/lib/db/customers";
 import { attachToPackageForTenant } from "@/lib/db/packages";
 import { getAdminTenantId } from "@/lib/tenant";
 import { recordBookingEvent } from "@/lib/db/booking-events";
@@ -19,7 +19,7 @@ import { notifyStaff } from "@/lib/email/notify-staff";
 import type { Slot } from "@/lib/slots";
 
 export async function searchCustomersAction(query: string) {
-  return searchCustomersByPhone(query);
+  return searchCustomers(query);
 }
 
 export async function getAdminRescheduleSetup(

@@ -66,6 +66,7 @@ export function AdminBookingForm({
   const [suggestions, setSuggestions] = useState<Customer[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const nameSuggestionsRef = useRef<HTMLDivElement>(null);
 
   // Booking selections
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id ?? "");
@@ -83,23 +84,32 @@ export function AdminBookingForm({
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [loadingSlots, startSlotLoad] = useTransition();
 
-  // Debounced phone search
+  // The customer book, searched from whichever field is being typed: someone
+  // ringing up gives a name as readily as a number, and looking only at the
+  // phone meant a name typed in full found nobody and quietly created a second
+  // row for a customer already on the books.
+  const [source, setSource] = useState<"phone" | "name" | null>(null);
   useEffect(() => {
-    if (phone.length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
+    const query = source === "phone" ? phone : source === "name" ? customerName : "";
+    if (!source || query.trim().length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
     const timer = setTimeout(async () => {
-      const results = await searchCustomersAction(phone);
+      const results = await searchCustomersAction(query.trim());
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     }, 300);
     return () => clearTimeout(timer);
-  }, [phone]);
+  }, [phone, customerName, source]);
 
   // Close dropdown on outside click
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
+      // Two fields can carry the list now, so a click only counts as "outside"
+      // when it misses both.
+      const target = e.target as Node;
+      const inside =
+        suggestionsRef.current?.contains(target) ||
+        nameSuggestionsRef.current?.contains(target);
+      if (!inside) setShowSuggestions(false);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -110,6 +120,7 @@ export function AdminBookingForm({
     setCustomerName(c.name);
     setCustomerEmail(c.email ?? "");
     setShowSuggestions(false);
+    setSource(null);
   }
 
   function loadSlots(serviceId: string, date: string, staffId: string) {
@@ -154,12 +165,12 @@ export function AdminBookingForm({
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => { setPhone(e.target.value); setSource("phone"); }}
               placeholder="np. +48 600 100 200"
               className={inp}
               autoComplete="off"
             />
-            {showSuggestions && (
+            {showSuggestions && source === "phone" && (
               <div className="absolute z-20 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl">
                 {suggestions.map((c) => (
                   <button
@@ -176,14 +187,30 @@ export function AdminBookingForm({
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative" ref={nameSuggestionsRef}>
               <label className="mb-1.5 block text-sm text-zinc-400">Imię i nazwisko *</label>
               <input
                 type="text"
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => { setCustomerName(e.target.value); setSource("name"); }}
                 className={inp}
+                autoComplete="off"
               />
+              {showSuggestions && source === "name" && (
+                <div className="absolute z-20 mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl">
+                  {suggestions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectCustomer(c)}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm hover:bg-zinc-800"
+                    >
+                      <span className="truncate font-medium text-zinc-100">{c.name}</span>
+                      <span className="shrink-0 font-mono text-xs text-zinc-500">{c.phone}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm text-zinc-400">Email (opcjonalny)</label>

@@ -12,14 +12,26 @@ export type Customer = {
   updated_at: string;
 };
 
-export async function searchCustomersByPhone(query: string): Promise<Customer[]> {
-  if (query.length < 3) return [];
+/**
+ * The customer book, searched by whichever of the two the person is typing.
+ *
+ * It used to match the phone column only, so starting from the name — which is
+ * what you do when someone rings and says who they are — found nobody, and the
+ * booking quietly created a second customer row for someone already in there.
+ */
+export async function searchCustomers(query: string): Promise<Customer[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
   const tenantId = await getAdminTenantId();
+  // PostgREST needs the commas inside or() to separate filters, so a comma
+  // typed into the box would split it into nonsense filters. Nothing else in
+  // the pattern is special to ilike beyond % and _, which are useful here.
+  const safe = q.replace(/[,()]/g, " ");
   const { data } = await createAdminClient()
     .from("customers")
     .select("*")
     .eq("tenant_id", tenantId)
-    .ilike("phone", `%${query}%`)
+    .or(`phone.ilike.%${safe}%,name.ilike.%${safe}%`)
     .order("updated_at", { ascending: false })
     .limit(6);
   return (data ?? []) as Customer[];

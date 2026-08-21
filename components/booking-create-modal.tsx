@@ -112,21 +112,30 @@ function NewBookingModal({
     };
   }, [onClose]);
 
-  // Look up the customer book while the phone is typed. Picking a hit fills
-  // the rest; typing a number that isn't there is fine — the booking creates
-  // the customer.
+  // Look up the customer book while either identifying field is typed —
+  // whoever rings up gives a name as readily as a number. Picking a hit fills
+  // the rest; typing someone who isn't there is fine, the booking creates them.
+  // `source` is the field being typed into, so the list opens under that one
+  // and a name search is not re-run when the pick writes the phone back.
+  const [source, setSource] = useState<"phone" | "name" | null>(null);
   useEffect(() => {
-    if (picked || phone.trim().length < 3) { setHits([]); return; }
+    const query = source === "phone" ? phone : source === "name" ? name : "";
+    if (picked || !source || query.trim().length < 3) { setHits([]); return; }
     const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       try {
-        const res = await searchCustomersAction(phone.trim());
+        const res = await searchCustomersAction(query.trim());
         // Drop results from a query the user has already typed past.
         if (seq === searchSeq.current) setHits(res as CustomerHit[]);
       } catch { /* ignore */ }
     }, 250);
     return () => clearTimeout(t);
-  }, [phone, picked]);
+  }, [phone, name, source, picked]);
+
+  function pickCustomer(c: CustomerHit) {
+    setName(c.name); setPhone(c.phone); setEmail(c.email ?? "");
+    setPicked(true); setHits([]); setSource(null);
+  }
 
   const service = services.find((s) => s.id === serviceId);
 
@@ -202,34 +211,22 @@ function NewBookingModal({
             <label className={labelCls}>Telefon klienta</label>
             <input
               value={phone}
-              onChange={(e) => { setPhone(e.target.value); setPicked(false); }}
+              onChange={(e) => { setPhone(e.target.value); setPicked(false); setSource("phone"); }}
               placeholder="+48 600 000 000"
               className={`mt-1.5 ${inputCls}`}
             />
-            {hits.length > 0 && (
-              <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
-                {hits.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setName(c.name); setPhone(c.phone); setEmail(c.email ?? "");
-                        setPicked(true); setHits([]);
-                      }}
-                      className="block w-full px-3 py-2 text-left hover:bg-zinc-800"
-                    >
-                      <span className="text-sm text-zinc-200">{c.name}</span>
-                      <span className="ml-2 font-mono text-xs text-zinc-500">{c.phone}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {source === "phone" && <CustomerHits hits={hits} onPick={pickCustomer} />}
           </div>
 
-          <div>
+          <div className="relative">
             <label className={labelCls}>Imię i nazwisko</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jan Kowalski" className={`mt-1.5 ${inputCls}`} />
+            <input
+              value={name}
+              onChange={(e) => { setName(e.target.value); setPicked(false); setSource("name"); }}
+              placeholder="Jan Kowalski"
+              className={`mt-1.5 ${inputCls}`}
+            />
+            {source === "name" && <CustomerHits hits={hits} onPick={pickCustomer} />}
           </div>
 
           {/* Stacked on a phone. Side by side, the time input kept sliding under
@@ -282,5 +279,26 @@ function NewBookingModal({
         </div>
       </div>
     </div>
+  );
+}
+
+/** The customer book's hits, dropped under whichever field is being typed. */
+function CustomerHits({ hits, onPick }: { hits: CustomerHit[]; onPick: (c: CustomerHit) => void }) {
+  if (hits.length === 0) return null;
+  return (
+    <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-zinc-700 bg-zinc-900 shadow-xl">
+      {hits.map((c) => (
+        <li key={c.id}>
+          <button
+            type="button"
+            onClick={() => onPick(c)}
+            className="block w-full px-3 py-2 text-left hover:bg-zinc-800"
+          >
+            <span className="text-sm text-zinc-200">{c.name}</span>
+            <span className="ml-2 font-mono text-xs text-zinc-500">{c.phone}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
