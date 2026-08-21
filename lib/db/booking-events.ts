@@ -25,9 +25,47 @@ export async function recordBookingEvent(input: {
   startsAtIso: string;
   /** Override tenant (for system/webhook contexts without admin session). */
   tenantId?: string;
+  /**
+   * Fold this into an event of the same type on the same booking if one was
+   * written within this many minutes, instead of adding another.
+   *
+   * Dragging a booking around the schedule is one decision made in several
+   * goes: nudge it, look at it, nudge it again. Each nudge is a real move and
+   * must be saved, but they are not five pieces of news — the owner wants to
+   * see where it ended up. The folded row keeps the latest time and moves its
+   * timestamp forward, so it resurfaces as unread with the final answer.
+   */
+  coalesceWithinMinutes?: number;
 }): Promise<void> {
   const tenantId = input.tenantId ?? (await getAdminTenantId());
-  const { error } = await createAdminClient().from("booking_events").insert({
+  const supabase = createAdminClient();
+
+  if (input.coalesceWithinMinutes) {
+    const since = new Date(Date.now() - input.coalesceWithinMinutes * 60_000).toISOString();
+    const { data: recent } = await supabase
+      .from("booking_events")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("booking_id", input.bookingId)
+      .eq("event_type", input.eventType)
+      .gt("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recent) {
+      const { error: updateError } = await supabase
+        .from("booking_events")
+        .update({ starts_at: input.startsAtIso, created_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId)
+        .eq("id", recent.id);
+      // A failed fold is not worth losing the event over — fall through and
+      // write a new row rather than swallowing the news entirely.
+      if (!updateError) return;
+    }
+  }
+
+  const { error } = await supabase.from("booking_events").insert({
     tenant_id: tenantId,
     booking_id: input.bookingId,
     event_type: input.eventType,

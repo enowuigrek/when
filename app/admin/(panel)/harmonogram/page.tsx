@@ -5,6 +5,7 @@ import { getLessonPositions, type LessonPosition } from "@/lib/db/packages";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
+import { DraggableBooking } from "./draggable-booking";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
@@ -509,9 +510,16 @@ function DayView({
                   const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
                   return (
                     <td key={s.id} rowSpan={plan.span} className="relative border-r border-dashed border-zinc-800/40 align-top">
-                      <div
-                        className="absolute inset-x-2"
-                        style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
+                      <DraggableBooking
+                        bookingId={plan.booking.id}
+                        date={date}
+                        startMinutes={warsawMinutes(plan.booking.starts_at)}
+                        durationMin={plan.durationMin}
+                        dayStartMinutes={startMin}
+                        dayEndMinutes={endMin}
+                        rowHeight={ROW_H}
+                        top={(plan.offsetMin / 30) * ROW_H + 3}
+                        height={blockH}
                       >
                         <DayBookingCard
                           booking={toModalBooking(plan.booking, lessonPositions)}
@@ -523,7 +531,7 @@ function DayView({
                           // to the point of being unreadable.
                           compact={blockH < 44}
                         />
-                      </div>
+                      </DraggableBooking>
                     </td>
                   );
                 }
@@ -551,9 +559,16 @@ function DayView({
                     const blockH = Math.max(20, (plan.durationMin / 30) * ROW_H - 6);
                     return (
                       <td rowSpan={plan.span} className="relative align-top">
-                        <div
-                          className="absolute inset-x-2"
-                          style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
+                        <DraggableBooking
+                          bookingId={plan.booking.id}
+                          date={date}
+                          startMinutes={warsawMinutes(plan.booking.starts_at)}
+                          durationMin={plan.durationMin}
+                          dayStartMinutes={startMin}
+                          dayEndMinutes={endMin}
+                          rowHeight={ROW_H}
+                          top={(plan.offsetMin / 30) * ROW_H + 3}
+                          height={blockH}
                         >
                           <DayBookingCard
                             booking={toModalBooking(plan.booking, lessonPositions)}
@@ -564,7 +579,7 @@ function DayView({
                             color="var(--color-accent)"
                             compact={blockH < 44}
                           />
-                        </div>
+                        </DraggableBooking>
                       </td>
                     );
                   }

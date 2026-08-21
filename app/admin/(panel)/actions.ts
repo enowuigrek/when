@@ -174,6 +174,9 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     customerName: booking.customer_name,
     serviceName: (booking.service as { name: string } | null)?.name ?? null,
     startsAtIso: startsAt.toISOString(),
+    // Dragging a booking into place takes a few goes. One notice, showing
+    // where it landed, not one per nudge.
+    coalesceWithinMinutes: 5,
   });
 
   revalidatePath("/admin/harmonogram");
