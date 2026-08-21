@@ -18,9 +18,13 @@ import { DragTimeContext } from "./drag-time-context";
  * Nothing about the drag decides whether the move is allowed. The server holds
  * the overlap constraint, and a refused drop springs back with its reason.
  */
+/** Matches the day view's pseudo-column for bookings with nobody assigned. */
+const UNASSIGNED_COLUMN = "__none__";
+
 export function DraggableBooking({
   bookingId,
   date,
+  staffId,
   startMinutes,
   durationMin,
   dayStartMinutes,
@@ -28,11 +32,14 @@ export function DraggableBooking({
   rowHeight,
   top,
   height,
+  ghost,
   children,
 }: {
   bookingId: string;
   /** The day being shown, YYYY-MM-DD — a drag never leaves it. */
   date: string;
+  /** Whose column this sits in now; null in the "Bez pracownika" one. */
+  staffId: string | null;
   /** Minutes from midnight, Warsaw. */
   startMinutes: number;
   durationMin: number;
@@ -42,6 +49,8 @@ export function DraggableBooking({
   rowHeight: number;
   top: number;
   height: number;
+  /** The same card drawn flat, left behind at the time it was picked up from. */
+  ghost: ReactNode;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -55,6 +64,9 @@ export function DraggableBooking({
    * the floor without a word. State drives the rendering; this drives the save.
    */
   const offsetRef = useRef(0);
+  /** Which column the pointer is over, and how far sideways that is. */
+  const [column, setColumn] = useState<{ staffId: string | null; dx: number } | null>(null);
+  const columnRef = useRef<{ staffId: string | null; dx: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [, startTransition] = useTransition();
@@ -76,6 +88,7 @@ export function DraggableBooking({
   }
   const [error, setError] = useState<string | null>(null);
   const startY = useRef(0);
+  const startX = useRef(0);
   const moved = useRef(false);
   const pressed = useRef(false);
   const dragRoot = useRef<HTMLDivElement>(null);
@@ -111,6 +124,24 @@ export function DraggableBooking({
     return () => document.removeEventListener("keydown", onKey);
   }, [dragging]);
 
+  /**
+   * Where each column starts and ends, taken from the header row.
+   *
+   * `table-layout: fixed` means the header cells share the body's geometry
+   * exactly, and the header is one row rather than one per half-hour — so this
+   * is both cheaper and steadier than measuring the cell under the pointer,
+   * which during a drag is the dragged block itself.
+   */
+  function columnBounds() {
+    const table = dragRoot.current?.closest("table");
+    if (!table) return [];
+    return [...table.querySelectorAll<HTMLElement>("thead th[data-col-staff]")].map((th) => {
+      const r = th.getBoundingClientRect();
+      const id = th.dataset.colStaff ?? "";
+      return { staffId: id === UNASSIGNED_COLUMN ? null : id, left: r.left, right: r.right };
+    });
+  }
+
   /** The card's own button — the only thing in here that is a drag handle. */
   function cardButton(): HTMLButtonElement | null {
     return dragRoot.current?.querySelector(":scope > button") ?? null;
@@ -137,6 +168,7 @@ export function DraggableBooking({
     const handle = cardButton();
     if (!handle || !handle.contains(e.target as Node)) return;
     startY.current = e.clientY;
+    startX.current = e.clientX;
     moved.current = false;
     justDragged.current = false;
     pressed.current = true;
@@ -157,7 +189,8 @@ export function DraggableBooking({
   function onPointerMove(e: React.PointerEvent) {
     if (!pressed.current) return;
     const dy = e.clientY - startY.current;
-    if (!moved.current && Math.abs(dy) < SLOP_PX) return;
+    const dx = e.clientX - startX.current;
+    if (!moved.current && Math.abs(dy) < SLOP_PX && Math.abs(dx) < SLOP_PX) return;
     if (!moved.current) {
       moved.current = true;
       setDragging(true);
@@ -165,6 +198,23 @@ export function DraggableBooking({
     const next = clamp(Math.round(dy / pxPerMinute / STEP) * STEP);
     offsetRef.current = next;
     setOffsetMin(next);
+
+    // Sideways means a different person doing it. The block snaps to whole
+    // columns rather than following the pointer freely: half a booking
+    // straddling two people says nothing about where it would land.
+    const bounds = columnBounds();
+    const own = bounds.find((c) => c.staffId === staffId);
+    const over = bounds.find((c) => e.clientX >= c.left && e.clientX < c.right);
+    const nextColumn =
+      own && over && over.staffId !== staffId
+        ? { staffId: over.staffId, dx: over.left - own.left }
+        : null;
+    // Objects are rebuilt every move; compare the values or every single move
+    // would re-render the whole block.
+    if (nextColumn?.staffId !== columnRef.current?.staffId) {
+      columnRef.current = nextColumn;
+      setColumn(nextColumn);
+    }
   }
 
   async function onPointerUp(e: React.PointerEvent) {
@@ -185,13 +235,18 @@ export function DraggableBooking({
     setDragging(false);
 
     const delta = offsetRef.current;
-    if (delta === 0) return;
+    const targetColumn = columnRef.current;
+    if (delta === 0 && !targetColumn) return;
 
     setSaving(true);
     const fd = new FormData();
     fd.set("id", bookingId);
     fd.set("date", date);
     fd.set("time", hhmm(startMinutes + delta));
+    // Sent only when the column changed: the action leaves the staff member
+    // alone when the field is absent, and an unchanged one must not read as
+    // a reassignment in the notification.
+    if (targetColumn) fd.set("staffId", targetColumn.staffId ?? "");
     const res = await rescheduleBookingAction(fd);
     setSaving(false);
 
@@ -200,7 +255,9 @@ export function DraggableBooking({
       startTransition(() => router.refresh());
     } else {
       offsetRef.current = 0;
+      columnRef.current = null;
       setOffsetMin(0);
+      setColumn(null);
       setError(res.message);
       // Long enough to read after looking away at the spot you were aiming for.
       setTimeout(() => setError(null), 6000);
@@ -216,6 +273,10 @@ export function DraggableBooking({
       style={{
         top: top + offsetMin * pxPerMinute,
         height,
+        // Sideways is a transform, not a left offset: the block belongs to its
+        // own column's cell, and moving it out of that cell any other way
+        // would have it reflow inside a table it is only floating above.
+        transform: column ? `translateX(${column.dx}px)` : undefined,
         // Without this the browser claims a vertical drag for scrolling on a
         // phone and the pointer events stop arriving mid-gesture.
         touchAction: "none",
@@ -250,18 +311,21 @@ export function DraggableBooking({
         {children}
       </DragTimeContext.Provider>
 
-      {dragging && offsetMin !== 0 && (
-        // Where it was picked up from, drawn by cancelling the wrapper's own
-        // offset so it stays pinned to the original time while the block moves.
-        // Without it the old time is gone the moment you start dragging, and
-        // putting the booking back means guessing.
+      {dragging && (offsetMin !== 0 || column) && (
+        // Where it was picked up from: the whole card again, drawn flat, and
+        // pinned to the original spot by cancelling both of the wrapper's own
+        // offsets. A bare start time was not enough to answer the question you
+        // actually ask mid-drag — whether this is the booking you meant to
+        // move — and with columns in play it also has to hold its old column.
         <div
-          className="pointer-events-none absolute inset-x-0 rounded border border-dashed border-[var(--color-accent)]/50 bg-[var(--color-accent)]/5"
-          style={{ top: -offsetMin * pxPerMinute, height }}
+          className="pointer-events-none absolute inset-x-0"
+          style={{
+            top: -offsetMin * pxPerMinute,
+            height,
+            transform: column ? `translateX(${-column.dx}px)` : undefined,
+          }}
         >
-          <span className="absolute left-1 top-0.5 font-mono text-[10px] text-[var(--color-accent)]/70">
-            {hhmm(startMinutes)}
-          </span>
+          {ghost}
         </div>
       )}
 

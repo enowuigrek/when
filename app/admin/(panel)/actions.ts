@@ -136,6 +136,16 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     return { ok: false, message: "Nieprawidłowa data lub godzina." };
   }
 
+  // Optional: a drag sideways across the schedule changes the hour and the
+  // person in one gesture, and it would be wrong to record that as two events.
+  // Absent means "leave whoever is on it"; the empty string means "nobody".
+  const rawStaffId = formData.get("staffId");
+  const staffGiven = rawStaffId !== null;
+  const staffId = rawStaffId?.toString() || null;
+  if (staffGiven && staffId !== null && !/^[0-9a-f-]{36}$/i.test(staffId)) {
+    return { ok: false, message: "Nieprawidłowy pracownik." };
+  }
+
   const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
   const { data: booking } = await supabase
@@ -146,6 +156,21 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     .maybeSingle();
 
   if (!booking) return { ok: false, message: "Rezerwacja nie znaleziona." };
+
+  // Scoped to the tenant on purpose: an id from another account must not be
+  // assignable by handing it to this action.
+  const staffChanged = staffGiven && staffId !== booking.staff_id;
+  let staffName: string | null = null;
+  if (staffChanged && staffId) {
+    const { data: staff } = await supabase
+      .from("staff")
+      .select("name")
+      .eq("tenant_id", tenantId)
+      .eq("id", staffId)
+      .maybeSingle();
+    if (!staff) return { ok: false, message: "Nie ma takiego pracownika." };
+    staffName = staff.name;
+  }
   const duration = (booking.service as { duration_min: number } | null)?.duration_min ?? 30;
 
   // Construct UTC ISO from Warsaw-local date+time. Compute Warsaw offset for that instant.
@@ -158,7 +183,11 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
 
   const { error } = await supabase
     .from("bookings")
-    .update({ starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() })
+    .update({
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      ...(staffChanged ? { staff_id: staffId } : {}),
+    })
     .eq("tenant_id", tenantId)
     .eq("id", id);
 
@@ -174,6 +203,9 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
     customerName: booking.customer_name,
     serviceName: (booking.service as { name: string } | null)?.name ?? null,
     startsAtIso: startsAt.toISOString(),
+    // Only when it changed: a plain move of the hour should not repeat a name
+    // nobody asked about. "Bez pracownika" is itself news worth stating.
+    staffName: staffChanged ? (staffName ?? "bez pracownika") : null,
     // Dragging a booking into place takes a few goes. One notice, showing
     // where it landed, not one per nudge.
     coalesceWithinMinutes: 5,

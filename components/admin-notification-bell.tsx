@@ -16,6 +16,7 @@ type RawEvent = {
   source: EventSource;
   customer_name: string;
   service_name: string | null;
+  staff_name: string | null;
   starts_at: string;
   created_at: string;
 };
@@ -28,6 +29,8 @@ type NotifItem = {
   source: EventSource;
   customerName: string;
   serviceName: string | null;
+  /** Set when the move also changed who is doing it. */
+  staffName: string | null;
   startsAt: string;
   createdAt: string;
   read: boolean;
@@ -147,7 +150,13 @@ function NotifRow({
         <p className={`text-sm font-medium ${ACCENT[item.eventType]}`}>{TITLE[item.eventType]}</p>
         <p className={`truncate text-sm ${item.read ? "text-zinc-400" : "text-zinc-100"}`}>{item.customerName}</p>
         {item.serviceName && <p className="truncate text-xs text-zinc-500">{item.serviceName}</p>}
-        <p className="text-xs text-zinc-500">{formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}</p>
+        {/* One drag can change the hour and the person, and that is one piece
+            of news — so both land on the same line rather than as two
+            notifications that have to be read together. */}
+        <p className="text-xs text-zinc-500">
+          {formatWarsawDate(item.startsAt)}, {formatWarsawTime(item.startsAt)}
+          {item.staffName && <span className="text-zinc-400"> · {item.staffName}</span>}
+        </p>
       </button>
       <button
         type="button"
@@ -228,6 +237,7 @@ export function AdminNotificationBell({
             source: e.source,
             customerName: e.customer_name,
             serviceName: e.service_name,
+            staffName: e.staff_name ?? null,
             startsAt: e.starts_at,
             createdAt: e.created_at,
             read: initialLoad.current,
@@ -354,7 +364,10 @@ export function AdminNotificationBell({
               <div>
                 <p className={`text-sm font-medium ${ACCENT[t.eventType]}`}>{TITLE[t.eventType]}</p>
                 <p className="text-xs text-zinc-300">{t.customerName}{t.serviceName ? ` · ${t.serviceName}` : ""}</p>
-                <p className="text-xs text-zinc-500">{formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}</p>
+                <p className="text-xs text-zinc-500">
+                  {formatWarsawDate(t.startsAt)}, {formatWarsawTime(t.startsAt)}
+                  {t.staffName && <span className="text-zinc-400"> · {t.staffName}</span>}
+                </p>
               </div>
             </div>
           ))}

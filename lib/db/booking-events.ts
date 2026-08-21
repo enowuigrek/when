@@ -12,6 +12,8 @@ export type BookingEvent = {
   source: BookingEventSource;
   customer_name: string;
   service_name: string | null;
+  /** Who it moved to — set only when the move changed the staff member. */
+  staff_name: string | null;
   starts_at: string;
   created_at: string;
 };
@@ -22,6 +24,8 @@ export async function recordBookingEvent(input: {
   source: BookingEventSource;
   customerName: string;
   serviceName: string | null;
+  /** Pass only when this event changed who is doing the booking. */
+  staffName?: string | null;
   startsAtIso: string;
   /** Override tenant (for system/webhook contexts without admin session). */
   tenantId?: string;
@@ -56,7 +60,14 @@ export async function recordBookingEvent(input: {
     if (recent) {
       const { error: updateError } = await supabase
         .from("booking_events")
-        .update({ starts_at: input.startsAtIso, created_at: new Date().toISOString() })
+        .update({
+          starts_at: input.startsAtIso,
+          // The fold keeps the latest answer, and "moved back to nobody in
+          // particular" is an answer too — so this overwrites rather than
+          // filling in only when set.
+          staff_name: input.staffName ?? null,
+          created_at: new Date().toISOString(),
+        })
         .eq("tenant_id", tenantId)
         .eq("id", recent.id);
       // A failed fold is not worth losing the event over — fall through and
@@ -72,6 +83,7 @@ export async function recordBookingEvent(input: {
     source: input.source,
     customer_name: input.customerName,
     service_name: input.serviceName,
+    staff_name: input.staffName ?? null,
     starts_at: input.startsAtIso,
   });
   if (error) {

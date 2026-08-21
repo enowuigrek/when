@@ -461,6 +461,11 @@ function DayView({
               <th
                 key={s.id}
                 data-staff-id={s.id}
+                // Read by the drag to work out which column the pointer is
+                // over. Taken from the header rather than by hit-testing the
+                // grid: the block being dragged sits on top of it and would
+                // be the only thing any hit test ever found.
+                data-col-staff={s.id}
                 className="sticky top-0 z-10 border-r border-dashed border-zinc-800/40 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
                 // scrollMarginLeft keeps the snap point clear of the sticky
                 // hour gutter — without it the column lands underneath it.
@@ -476,7 +481,7 @@ function DayView({
               // Sticky like the hour gutter beside it: with nobody on the
               // books this is the only column header there is, and it was
               // scrolling away under the rows it labels.
-              <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
+              <th data-col-staff={UNASSIGNED} className="sticky top-0 z-10 bg-zinc-900 px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">Rezerwacje</th>
             )}
           </tr>
         </thead>
@@ -513,6 +518,7 @@ function DayView({
                       <DraggableBooking
                         bookingId={plan.booking.id}
                         date={date}
+                        staffId={plan.booking.staff_id}
                         startMinutes={warsawMinutes(plan.booking.starts_at)}
                         durationMin={plan.durationMin}
                         dayStartMinutes={startMin}
@@ -520,6 +526,16 @@ function DayView({
                         rowHeight={ROW_H}
                         top={(plan.offsetMin / 30) * ROW_H + 3}
                         height={blockH}
+                        ghost={
+                          <DayBookingCard
+                            booking={toModalBooking(plan.booking, lessonPositions)}
+                            allStaff={allStaff}
+                            timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
+                            color={s.color}
+                            compact={blockH < 44}
+                            ghost
+                          />
+                        }
                       >
                         <DayBookingCard
                           booking={toModalBooking(plan.booking, lessonPositions)}
@@ -562,6 +578,7 @@ function DayView({
                         <DraggableBooking
                           bookingId={plan.booking.id}
                           date={date}
+                          staffId={plan.booking.staff_id}
                           startMinutes={warsawMinutes(plan.booking.starts_at)}
                           durationMin={plan.durationMin}
                           dayStartMinutes={startMin}
@@ -569,6 +586,16 @@ function DayView({
                           rowHeight={ROW_H}
                           top={(plan.offsetMin / 30) * ROW_H + 3}
                           height={blockH}
+                          ghost={
+                            <DayBookingCard
+                              booking={toModalBooking(plan.booking, lessonPositions)}
+                              allStaff={allStaff}
+                              timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
+                              color="var(--color-accent)"
+                              compact={blockH < 44}
+                              ghost
+                            />
+                          }
                         >
                           <DayBookingCard
                             booking={toModalBooking(plan.booking, lessonPositions)}
