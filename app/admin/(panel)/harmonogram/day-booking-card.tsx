@@ -109,11 +109,17 @@ export function DayBookingCard({
       booking={booking}
       allStaff={allStaff}
       openOnMount={openOnMount}
-      // Inherit rather than the button default: the wrapper switches between
-      // grab and grabbing, and an open hand is what says "this can be picked
-      // up". The pointing finger only promises a click, which was the whole
-      // story before the block could be dragged.
-      className="block h-full w-full cursor-[inherit] text-left transition-colors hover:brightness-125"
+      // touch-none here, not only on the wrapper: `touch-action` is not an
+      // inherited property, and the finger lands on this button. With the
+      // default `auto` the browser kept a claim on the gesture, so dragging a
+      // booking on a phone fought the page for every millimetre and a press
+      // that lingered turned into a text selection instead.
+      //
+      // cursor inherits on purpose: the wrapper switches between grab and
+      // grabbing, and an open hand is what says "this can be picked up". The
+      // pointing finger only promises a click, which was the whole story
+      // before the block could be dragged.
+      className="block h-full w-full touch-none select-none [-webkit-touch-callout:none] cursor-[inherit] text-left transition-colors hover:brightness-125"
     >
       {body}
     </BookingManagementButton>

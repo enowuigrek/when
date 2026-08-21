@@ -41,7 +41,12 @@ export function TenantThemeWrapper({
         "--color-accent-fg": accentFg(accent),
       } as React.CSSProperties}
     >
-      <ThemeApplier theme={theme as "light" | "dark"} />
+      <ThemeApplier
+        theme={theme as "light" | "dark"}
+        accent={accent}
+        accentHover={accentHover}
+        accentFg={accentFg(accent)}
+      />
       {children}
     </div>
   );
