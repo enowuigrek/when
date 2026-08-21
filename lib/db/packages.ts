@@ -187,3 +187,70 @@ export async function attachToPackageForTenant(input: {
     return null;
   }
 }
+
+export type LessonPosition = {
+  /** 1-based place in the package, by date. */
+  index: number;
+  totalLessons: number;
+};
+
+/**
+ * Which lesson of the package each of these bookings is.
+ *
+ * The number is derived, never stored: lessons are numbered by the order their
+ * dates fall in, so booking a lesson for tomorrow when one already sits the day
+ * after renumbers the later one from 2/5 to 3/5. Storing an index would mean
+ * rewriting rows on every insert, move, and cancellation — and the first missed
+ * rewrite would leave two lessons both calling themselves the third.
+ *
+ * Cancelled lessons are skipped rather than numbered: they were not used up.
+ */
+export async function getLessonPositionsForTenant(
+  packageIds: string[],
+  tenantId: string
+): Promise<Map<string, LessonPosition>> {
+  const positions = new Map<string, LessonPosition>();
+  const ids = [...new Set(packageIds)];
+  if (ids.length === 0) return positions;
+
+  const supabase = createAdminClient();
+  const [{ data: packages }, { data: bookings }] = await Promise.all([
+    supabase
+      .from("service_packages")
+      .select("id, total_lessons")
+      .eq("tenant_id", tenantId)
+      .in("id", ids),
+    supabase
+      .from("bookings")
+      .select("id, package_id, starts_at, status")
+      .eq("tenant_id", tenantId)
+      .in("package_id", ids)
+      .neq("status", "cancelled")
+      // Two lessons can start at the same minute with different staff; id is
+      // the tiebreak so the numbering is the same on every render.
+      .order("starts_at", { ascending: true })
+      .order("id", { ascending: true }),
+  ]);
+
+  const totals = new Map((packages ?? []).map((p) => [p.id, p.total_lessons]));
+  const seen = new Map<string, number>();
+
+  for (const b of bookings ?? []) {
+    if (!b.package_id) continue;
+    const next = (seen.get(b.package_id) ?? 0) + 1;
+    seen.set(b.package_id, next);
+    positions.set(b.id, {
+      index: next,
+      totalLessons: totals.get(b.package_id) ?? next,
+    });
+  }
+
+  return positions;
+}
+
+/** Same, for admin pages, using the tenant on the session. */
+export async function getLessonPositions(
+  packageIds: string[]
+): Promise<Map<string, LessonPosition>> {
+  return getLessonPositionsForTenant(packageIds, await getAdminTenantId());
+}

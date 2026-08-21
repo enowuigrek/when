@@ -55,13 +55,23 @@ export function DayBookingCard({
           <p className="flex items-baseline gap-1.5 truncate">
             <span className="font-mono text-[11px] text-zinc-300">{timeLabel}</span>
             <span className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</span>
+            {booking.lessonLabel && (
+              <span className="shrink-0 pr-3 font-mono text-[10px] text-[var(--color-accent)]">
+                {booking.lessonLabel}
+              </span>
+            )}
           </p>
         ) : (
           <>
             <p className="font-mono text-xs text-zinc-300">{timeLabel}</p>
             <p className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</p>
-            {booking.serviceName && (
-              <p className="truncate text-[10px] text-zinc-500">{booking.serviceName}</p>
+            {(booking.serviceName || booking.lessonLabel) && (
+              <p className="truncate text-[10px] text-zinc-500">
+                {booking.serviceName}
+                {booking.lessonLabel && (
+                  <span className="ml-1 font-mono text-[var(--color-accent)]">{booking.lessonLabel}</span>
+                )}
+              </p>
             )}
           </>
         )}

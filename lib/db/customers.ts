@@ -124,6 +124,7 @@ export type CustomerBooking = {
   status: string;
   notes: string | null;
   staff_id: string | null;
+  package_id: string | null;
   service: { name: string; price_pln: number; duration_min: number } | null;
   staff: { name: string; color: string } | null;
 };
@@ -144,7 +145,7 @@ export async function getCustomerStats(phone: string): Promise<CustomerStats> {
   const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
-    .select("id, starts_at, ends_at, status, notes, staff_id, service:services(name, price_pln, duration_min), staff:staff(name, color)")
+    .select("id, starts_at, ends_at, status, notes, staff_id, package_id, service:services(name, price_pln, duration_min), staff:staff(name, color)")
     .eq("tenant_id", tenantId)
     .eq("customer_phone", phone)
     .order("starts_at", { ascending: false });

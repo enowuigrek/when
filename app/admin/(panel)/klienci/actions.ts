@@ -114,9 +114,11 @@ export async function updateCustomerContactAction(
   const id = formData.get("id")?.toString();
   if (!id) return { status: "error", message: "Brak ID" };
 
+  const name = formData.get("name")?.toString().trim() ?? "";
   const phone = formData.get("phone")?.toString().trim() ?? "";
   const email = formData.get("email")?.toString().trim() ?? "";
 
+  if (name.length < 2) return { status: "error", message: "Podaj imię i nazwisko" };
   if (phone.length < 6) return { status: "error", message: "Numer telefonu za krótki" };
 
   const tenantId = await getAdminTenantId();
@@ -132,9 +134,22 @@ export async function updateCustomerContactAction(
     .maybeSingle();
   if (existing) return { status: "error", message: "Ten numer jest już przypisany do innego klienta" };
 
+  // Bookings carry the customer's name and phone as plain columns and are
+  // matched back to the profile by phone. So an edit here has to reach them
+  // too: without it a corrected surname stays wrong everywhere it is actually
+  // read — the schedule, the day card, the confirmation mail — and a corrected
+  // phone number silently detaches the whole visit history from the profile.
+  const { data: before } = await supabase
+    .from("customers")
+    .select("name, phone")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("customers")
     .update({
+      name,
       phone,
       email: email || null,
       updated_at: new Date().toISOString(),
@@ -144,6 +159,25 @@ export async function updateCustomerContactAction(
 
   if (error) return { status: "error", message: `Błąd: ${error.message}` };
 
+  if (before && (before.name !== name || before.phone !== phone)) {
+    const { error: bookingsError } = await supabase
+      .from("bookings")
+      .update({ customer_name: name, customer_phone: phone })
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", before.phone);
+    // The contact itself is saved; say so rather than pretending the whole
+    // edit failed, but do not claim the bookings were rewritten.
+    if (bookingsError) {
+      return {
+        status: "error",
+        message: "Kontakt zapisany, ale nie udało się poprawić rezerwacji tego klienta.",
+      };
+    }
+    revalidatePath("/admin/harmonogram");
+    revalidatePath("/admin/grafik");
+  }
+
+  revalidatePath("/admin/klienci");
   revalidatePath(`/admin/klienci/${id}`);
   return { status: "ok" };
 }

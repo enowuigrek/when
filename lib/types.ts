@@ -44,4 +44,6 @@ export type Booking = {
   notes: string | null;
   created_at: string;
   staff_id: string | null;
+  /** Set when this booking is one lesson of a package. */
+  package_id: string | null;
 };

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { sectionHeading } from "@/components/ui/surface";
 import { AdminLink } from "@/components/admin-link";
 import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
-import { getCustomerPackages } from "@/lib/db/packages";
+import { getCustomerPackages, getLessonPositions, type LessonPosition } from "@/lib/db/packages";
 import { CustomerPackages } from "./packages";
 import type { CustomerBooking } from "@/lib/db/customers";
 import { getActiveStaff } from "@/lib/db/staff";
@@ -30,6 +30,9 @@ export default async function CustomerProfilePage({ params }: { params: Params }
     getActiveStaff(),
     getCustomerPackages(customer.id),
   ]);
+  // The customer's own lists say which lesson each booking is, using the same
+  // date ordering as the schedule — so the two never disagree.
+  const lessonPositions = await getLessonPositions(packages.map((p) => p.id));
   const now = new Date().toISOString();
 
   const upcoming = stats.bookings.filter((b) => (b.status === "confirmed") && b.starts_at >= now);
@@ -106,7 +109,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
           <h2 className={`mb-3 ${sectionHeading}`}>Nadchodzące</h2>
           <ul className="space-y-2">
             {upcoming.map((b) => (
-              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} />
+              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} lessonPositions={lessonPositions} />
             ))}
           </ul>
         </div>
@@ -120,7 +123,7 @@ export default async function CustomerProfilePage({ params }: { params: Params }
         ) : (
           <ul className="space-y-2">
             {past.map((b) => (
-              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} />
+              <BookingItem key={b.id} b={b} badge={statusBadge(b.status)} customer={customer} allStaff={allStaff} lessonPositions={lessonPositions} />
             ))}
           </ul>
         )}
@@ -136,15 +139,18 @@ function BookingItem({
   badge,
   customer,
   allStaff,
+  lessonPositions,
 }: {
   b: CustomerBooking;
   badge: React.ReactNode;
   customer: { name: string; phone: string };
   allStaff: { id: string; name: string; color: string }[];
+  lessonPositions: Map<string, LessonPosition>;
 }) {
   const status = (b.status === "confirmed" || b.status === "cancelled" || b.status === "completed" || b.status === "no_show")
     ? b.status
     : "confirmed";
+  const lesson = lessonPositions.get(b.id);
   return (
     <BookingRow
       allStaff={allStaff}
@@ -152,7 +158,9 @@ function BookingItem({
       price={b.service?.price_pln ?? null}
       // On a customer's page the service is what distinguishes one visit from
       // the next; who performed it is the supporting line.
-      title={b.service?.name ?? "—"}
+      title={
+        lesson ? `${b.service?.name ?? "—"} · lekcja ${lesson.index}/${lesson.totalLessons}` : (b.service?.name ?? "—")
+      }
       subtitle={b.staff && <StaffLine name={b.staff.name} color={b.staff.color} />}
       booking={{
         id: b.id,
@@ -166,6 +174,7 @@ function BookingItem({
         staffColor: b.staff?.color ?? null,
         notes: b.notes,
         status,
+        lessonLabel: lesson ? `${lesson.index}/${lesson.totalLessons}` : null,
       }}
     />
   );

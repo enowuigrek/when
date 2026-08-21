@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getBookingsBetween, getBookingCountsByDay } from "@/lib/db/bookings";
+import { getLessonPositions, type LessonPosition } from "@/lib/db/packages";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
@@ -15,7 +16,10 @@ import { calendarWindow } from "@/lib/calendar-window";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
-function toModalBooking(b: BookingWithService): BookingForModal {
+function toModalBooking(
+  b: BookingWithService,
+  lessons?: Map<string, LessonPosition>
+): BookingForModal {
   const status = (
     b.status === "confirmed" || b.status === "cancelled" ||
     b.status === "completed" || b.status === "no_show"
@@ -32,6 +36,10 @@ function toModalBooking(b: BookingWithService): BookingForModal {
     staffColor: b.staff?.color ?? null,
     notes: b.notes,
     status,
+    lessonLabel: (() => {
+      const pos = lessons?.get(b.id);
+      return pos ? `${pos.index}/${pos.totalLessons}` : null;
+    })(),
   };
 }
 import {
@@ -122,6 +130,14 @@ export default async function HarmonogramPage({
       warsawDayBoundsUtc(calWindowEnd).endIso
     ),
   ]);
+  // Numbering needs every lesson of the packages on screen, not just the ones
+  // inside this window — a lesson booked for next month still decides whether
+  // today's is 2/5 or 3/5. Depends on `all`, so it cannot join the batch above;
+  // with no package lessons in view it costs nothing.
+  const lessonPositions = await getLessonPositions(
+    all.map((b) => b.package_id).filter((id): id is string => id !== null)
+  );
+
   // Feeds the create-booking modal opened from an empty slot.
   const services: ServiceOption[] = allServicesRaw.map((s) => ({
     id: s.id, name: s.name, duration_min: s.duration_min, price_pln: s.price_pln,
@@ -275,13 +291,32 @@ export default async function HarmonogramPage({
 
 
           <div className="mt-4">
-            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} openBookingId={rezerwacja ?? null} />}
-            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} />}
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} adminBase={adminBase} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
+            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
           </div>
         </div>
       </div>
     </PageShell>
   );
+}
+
+/**
+ * Bookings taken before anyone was on the roster keep `staff_id = null`
+ * forever. With no staff at all they get the single "Rezerwacje" column, but
+ * the moment the first person is added the grid is built from the roster and
+ * those bookings have no column to land in — they vanish from the schedule
+ * while still counting in the day totals. They get their own column instead,
+ * and only when there is something to put in it.
+ */
+const UNASSIGNED = "__none__";
+const unassignedColumn = { id: UNASSIGNED, name: "Bez pracownika", color: "var(--color-accent)" };
+
+function withUnassignedColumn(
+  staff: { id: string; name: string; color: string }[],
+  bookings: { staff_id: string | null }[]
+) {
+  if (staff.length === 0) return staff;
+  return bookings.some((b) => b.staff_id === null) ? [...staff, unassignedColumn] : staff;
 }
 
 // ── Day view ──────────────────────────────────────────────────────────────────
@@ -295,6 +330,7 @@ function DayView({
   adminBase,
   services,
   openBookingId,
+  lessonPositions,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -306,6 +342,7 @@ function DayView({
   services: ServiceOption[];
   /** Booking to open on arrival — see BookingManagementButton.openOnMount. */
   openBookingId: string | null;
+  lessonPositions: Map<string, LessonPosition>;
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
   const dayHours = hours.find((h) => h.day_of_week === dayOfWeek);
@@ -357,13 +394,14 @@ function DayView({
     | { kind: "covered" };
 
   const planKey = (staffId: string, slotMin: number) => `${staffId}@${slotMin}`;
+  const columns = withUnassignedColumn(visibleStaff, dayBookings);
   const cellPlans = new Map<string, CellPlan>();
 
   for (const b of dayBookings) {
     // A tenant with nobody on the books yet has bookings with no staff_id.
     // They get plans under the same pseudo-key the week view uses, so the
     // single "Rezerwacje" column can render them like any other.
-    const staffKey = b.staff_id ?? "__none__";
+    const staffKey = b.staff_id ?? UNASSIGNED;
     // Clamp to opening hours so a booking spilling past close can't rowSpan
     // beyond the last rendered row.
     const bStart = Math.max(warsawMinutes(b.starts_at), startMin);
@@ -388,7 +426,7 @@ function DayView({
   const isToday = date === today;
 
   return (
-    <StaffCarousel staff={visibleStaff} gutter={64}>
+    <StaffCarousel staff={columns} gutter={64}>
       {/* width:100% + minWidth keeps both ends working: with many staff the
           table exceeds the container and scrolls at ~180px per column; with
           one or two it stretches to fill instead of leaving the page empty.
@@ -402,7 +440,7 @@ function DayView({
         style={{
           tableLayout: "fixed",
           width: "100%",
-          minWidth: `calc(64px + ${visibleStaff.length} * var(--sched-col-w, 180px))`,
+          minWidth: `calc(64px + ${columns.length} * var(--sched-col-w, 180px))`,
         }}
       >
         <thead>
@@ -418,7 +456,7 @@ function DayView({
             >
               Godz.
             </th>
-            {visibleStaff.length > 0 ? visibleStaff.map((s) => (
+            {columns.length > 0 ? columns.map((s) => (
               <th
                 key={s.id}
                 data-staff-id={s.id}
@@ -460,7 +498,7 @@ function DayView({
               >
                 <span className={`font-mono text-xs ${isToday ? "text-zinc-500" : "text-zinc-600"}`}>{slot.label}</span>
               </td>
-              {visibleStaff.length > 0 ? visibleStaff.map((s) => {
+              {columns.length > 0 ? columns.map((s) => {
                 const plan = cellPlans.get(planKey(s.id, slot.min));
 
                 // This row is inside a booking that started earlier — its cell
@@ -476,7 +514,7 @@ function DayView({
                         style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
                       >
                         <DayBookingCard
-                          booking={toModalBooking(plan.booking)}
+                          booking={toModalBooking(plan.booking, lessonPositions)}
                           allStaff={allStaff}
                           openOnMount={plan.booking.id === openBookingId}
                           timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
@@ -497,7 +535,7 @@ function DayView({
                       allStaff={allStaff}
                       date={date}
                       time={slot.label}
-                      presetStaffId={s.id}
+                      presetStaffId={s.id === UNASSIGNED ? null : s.id}
                       className="slot-empty absolute inset-0"
                     >
                       <span className="sr-only">{`Dodaj rezerwację ${slot.label}, ${s.name}`}</span>
@@ -506,7 +544,7 @@ function DayView({
                 );
               }) : (
                 (() => {
-                  const plan = cellPlans.get(planKey("__none__", slot.min));
+                  const plan = cellPlans.get(planKey(UNASSIGNED, slot.min));
                   if (plan?.kind === "covered") return null;
 
                   if (plan?.kind === "start") {
@@ -518,7 +556,7 @@ function DayView({
                           style={{ top: (plan.offsetMin / 30) * ROW_H + 3, height: blockH }}
                         >
                           <DayBookingCard
-                            booking={toModalBooking(plan.booking)}
+                            booking={toModalBooking(plan.booking, lessonPositions)}
                             allStaff={allStaff}
                             openOnMount={plan.booking.id === openBookingId}
                             timeLabel={`${formatWarsawTime(plan.booking.starts_at)} – ${formatWarsawTime(plan.booking.ends_at)}`}
@@ -567,6 +605,7 @@ function WeekView({
   today,
   navUrl,
   openBookingId,
+  lessonPositions,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -575,27 +614,29 @@ function WeekView({
   today: string;
   navUrl: (v: View, d: string) => string;
   openBookingId: string | null;
+  lessonPositions: Map<string, LessonPosition>;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
+  const columns = withUnassignedColumn(visibleStaff, active);
   const byDayStaff = new Map<string, Map<string, typeof active>>();
   for (const b of active) {
     const ds = warsawDate(b.starts_at);
     if (!byDayStaff.has(ds)) byDayStaff.set(ds, new Map());
-    const sid = b.staff_id ?? "__none__";
+    const sid = b.staff_id ?? UNASSIGNED;
     const dm = byDayStaff.get(ds)!;
     if (!dm.has(sid)) dm.set(sid, []);
     dm.get(sid)!.push(b);
   }
 
   return (
-    <StaffCarousel staff={visibleStaff} gutter={112} phoneGutter={64} fitViewport={false}>
+    <StaffCarousel staff={columns} gutter={112} phoneGutter={64} fitViewport={false}>
       {/* See the day view above for why width/minWidth are paired this way. */}
       <table
         className="border-collapse text-sm"
         style={{
           tableLayout: "fixed",
           width: "100%",
-          minWidth: `calc(var(--sched-gutter, 112px) + ${visibleStaff.length} * var(--sched-col-w, 200px))`,
+          minWidth: `calc(var(--sched-gutter, 112px) + ${columns.length} * var(--sched-col-w, 200px))`,
         }}
       >
         <thead>
@@ -606,7 +647,7 @@ function WeekView({
             >
               Dzień
             </th>
-            {visibleStaff.map((s) => (
+            {columns.map((s) => (
               <th
                 key={s.id}
                 data-staff-id={s.id}
@@ -616,7 +657,7 @@ function WeekView({
                 {s.name}
               </th>
             ))}
-            {visibleStaff.length === 0 && (
+            {columns.length === 0 && (
               <th className="sticky top-0 z-10 bg-zinc-900 px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500">
                 Rezerwacje
               </th>
@@ -652,7 +693,7 @@ function WeekView({
                     )}
                   </Link>
                 </td>
-                {visibleStaff.map((s) => {
+                {columns.map((s) => {
                   const bookings = dayMap?.get(s.id) ?? [];
                   return (
                     <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-3 py-3 align-top">
@@ -663,7 +704,7 @@ function WeekView({
                           {bookings.map((b) => (
                             <li key={b.id}>
                               <BookingManagementButton
-                                booking={toModalBooking(b)}
+                                booking={toModalBooking(b, lessonPositions)}
                                 allStaff={allStaff}
                                 openOnMount={b.id === openBookingId}
                                 className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:brightness-125"
@@ -672,7 +713,19 @@ function WeekView({
                                   {b.notes && <NoteBadge note={b.notes} />}
                                   <p className="font-mono text-xs text-zinc-300">{formatWarsawTime(b.starts_at)}</p>
                                   <p className="pr-3 text-xs font-medium text-zinc-200">{b.customer_name}</p>
-                                  {b.service && <p className="text-xs text-zinc-500">{b.service.name}</p>}
+                                  {(b.service || lessonPositions.get(b.id)) && (
+                                    <p className="text-xs text-zinc-500">
+                                      {b.service?.name}
+                                      {(() => {
+                                        const pos = lessonPositions.get(b.id);
+                                        return pos ? (
+                                          <span className="ml-1 font-mono text-[var(--color-accent)]">
+                                            {pos.index}/{pos.totalLessons}
+                                          </span>
+                                        ) : null;
+                                      })()}
+                                    </p>
+                                  )}
                                 </div>
                               </BookingManagementButton>
                             </li>
@@ -682,7 +735,7 @@ function WeekView({
                     </td>
                   );
                 })}
-                {visibleStaff.length === 0 && (
+                {columns.length === 0 && (
                   <td className="px-3 py-3 align-top">
                     {(dayMap?.get("__none__") ?? []).map((b) => (
                       <div key={b.id} className="mb-1.5 rounded-lg border border-zinc-800 px-2 py-1.5">

@@ -111,6 +111,7 @@ export type BookingWithService = {
   staff_id: string | null;
   price_pln_snapshot: number | null;
   duration_min_snapshot: number | null;
+  package_id: string | null;
   service: { name: string; duration_min: number; price_pln: number } | null;
   staff: { name: string; color: string } | null;
 };

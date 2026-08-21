@@ -89,6 +89,19 @@ export function CustomerActions({
 
           <div className="space-y-2">
             <div>
+              <label className="mb-1 block text-xs text-zinc-500">Imię i nazwisko *</label>
+              <input
+                type="text"
+                name="name"
+                defaultValue={customerName}
+                required
+                className={fieldClasses({ size: "sm" })}
+              />
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Poprawka podmieni nazwisko także w rezerwacjach tego klienta.
+              </p>
+            </div>
+            <div>
               <label className="mb-1 block text-xs text-zinc-500">Telefon *</label>
               <input
                 type="tel"

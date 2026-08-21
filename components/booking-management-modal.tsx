@@ -21,6 +21,8 @@ export type BookingForModal = {
   customerName: string;
   customerPhone: string;
   serviceName: string | null;
+  /** "2/5" when this booking is one lesson of a package, where the view knows. */
+  lessonLabel?: string | null;
   staffId: string | null;
   staffName: string | null;
   staffColor: string | null;
@@ -249,6 +251,9 @@ function BookingModal({
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-mono text-zinc-300">{formatWarsawDate(booking.startsAt)} · {formatWarsawTime(booking.startsAt)}–{formatWarsawTime(booking.endsAt)}</span>
             {booking.serviceName && <span className="text-zinc-500">· {booking.serviceName}</span>}
+            {booking.lessonLabel && (
+              <span className="text-[var(--color-accent)]">· lekcja {booking.lessonLabel}</span>
+            )}
           </div>
           {booking.staffName && (
             <div className="mt-1 flex items-center gap-1.5">
