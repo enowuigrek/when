@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { rescheduleBookingAction } from "../actions";
@@ -86,6 +86,30 @@ export function DraggableBooking({
    * standing would eat the next genuine one instead.
    */
   const justDragged = useRef(false);
+
+  /**
+   * Escape abandons a drag in progress.
+   *
+   * Changing your mind halfway through is the common case — you pick a booking
+   * up, look at where it would go, and decide it was fine where it was. Without
+   * a way out you have to aim it back at its old time by eye, which is a worse
+   * job than the move itself. A confirmation dialog on every drop would charge
+   * every deliberate move for the rare regretted one; this charges nothing.
+   */
+  useEffect(() => {
+    if (!dragging) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      moved.current = false;
+      pressed.current = false;
+      offsetRef.current = 0;
+      setDragging(false);
+      setOffsetMin(0);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [dragging]);
 
   const pxPerMinute = rowHeight / 30;
   const STEP = 5;
@@ -214,6 +238,21 @@ export function DraggableBooking({
       >
         {children}
       </DragTimeContext.Provider>
+
+      {dragging && offsetMin !== 0 && (
+        // Where it was picked up from, drawn by cancelling the wrapper's own
+        // offset so it stays pinned to the original time while the block moves.
+        // Without it the old time is gone the moment you start dragging, and
+        // putting the booking back means guessing.
+        <div
+          className="pointer-events-none absolute inset-x-0 rounded border border-dashed border-[var(--color-accent)]/50 bg-[var(--color-accent)]/5"
+          style={{ top: -offsetMin * pxPerMinute, height }}
+        >
+          <span className="absolute left-1 top-0.5 font-mono text-[10px] text-[var(--color-accent)]/70">
+            {hhmm(startMinutes)}
+          </span>
+        </div>
+      )}
 
       {/* Sits inside the block, not above it: the schedule scrolls sideways,
           which clips its vertical overflow too, and anything hovering over the
