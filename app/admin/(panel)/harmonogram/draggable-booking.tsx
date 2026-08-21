@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { rescheduleBookingAction } from "../actions";
+import { DragTimeContext } from "./drag-time-context";
 
 /**
  * A booking you can shove up or down the day to move it.
@@ -56,6 +57,23 @@ export function DraggableBooking({
   const offsetRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [, startTransition] = useTransition();
+
+  /**
+   * Hold the visual offset until the server's own answer arrives.
+   *
+   * Zeroing it the moment the save returns puts the block back where it was
+   * for as long as the refreshed schedule takes to render — a visible bounce
+   * back to the old time and then a jump to the new one. Instead the offset
+   * stands until `startMinutes` comes back changed, at which point the block
+   * is already drawn in the right place and dropping the offset moves nothing.
+   * This is React's documented way of adjusting state when a prop changes.
+   */
+  const [lastStart, setLastStart] = useState(startMinutes);
+  if (startMinutes !== lastStart) {
+    setLastStart(startMinutes);
+    setOffsetMin(0);
+  }
   const [error, setError] = useState<string | null>(null);
   const startY = useRef(0);
   const moved = useRef(false);
@@ -87,6 +105,7 @@ export function DraggableBooking({
     moved.current = false;
     justDragged.current = false;
     pressed.current = true;
+    offsetRef.current = 0;
     setError(null);
     // Capture from the press, not from the first move: the block is only as
     // tall as the booking, so a quick flick's first move can already be past
@@ -142,11 +161,8 @@ export function DraggableBooking({
     setSaving(false);
 
     if (res.ok) {
-      // The server now owns the new time; drop the local offset in the same
-      // breath as the refresh so the block does not jump back and forth.
-      offsetRef.current = 0;
-      setOffsetMin(0);
-      router.refresh();
+      // Offset deliberately left standing — see `lastStart` above.
+      startTransition(() => router.refresh());
     } else {
       offsetRef.current = 0;
       setOffsetMin(0);
@@ -189,20 +205,19 @@ export function DraggableBooking({
         }
       }}
     >
-      {children}
+      {/* The card reads the dragged time off this while the gesture runs, so
+          the clock in its corner is the readout. Kept live during the save too:
+          the block stays where it was dropped until the server confirms, and
+          its time should not flip back to the old one in the meantime. */}
+      <DragTimeContext.Provider
+        value={dragging || saving ? `${hhmm(shownStart)} – ${hhmm(shownStart + durationMin)}` : null}
+      >
+        {children}
+      </DragTimeContext.Provider>
 
-      {/* Both of these sit inside the block, not above it. The schedule scrolls
-          sideways, which clips its vertical overflow too — anything hovering
-          over the top edge would be cut off for the first booking of the day,
-          the one most likely to be dragged upwards. */}
-      {dragging && (
-        // The card's own label still reads the old time until the server
-        // answers, so the new one is stated where the eye already is.
-        <span className="pointer-events-none absolute right-1 top-1 z-10 rounded-md border border-[var(--color-accent)]/50 bg-zinc-950 px-1.5 py-0.5 font-mono text-xs text-[var(--color-accent)] shadow-lg">
-          {hhmm(shownStart)}–{hhmm(shownStart + durationMin)}
-        </span>
-      )}
-
+      {/* Sits inside the block, not above it: the schedule scrolls sideways,
+          which clips its vertical overflow too, and anything hovering over the
+          top edge would be cut off for the first booking of the day. */}
       {error && (
         <span className="pointer-events-none absolute inset-x-1 top-1 z-10 truncate rounded-md border border-red-500/50 bg-zinc-950 px-1.5 py-0.5 text-xs text-red-300 shadow-lg">
           {error}

@@ -2,6 +2,7 @@
 
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import { NoteBadge } from "@/components/ui/note-badge";
+import { useDragTime } from "./drag-time-context";
 
 type Staff = { id: string; name: string; color: string };
 
@@ -30,6 +31,16 @@ export function DayBookingCard({
   /** Open the management modal straight away — arrived from a notification. */
   openOnMount?: boolean;
 }) {
+  // While this booking is being dragged its own clock is the readout: same
+  // spot, same size, lit in the accent so it is plainly the thing that is
+  // changing. A separate floating badge would put the answer somewhere the
+  // eye was not already looking.
+  const dragTime = useDragTime();
+  const shownTime = dragTime ?? timeLabel;
+  const timeCls = dragTime
+    ? "font-semibold text-[var(--color-accent)]"
+    : "text-zinc-300";
+
   return (
     <BookingManagementButton
       booking={booking}
@@ -53,7 +64,7 @@ export function DayBookingCard({
           // that — the name was being cut through the middle. Side by side
           // they fit, and the range still leads.
           <p className="flex items-baseline gap-1.5 truncate">
-            <span className="font-mono text-[11px] text-zinc-300">{timeLabel}</span>
+            <span className={`font-mono text-[11px] ${timeCls}`}>{shownTime}</span>
             <span className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</span>
             {booking.lessonLabel && (
               <span className="shrink-0 pr-3 font-mono text-[10px] text-[var(--color-accent)]">
@@ -63,7 +74,7 @@ export function DayBookingCard({
           </p>
         ) : (
           <>
-            <p className="font-mono text-xs text-zinc-300">{timeLabel}</p>
+            <p className={`font-mono text-xs ${timeCls}`}>{shownTime}</p>
             <p className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</p>
             {(booking.serviceName || booking.lessonLabel) && (
               <p className="truncate text-[10px] text-zinc-500">
