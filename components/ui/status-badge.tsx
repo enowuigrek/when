@@ -53,8 +53,18 @@ const CONFIG: Record<BookingStatus | PaymentStatus, Cfg> = {
   },
 };
 
-/** Pill badge for a booking status. */
+/**
+ * Pill badge for a booking status — shown only when the status is worth
+ * pointing at.
+ *
+ * Every booking is `confirmed` from the moment it is created and stays that
+ * way (nothing in the app ever writes `completed`), so a green "potwierdzona"
+ * sat on every row in every list, including visits that had already happened.
+ * A label that never varies is not read. Cancelled, no-show and awaiting
+ * payment are the states someone actually needs to spot, so they keep theirs.
+ */
 export function StatusBadge({ status }: { status: string }) {
+  if (status === "confirmed") return null;
   const cfg = CONFIG[status as BookingStatus];
   if (!cfg) return null;
   return (
