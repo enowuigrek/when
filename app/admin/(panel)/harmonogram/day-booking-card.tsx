@@ -46,7 +46,11 @@ export function DayBookingCard({
       booking={booking}
       allStaff={allStaff}
       openOnMount={openOnMount}
-      className="block h-full w-full text-left transition-colors hover:brightness-125"
+      // Inherit rather than the button default: the wrapper switches between
+      // grab and grabbing, and an open hand is what says "this can be picked
+      // up". The pointing finger only promises a click, which was the whole
+      // story before the block could be dragged.
+      className="block h-full w-full cursor-[inherit] text-left transition-colors hover:brightness-125"
     >
       <div
         className="relative flex h-full flex-col overflow-hidden"

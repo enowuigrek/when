@@ -111,6 +111,11 @@ export function DraggableBooking({
     return () => document.removeEventListener("keydown", onKey);
   }, [dragging]);
 
+  /** The card's own button — the only thing in here that is a drag handle. */
+  function cardButton(): HTMLButtonElement | null {
+    return dragRoot.current?.querySelector(":scope > button") ?? null;
+  }
+
   const pxPerMinute = rowHeight / 30;
   const STEP = 5;
   /** Under this, it was a click with a shaky hand, not a drag. */
@@ -125,6 +130,12 @@ export function DraggableBooking({
   function onPointerDown(e: React.PointerEvent) {
     // Left button only; let a right-click open the context menu.
     if (e.button !== 0 || saving) return;
+    // The management modal renders inside this wrapper, so its backdrop and
+    // every control in it would otherwise start a phantom drag of the booking
+    // underneath — and the release would forward the click to the card, which
+    // reopens the modal the × had just closed. Only the card itself drags.
+    const handle = cardButton();
+    if (!handle || !handle.contains(e.target as Node)) return;
     startY.current = e.clientY;
     moved.current = false;
     justDragged.current = false;
@@ -167,7 +178,7 @@ export function DraggableBooking({
       // Pointer capture means the click will be delivered here rather than to
       // the button, so pass it on: a press that did not move is a click and
       // still opens the management modal.
-      dragRoot.current?.querySelector("button")?.click();
+      cardButton()?.click();
       return;
     }
     justDragged.current = true;
