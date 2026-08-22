@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { useAdminBase } from "@/lib/use-admin-base";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import { iconButtonClasses } from "@/components/ui/icon-button";
 
 type EventType = "created" | "rescheduled" | "cancelled";
 type EventSource = "customer" | "admin";
@@ -185,7 +186,7 @@ function NotifRow({
       <button
         type="button"
         onClick={onDelete}
-        className="ml-1 shrink-0 text-lg leading-none text-zinc-600 hover:text-zinc-300"
+        className={iconButtonClasses("-my-2 text-lg leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
         aria-label={`Usuń powiadomienie — ${item.customerName}`}
       >
         ×
@@ -465,16 +466,23 @@ export function AdminNotificationBell({
               <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
               <div className="flex items-center gap-3">
                 {unread > 0 && (
-                  <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={markAllRead} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
                     Przeczytane
                   </button>
                 )}
                 {items.length > 0 && (
-                  <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={clearAll} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
                     Wyczyść
                   </button>
                 )}
-                <button type="button" onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-300 text-lg leading-none">×</button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Zamknij"
+                  className={iconButtonClasses("-mr-2 text-lg leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
+                >
+                  ×
+                </button>
               </div>
             </div>
 
@@ -515,19 +523,19 @@ export function AdminNotificationBell({
             <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
             <div className="flex items-center gap-3">
               {unread > 0 && (
-                <button type="button" onClick={markAllRead} className="text-xs text-zinc-500 hover:text-zinc-300">
+                <button type="button" onClick={markAllRead} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
                   Przeczytane
                 </button>
               )}
               {items.length > 0 && (
-                <button type="button" onClick={clearAll} className="text-xs text-zinc-500 hover:text-zinc-300">
+                <button type="button" onClick={clearAll} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
                   Wyczyść
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-2xl leading-none text-zinc-500 hover:text-zinc-200"
+                className={iconButtonClasses("-mr-2 text-2xl leading-none text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200")}
                 aria-label="Zamknij"
               >
                 ×

@@ -378,7 +378,13 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
   return (
     <nav
       ref={navRef}
-      className="fixed bottom-0 left-0 right-0 z-[250] flex items-stretch gap-1 border-t border-zinc-800/60 bg-zinc-900/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur"
+      // The bottom padding used to be the safe-area inset alone, which is zero
+      // in a browser whose own toolbar already occupies that space — so the bar
+      // had 6px above the tabs and nothing below. The plus button sat on the
+      // edge and the active tab's rule, drawn just inside the tab's bottom, was
+      // clipped by it. Real padding on both sides, plus the inset where a
+      // device actually needs it.
+      className="fixed bottom-0 left-0 right-0 z-[250] flex items-stretch gap-1 border-t border-zinc-800/60 bg-zinc-900/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] backdrop-blur"
     >
       <span
         aria-hidden
@@ -397,7 +403,7 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
             href={href}
             data-href={href}
             data-active={active ? "true" : "false"}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 pb-2 pt-1.5 text-[11px] font-medium transition-colors ${
+            className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 pb-2 pt-2 text-[11px] font-medium transition-colors ${
               active ? "bg-zinc-800 text-zinc-100" : "text-zinc-400"
             }`}
           >
@@ -410,7 +416,7 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
       <Link
         href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
         aria-label="Nowa rezerwacja"
-        className="my-0.5 flex w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-fg)] transition-opacity active:opacity-80"
+        className="flex min-h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[var(--color-accent-fg)] transition-opacity active:opacity-80"
       >
         <LinkPendingSwap>
           <IcPlus />
@@ -465,7 +471,9 @@ function SidebarBody({
           type="button"
           onClick={onToggle}
           title={expanded ? "Zwiń" : "Rozwiń"}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-400"
+          // -mr-1.5: the target grows into the rail's own padding rather than
+          // widening the header row that holds the business name.
+          className="-mr-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-400"
         >
           {expanded ? <IcChevronLeft /> : <IcChevronRight />}
         </button>

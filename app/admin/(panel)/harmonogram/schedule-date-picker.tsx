@@ -120,14 +120,14 @@ export function ScheduleDatePicker({
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+            className="min-h-9 rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
           >
             {open ? "Zwiń kalendarz" : "Wybierz z kalendarza"}
           </button>
           {!isOnToday && (
             <Link
               href={todayHref}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500"
+              className="flex min-h-9 items-center rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500"
             >
               Dziś
             </Link>

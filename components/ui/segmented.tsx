@@ -24,7 +24,10 @@ export function Segmented<T extends string>({
           key={o.value}
           href={hrefFor(o.value)}
           aria-current={o.value === value ? "true" : undefined}
-          className={`flex items-baseline gap-1.5 rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
+          // min-h-9 rather than the text's own height: a segmented control is
+          // tapped as often as anything on a phone, and padding alone left it
+          // under 30px tall.
+          className={`flex min-h-9 items-center gap-1.5 rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
             o.value === value ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
           }`}
         >

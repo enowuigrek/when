@@ -52,12 +52,14 @@ export function DayBookingCard({
 
   const body = (
     <div
-      className="relative flex h-full flex-col overflow-hidden"
+      // Roomier on a phone, where one column fills the screen and the old
+      // desktop padding left the text floating in a mostly empty block. From
+      // `sm` up the grid packs several columns side by side and the tighter
+      // spacing is what makes them fit.
+      className="relative flex h-full flex-col overflow-hidden rounded-[3px] px-2.5 py-1.5 sm:px-1.5 sm:py-0.5"
       style={{
         backgroundColor: `${color}18`,
         borderLeft: `2px solid ${color}`,
-        padding: "2px 6px",
-        borderRadius: 3,
         // Dashed all round and see-through: unmistakably the place it came
         // from rather than a second booking sitting there.
         ...(ghost
@@ -77,8 +79,8 @@ export function DayBookingCard({
         // that — the name was being cut through the middle. Side by side
         // they fit, and the range still leads.
         <p className="flex items-baseline gap-1.5 truncate">
-          <span className={`font-mono text-[11px] ${timeCls}`}>{shownTime}</span>
-          <span className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</span>
+          <span className={`font-mono text-xs sm:text-[11px] ${timeCls}`}>{shownTime}</span>
+          <span className="truncate pr-3 text-sm font-medium text-zinc-200 sm:text-xs">{booking.customerName}</span>
           {booking.lessonLabel && (
             <span className="shrink-0 pr-3 font-mono text-[10px] text-[var(--color-accent)]">
               {booking.lessonLabel}
@@ -87,10 +89,10 @@ export function DayBookingCard({
         </p>
       ) : (
         <>
-          <p className={`font-mono text-xs ${timeCls}`}>{shownTime}</p>
-          <p className="truncate pr-3 text-xs font-medium text-zinc-200">{booking.customerName}</p>
+          <p className={`font-mono text-sm sm:text-xs ${timeCls}`}>{shownTime}</p>
+          <p className="truncate pr-3 text-base font-medium text-zinc-200 sm:text-xs">{booking.customerName}</p>
           {(booking.serviceName || booking.lessonLabel) && (
-            <p className="truncate text-[10px] text-zinc-500">
+            <p className="truncate text-xs text-zinc-500 sm:text-[10px]">
               {booking.serviceName}
               {booking.lessonLabel && (
                 <span className="ml-1 font-mono text-[var(--color-accent)]">{booking.lessonLabel}</span>

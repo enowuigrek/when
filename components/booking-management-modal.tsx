@@ -10,6 +10,7 @@ import {
   rescheduleBookingAction,
 } from "@/app/admin/(panel)/actions";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import { iconButtonClasses } from "@/components/ui/icon-button";
 import { fieldClasses } from "@/components/ui/field";
 
 type Staff = { id: string; name: string; color: string };
@@ -246,7 +247,15 @@ function BookingModal({
               <h2 className="mt-0.5 truncate text-lg font-semibold text-zinc-100">{booking.customerName}</h2>
               <p className="mt-0.5 font-mono text-xs text-zinc-500">{booking.customerPhone}</p>
             </div>
-            <button onClick={onClose} className="shrink-0 text-2xl leading-none text-zinc-600 hover:text-zinc-300">×</button>
+            <button
+              onClick={onClose}
+              aria-label="Zamknij"
+              // -mr-2 -mt-2: the target grows outwards into the dialog's own
+              // padding instead of pushing the heading around.
+              className={iconButtonClasses("-mr-2 -mt-2 text-2xl leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
+            >
+              ×
+            </button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-mono text-zinc-300">{formatWarsawDate(booking.startsAt)} · {formatWarsawTime(booking.startsAt)}–{formatWarsawTime(booking.endsAt)}</span>
@@ -281,7 +290,10 @@ function BookingModal({
                 key={k}
                 type="button"
                 onClick={() => { setTab(k); setError(null); }}
-                className={`flex-1 rounded px-2 py-1.5 transition-colors ${
+                // min-h-11 on the tab, not on its text: these are the four
+                // things you came to the dialog to do, and at 28px they were
+                // the smallest targets in the panel.
+                className={`min-h-11 flex-1 rounded px-2 py-1.5 transition-colors ${
                   tab === k ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >

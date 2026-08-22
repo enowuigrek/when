@@ -213,7 +213,7 @@ export default async function HarmonogramPage({
               <Link
                 key={v}
                 href={navUrl(v, baseDate)}
-                className={`rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
+                className={`flex min-h-9 items-center rounded-md px-3.5 py-1 text-sm font-medium transition-colors ${
                   view === v ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
