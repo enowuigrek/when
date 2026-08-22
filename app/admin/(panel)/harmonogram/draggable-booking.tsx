@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { rescheduleBookingAction } from "../actions";
@@ -92,6 +92,10 @@ export function DraggableBooking({
   const startX = useRef(0);
   const moved = useRef(false);
   const pressed = useRef(false);
+  /** Touch only: null until the hold fires, then the drag is live. */
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const armed = useRef(true);
+  const [showArmed, setShowArmed] = useState(false);
   const dragRoot = useRef<HTMLDivElement>(null);
   /**
    * Set the moment a drag ends, so the click the browser fires straight after
@@ -100,6 +104,22 @@ export function DraggableBooking({
    * standing would eat the next genuine one instead.
    */
   const justDragged = useRef(false);
+
+  // Stable identity: everything it touches is a ref or a setState, both of
+  // which React guarantees never change. That lets the Escape listener depend
+  // on it honestly instead of being told to ignore the dependency.
+  const abandon = useCallback(function abandon() {
+    cancelHold();
+    armed.current = true;
+    setShowArmed(false);
+    moved.current = false;
+    pressed.current = false;
+    offsetRef.current = 0;
+    columnRef.current = null;
+    setDragging(false);
+    setOffsetMin(0);
+    setColumn(null);
+  }, []);
 
   /**
    * Escape abandons a drag in progress.
@@ -119,7 +139,27 @@ export function DraggableBooking({
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [dragging]);
+  }, [dragging, abandon]);
+
+  /**
+   * Hold the page still once the booking has been picked up.
+   *
+   * The card lets the browser pan until then, which is the whole point — but
+   * from the moment the hold fires the finger is moving a booking, not the
+   * day. `preventDefault` can only stop a scroll that has not started yet, and
+   * here none has: arming requires the finger to have stayed put. The listener
+   * has to be attached by hand because React's onTouchMove is passive, and a
+   * passive listener is not allowed to cancel anything.
+   */
+  useEffect(() => {
+    const node = dragRoot.current;
+    if (!node) return;
+    const stopScroll = (e: TouchEvent) => {
+      if (armed.current && pressed.current) e.preventDefault();
+    };
+    node.addEventListener("touchmove", stopScroll, { passive: false });
+    return () => node.removeEventListener("touchmove", stopScroll);
+  }, []);
 
   /**
    * Where each column starts and ends, taken from the header row.
@@ -153,20 +193,23 @@ export function DraggableBooking({
    * crossed into another person's column left the block sitting over that
    * column while belonging to the old one.
    */
-  function abandon() {
-    moved.current = false;
-    pressed.current = false;
-    offsetRef.current = 0;
-    columnRef.current = null;
-    setDragging(false);
-    setOffsetMin(0);
-    setColumn(null);
-  }
 
   const pxPerMinute = rowHeight / 30;
   const STEP = 5;
   /** Under this, it was a click with a shaky hand, not a drag. */
   const SLOP_PX = 4;
+  /**
+   * How long a finger has to rest on a booking before it picks it up.
+   *
+   * A mouse can drag straight away: pressing a button is not how you scroll.
+   * A finger is how you scroll, so on touch the two gestures start out
+   * identical, and claiming every one of them for dragging meant a swipe that
+   * happened to land on a booking moved it instead of scrolling the day.
+   * Holding still is the one thing nobody does by accident while scrolling.
+   */
+  const HOLD_MS = 350;
+  /** Move further than this before the hold fires and it was a scroll. */
+  const HOLD_SLOP_PX = 8;
 
   function clamp(deltaMin: number) {
     const first = dayStartMinutes - startMinutes;
@@ -190,6 +233,26 @@ export function DraggableBooking({
     pressed.current = true;
     offsetRef.current = 0;
     setError(null);
+
+    const byTouch = e.pointerType !== "mouse";
+    armed.current = !byTouch;
+    setShowArmed(false);
+
+    if (byTouch) {
+      // Nothing is captured yet, and the card still allows panning, so until
+      // the hold fires this gesture is an ordinary scroll and the browser
+      // handles it. Arming takes the pointer over.
+      const target = e.currentTarget;
+      const id = e.pointerId;
+      holdTimer.current = setTimeout(() => {
+        holdTimer.current = null;
+        armed.current = true;
+        setShowArmed(true);
+        try { target.setPointerCapture(id); } catch { /* gesture already gone */ }
+      }, HOLD_MS);
+      return;
+    }
+
     // Capture from the press, not from the first move: the block is only as
     // tall as the booking, so a quick flick's first move can already be past
     // its edge, and without capture that move goes to whatever is underneath
@@ -202,10 +265,28 @@ export function DraggableBooking({
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* no capture, still draggable */ }
   }
 
+  function cancelHold() {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  }
+
   function onPointerMove(e: React.PointerEvent) {
     if (!pressed.current) return;
     const dy = e.clientY - startY.current;
     const dx = e.clientX - startX.current;
+
+    if (!armed.current) {
+      // Still waiting on the hold. A finger that travels has decided this is
+      // a scroll, so stand down and leave the gesture to the browser.
+      if (Math.abs(dy) > HOLD_SLOP_PX || Math.abs(dx) > HOLD_SLOP_PX) {
+        cancelHold();
+        pressed.current = false;
+      }
+      return;
+    }
+
     if (!moved.current && Math.abs(dy) < SLOP_PX && Math.abs(dx) < SLOP_PX) return;
     if (!moved.current) {
       moved.current = true;
@@ -234,7 +315,16 @@ export function DraggableBooking({
   }
 
   async function onPointerUp(e: React.PointerEvent) {
+    const wasPressed = pressed.current;
     pressed.current = false;
+    cancelHold();
+    setShowArmed(false);
+    // Let go before the hold fired: a tap, which belongs to the card.
+    if (!armed.current) {
+      if (wasPressed && !moved.current) cardButton()?.click();
+      armed.current = true;
+      return;
+    }
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -292,7 +382,6 @@ export function DraggableBooking({
         // Sideways is a transform, not a left offset: the block belongs to its
         // own column's cell, and moving it out of that cell any other way
         // would have it reflow inside a table it is only floating above.
-        transform: column ? `translateX(${column.dx}px)` : undefined,
         // Without this the browser claims a vertical drag for scrolling on a
         // phone and the pointer events stop arriving mid-gesture.
         touchAction: "none",
@@ -302,9 +391,17 @@ export function DraggableBooking({
         WebkitUserSelect: "none",
         WebkitTouchCallout: "none",
         cursor: dragging ? "grabbing" : "grab",
-        zIndex: dragging || saving ? 30 : undefined,
+        zIndex: dragging || saving || showArmed ? 30 : undefined,
         opacity: saving ? 0.6 : 1,
-        transition: dragging ? "none" : "top 120ms ease-out",
+        // A finger gets no cursor to change, so the block itself says it has
+        // been picked up — otherwise the only way to find out whether the hold
+        // registered is to start moving and see.
+        transform: [
+          column ? `translateX(${column.dx}px)` : "",
+          showArmed ? "scale(1.03)" : "",
+        ].filter(Boolean).join(" ") || undefined,
+        boxShadow: showArmed ? "0 8px 20px rgb(0 0 0 / 0.35)" : undefined,
+        transition: dragging ? "transform 120ms ease-out, box-shadow 120ms ease-out" : "top 120ms ease-out",
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
