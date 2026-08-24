@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { getAllTenantsWithStats, getDemoOverview, type TenantWithStats, type PlatformSummary } from "@/lib/db/super-admin";
-import { DemoList } from "./demo-list";
+import { getAllTenantsWithStats, getTenantLinks, type TenantWithStats, type PlatformSummary } from "@/lib/db/super-admin";
+import { TenantLinks } from "./tenant-links";
 import { NewTenantForm } from "./new-tenant-form";
 
 export const metadata = { title: "Panel zarządcy", robots: { index: false } };
@@ -17,9 +17,9 @@ function activityBadge(t: TenantWithStats) {
 }
 
 export default async function WszystkoPage() {
-  const [{ tenants, summary }, demos, h] = await Promise.all([
+  const [{ tenants, summary }, links, h] = await Promise.all([
     getAllTenantsWithStats(),
-    getDemoOverview(),
+    getTenantLinks(),
     headers(),
   ]);
   // Build the shareable link from the request, so it is right in dev and in
@@ -42,7 +42,7 @@ export default async function WszystkoPage() {
 
       <KpiGrid summary={summary} />
 
-      <DemoList demos={demos} origin={origin} />
+      <TenantLinks links={links} origin={origin} />
 
       {/* Activity chart — bookings per client (horizontal bars) */}
       <section className="mt-8 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">

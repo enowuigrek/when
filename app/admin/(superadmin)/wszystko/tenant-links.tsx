@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { DemoOverview } from "@/lib/db/super-admin";
+import type { TenantLink } from "@/lib/db/super-admin";
 import { CopyLinkButton } from "./copy-link-button";
 
 function ago(iso: string): string {
@@ -12,16 +12,21 @@ function ago(iso: string): string {
 }
 
 /**
- * The demos, and whether anyone has opened them.
+ * Every link worth having to hand, and whether anyone has opened it.
  *
  * Trials come first: those are the ones sent to a named prospect and they do
  * not expire. The counts underneath are what the demo currently contains —
  * a demo with no services is not ready to send, and that should be visible
  * here rather than discovered by the person who receives the link.
+ *
+ * Live clients sit alongside them. They are not demos and they carry no visit
+ * counter, but their address is a thing you go hunting for in exactly the same
+ * moment, and it was the one link this page did not have.
  */
-export function DemoList({ demos, origin }: { demos: DemoOverview[]; origin: string }) {
-  const toSend = demos.filter((d) => d.kind === "trial");
-  const generated = demos.filter((d) => d.kind === "demo");
+export function TenantLinks({ links, origin }: { links: TenantLink[]; origin: string }) {
+  const toSend = links.filter((d) => d.kind === "trial");
+  const live = links.filter((d) => d.kind === "live");
+  const generated = links.filter((d) => d.kind === "demo");
 
   return (
     <section className="mt-8">
@@ -39,9 +44,20 @@ export function DemoList({ demos, origin }: { demos: DemoOverview[]; origin: str
       ) : (
         <ul className="space-y-2">
           {toSend.map((d) => (
-            <DemoRow key={d.id} demo={d} origin={origin} />
+            <TenantRow key={d.id} link={d} origin={origin} />
           ))}
         </ul>
+      )}
+
+      {live.length > 0 && (
+        <>
+          <h2 className="mb-3 mt-8 text-sm font-medium text-zinc-400">Klienci na żywo</h2>
+          <ul className="space-y-2">
+            {live.map((d) => (
+              <TenantRow key={d.id} link={d} origin={origin} />
+            ))}
+          </ul>
+        </>
       )}
 
       {generated.length > 0 && (
@@ -52,7 +68,7 @@ export function DemoList({ demos, origin }: { demos: DemoOverview[]; origin: str
           </summary>
           <ul className="mt-3 space-y-2">
             {generated.map((d) => (
-              <DemoRow key={d.id} demo={d} origin={origin} />
+              <TenantRow key={d.id} link={d} origin={origin} />
             ))}
           </ul>
         </details>
@@ -61,9 +77,11 @@ export function DemoList({ demos, origin }: { demos: DemoOverview[]; origin: str
   );
 }
 
-function DemoRow({ demo: d, origin }: { demo: DemoOverview; origin: string }) {
-  const url = `${origin}/demo/${d.slug}`;
-  const pusty = d.services === 0 || d.staff === 0;
+function TenantRow({ link: d, origin }: { link: TenantLink; origin: string }) {
+  const url = d.kind === "live" ? liveUrl(d.slug, origin) : `${origin}/demo/${d.slug}`;
+  // Only a demo can be "not ready" — a live client's own emptiness is their
+  // business, and saying it here would be scolding somebody who already pays.
+  const pusty = d.kind !== "live" && (d.services === 0 || d.staff === 0);
 
   return (
     <li className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
@@ -73,6 +91,11 @@ function DemoRow({ demo: d, origin }: { demo: DemoOverview; origin: string }) {
             <Link href={`/admin/wszystko/${d.id}`} className="text-sm font-medium text-zinc-100 hover:text-[var(--color-accent)]">
               {d.businessName}
             </Link>
+            {d.kind === "live" && (
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                klient
+              </span>
+            )}
             {d.kind === "trial" && (
               <span className="rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent)]">
                 bezterminowe
@@ -103,6 +126,9 @@ function DemoRow({ demo: d, origin }: { demo: DemoOverview; origin: string }) {
         </div>
       </div>
 
+      {/* No visit line for a live client: the beacon only runs in demo panels,
+          so the number would always be zero and would read as "nobody came". */}
+      {d.kind !== "live" && (
       <div className="mt-3 border-t border-zinc-800/60 pt-3">
         {d.views === 0 ? (
           <p className="text-xs text-zinc-600">Nikt jeszcze nie otworzył.</p>
@@ -116,6 +142,23 @@ function DemoRow({ demo: d, origin }: { demo: DemoOverview; origin: string }) {
           </p>
         )}
       </div>
+      )}
     </li>
   );
+}
+
+/**
+ * A live client answers on its own subdomain, not under /demo.
+ *
+ * Built from the request's host so it is right on whenbooking.pl without a
+ * second source of truth for the domain. Locally a subdomain needs an
+ * /etc/hosts entry that nobody has, so dev falls back to the path the proxy
+ * would have rewritten it to anyway.
+ */
+function liveUrl(slug: string, origin: string): string {
+  const url = new URL(origin);
+  if (url.hostname === "localhost" || url.hostname.endsWith(".localhost")) {
+    return `${origin}/widget/${slug}`;
+  }
+  return `${url.protocol}//${slug}.${url.host}`;
 }

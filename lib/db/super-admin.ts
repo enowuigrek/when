@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { MAIN_TENANT_ID } from "@/lib/tenant";
 
 export type TenantWithStats = {
   id: string;
@@ -180,18 +181,25 @@ export async function getFeedbackForTenant(tenantId: string): Promise<FeedbackRo
   return all.filter((f) => f.tenant_id === tenantId);
 }
 
-export type DemoOverview = {
+export type TenantLink = {
   id: string;
   slug: string;
   businessName: string;
-  kind: "demo" | "trial";
-  /** Null on a trial: those are the ones meant to be sent and never expire. */
+  /**
+   * "trial" — prepared for a named prospect, never expires, sent by hand.
+   * "demo"  — generated from the landing page, dies after a day.
+   * "live"  — a paying client. Not a demo at all, but it has a link of its
+   *           own and this is where you come looking for one.
+   */
+  kind: "demo" | "trial" | "live";
+  /** Null on a trial or a live client: only landing demos expire. */
   expiresAt: string | null;
   createdAt: string;
   services: number;
   staff: number;
   bookings: number;
-  /** Page views recorded on the demo panel. */
+  /** Page views recorded on the demo panel. Always 0 for a live client —
+   *  the beacon runs in demo panels only, and nobody is being watched. */
   views: number;
   /** Distinct pages opened — one means they looked at the first screen only. */
   pagesSeen: number;
@@ -205,19 +213,23 @@ export type DemoOverview = {
  * Sorted so the ones meant for sending — trials, which do not expire — come
  * first; the short-lived ones the landing page generates follow.
  */
-export async function getDemoOverview(): Promise<DemoOverview[]> {
+export async function getTenantLinks(): Promise<TenantLink[]> {
   const supabase = createAdminClient();
 
+  // Live clients come along for the ride: their link is a subdomain rather
+  // than a /demo path, but it is still a link you go looking for in one place.
+  // WHEN's own tenant is excluded — it is the platform, not a client.
   const { data: tenants } = await supabase
     .from("tenants")
     .select("id, slug, kind, expires_at, created_at")
-    .in("kind", ["demo", "trial"])
+    .in("kind", ["demo", "trial", "main"])
+    .neq("id", MAIN_TENANT_ID)
     .order("created_at", { ascending: false });
 
-  const rows = (tenants ?? []) as {
-    id: string; slug: string; kind: "demo" | "trial";
+  const rows = ((tenants ?? []) as {
+    id: string; slug: string; kind: "demo" | "trial" | "main";
     expires_at: string | null; created_at: string;
-  }[];
+  }[]).map((t) => ({ ...t, kind: (t.kind === "main" ? "live" : t.kind) as TenantLink["kind"] }));
   if (rows.length === 0) return [];
 
   const ids = rows.map((t) => t.id);
@@ -257,7 +269,8 @@ export async function getDemoOverview(): Promise<DemoOverview[]> {
       lastSeenAt: times[times.length - 1] ?? null,
     };
   }).sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "trial" ? -1 : 1;
+    const order = { trial: 0, live: 1, demo: 2 };
+    if (a.kind !== b.kind) return order[a.kind] - order[b.kind];
     return b.createdAt.localeCompare(a.createdAt);
   });
 }
