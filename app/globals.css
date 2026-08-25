@@ -49,20 +49,6 @@ body {
   background-color: #09090b; /* zinc-950 */
 }
 
-/* ── Fixed calendar grid — applied only to landing page via
-   `.landing-grid` class. Other pages (widget, admin, rezerwacja)
-   stay clean. The grid div is rendered inside the landing main. */
-.landing-grid-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 44px 44px;
-}
-
 /* ── Light theme ───────────────────────────────────────── */
 [data-theme="light"] {
   --accent: #b07d45;
@@ -404,7 +390,7 @@ html {
    the top-centre and fades to nothing. Children sit above it.        */
 .section-glow {
   position: relative;
-  /* No overflow:hidden — it breaks background-attachment:fixed on section-grid */
+  /* Kept as a positioning context for ::before below. */
 }
 .section-glow::before {
   content: "";

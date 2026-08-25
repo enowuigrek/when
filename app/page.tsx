@@ -57,97 +57,10 @@ function Hi({ children }: { children: ReactNode }) {
   );
 }
 
-type Step = { n: string; title: string; body: ReactNode };
-type UseCase = { title: string; body: ReactNode };
 
-const useCases: UseCase[] = [
-  { title: "Barber shop", body: <>Strzyżenie, broda, combo. <Hi>Wielu fryzjerów</Hi>, własne grafiki i cenniki.</> },
-  { title: "Gabinet kosmetyczny", body: <>Manicure, mezoterapia, henna. <Hi>Różne ceny per specjalista</Hi>.</> },
-  { title: "Studio jogi / fitness", body: <><Hi>Zajęcia grupowe</Hi>, limity miejsc, stałe godziny zajęć.</> },
-  { title: "Przychodnia / fizjo", body: <>Wizyty lekarzy i fizjoterapeutów. <Hi>Urlopy, dni wolne</Hi>.</> },
-  { title: "Weterynarz / groomer", body: <>Wizyty o różnym czasie trwania, <Hi>historia klienta</Hi>, notatki.</> },
-  { title: "I wiele innych", body: <>Każdy biznes, w którym <Hi>klient rezerwuje konkretny termin</Hi>.</> },
-];
 
-const features: ReactNode[] = [
-  <>Strona rezerwacji w <Hi>Twojej marce</Hi></>,
-  <>Grafik: <Hi>dzień, tydzień, miesiąc</Hi></>,
-  <>Wszyscy pracownicy w <Hi>jednym widoku</Hi></>,
-  <><Hi>Różne ceny</Hi> dla grup pracowników</>,
-  <><Hi>Powiadomienia email</Hi> do klientów</>,
-  <>Anulowanie i zmiana terminu <Hi>jednym klikiem</Hi></>,
-  <>Baza klientów z <Hi>historią i notatkami</Hi></>,
-  <>Godziny otwarcia, <Hi>urlopy, dni wolne</Hi></>,
-  <>Widget do <Hi>osadzenia na stronie</Hi></>,
-  <>Wdrożenie: <Hi>jedna linijka HTML</Hi></>,
-];
 
-const ownerSteps: Step[] = [
-  {
-    n: "01",
-    title: "Piszesz do mnie",
-    body: <>Mówisz, co robisz i jak dziś zapisujesz wizyty. Dostajesz <Hi>demo z Twoimi usługami</Hi> i cenami — nie ogólne, tylko wyglądające jak Twoja firma.</>,
-  },
-  {
-    n: "02",
-    title: "Oglądasz i mówisz, co zmienić",
-    body: <>Klikasz po panelu tak, jakby był już Twój. <Hi>Konto zakładamy dopiero, gdy ma to sens</Hi> — nie ma czego wypowiadać, jeśli nie podejdzie.</>,
-  },
-  {
-    n: "03",
-    title: "Wklej widget na swoją stronę",
-    body: <>W Ustawienia → Embed widget masz gotowy kod. <Hi>Jedna linijka HTML</Hi> i formularz rezerwacji pojawia się na Twojej stronie. Działa z <Hi>WordPress, Wix lub własnym HTML</Hi>.</>,
-  },
-  {
-    n: "04",
-    title: "Zarządzaj rezerwacjami",
-    body: <>Nowe rezerwacje lądują w harmonogramie i bazie klientów. Możesz dodawać wizyty ręcznie — gdy klient zadzwoni lub przyjdzie osobiście, <Hi>system i tak wyśle potwierdzenie</Hi>.</>,
-  },
-];
 
-const clientSteps: Step[] = [
-  {
-    n: "01",
-    title: "Wchodzi na Twoją stronę",
-    body: <>Widok usług z cenami i czasem trwania. Klient może wybrać <Hi>konkretnego pracownika</Hi> albo <Hi>dowolnego</Hi>.</>,
-  },
-  {
-    n: "02",
-    title: "Wybiera datę i godzinę",
-    body: <>Kalendarz pokazuje <Hi>tylko dostępne dni</Hi>. Sloty aktualizują się <Hi>na bieżąco</Hi>.</>,
-  },
-  {
-    n: "03",
-    title: "Podaje dane i potwierdza",
-    body: <>Imię, telefon, opcjonalnie email i uwagi. <Hi>Bez rejestracji.</Hi></>,
-  },
-  {
-    n: "04",
-    title: "Dostaje potwierdzenie emailem",
-    body: <>Link do <Hi>przeniesienia terminu</Hi> i <Hi>anulowania wizyty</Hi>. Bez konieczności dzwonienia.</>,
-  },
-];
-
-function Steps({ steps }: { steps: typeof ownerSteps }) {
-  return (
-    <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {steps.map((s, i) => (
-        <div
-          key={s.n}
-          className="relative"
-          data-reveal="left"
-          style={{ "--reveal-delay": `${i * 110}ms` } as React.CSSProperties}
-        >
-          <div className="glow-card group relative rounded-xl border border-zinc-800/60 bg-zinc-900 p-5 transition-all hover:border-[var(--color-accent)]/40 hover:bg-zinc-800">
-            <span className="font-mono text-3xl font-bold leading-none text-[var(--color-accent)]/80 transition-colors group-hover:text-[var(--color-accent)]">{s.n}</span>
-            <h3 className="mt-3 font-semibold text-zinc-100">{s.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">{s.body}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 /**
  * One quiet way in for somebody who wants to click before they write.
@@ -182,8 +95,6 @@ export default function StartPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* Fixed calendar grid — landing only */}
-      <div aria-hidden className="landing-grid-bg" />
       {/* Top bar — opaque to cover grid */}
       <header className="sticky top-0 z-40 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -192,8 +103,7 @@ export default function StartPage() {
             <img src="/logo.svg" alt="when" className="h-12 logo-adaptive" />
           </Link>
           <nav className="flex items-center gap-6 text-sm">
-            <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
-            <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
+            <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Co to daje</a>
             <a href="#cena" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Cena</a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -247,84 +157,46 @@ export default function StartPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — owner */}
-      <section id="jak-to-dziala" data-section-reveal className="section-glow border-b border-zinc-800/60">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="flex items-center gap-3">
-            <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
-              Dla właściciela
-            </span>
-          </div>
-          <h2 data-reveal className="mt-3 text-3xl font-semibold tracking-tight">Jak to działa?</h2>
-          <p className="mt-2 text-zinc-500">Od pierwszej rozmowy do działającego formularza na Twojej stronie — bez IT.</p>
-          <Steps steps={ownerSteps} />
-        </div>
-      </section>
-
-      {/* HOW IT WORKS — client — black, covers grid */}
-      <section data-section-reveal className="border-b border-zinc-800/60 bg-black">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="flex items-center gap-3">
-            <span className="rounded-md bg-zinc-950 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-200">
-              Co widzi Twój klient
-            </span>
-          </div>
-          <h2 data-reveal className="mt-3 text-3xl font-semibold tracking-tight">Rezerwacja w 60 sekund.</h2>
-          <p className="mt-2 text-zinc-500">Zero logowania, zero instalowania aplikacji. Działa na telefonie.</p>
-          <Steps steps={clientSteps} />
-        </div>
-      </section>
-
-      {/* Use cases */}
-      <section data-section-reveal className="section-glow border-b border-zinc-800/60">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Dla kogo jest WHEN?</h2>
-          <p className="mt-2 text-zinc-500">
-            Wszędzie tam, gdzie liczy się kalendarz, dostępność i szybkie umawianie wizyt.
-          </p>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {useCases.map((u, i) => (
-              <div
-                key={u.title}
-                data-reveal="left"
-                style={{ "--reveal-delay": `${(i % 3) * 90}ms` } as React.CSSProperties}
-                className="glow-card rounded-xl border border-zinc-800/60 bg-zinc-900 p-6 transition-colors hover:border-[var(--color-accent)]/40"
-              >
-                <div className="mb-3 h-0.5 w-8 bg-[var(--color-accent)]" />
-                <h3 className="text-lg font-semibold text-zinc-100">{u.title}</h3>
-                <p className="mt-1.5 text-sm text-zinc-400">{u.body}</p>
-              </div>
-            ))}
+      {/* Co to daje — two questions an owner actually has, side by side.
+          This replaces four "how it works" cards, six industry tiles and a
+          ten-item feature checklist. None of them were answering a question
+          any more: the industries only ever told a physio to wonder whether
+          they counted, and the walkthrough repeated the implementation
+          section further down. Prospects are picked by hand now, so the page
+          has nobody left to qualify. */}
+      <section id="features" data-section-reveal className="border-b border-zinc-800/60 bg-black">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <div className="grid gap-12 sm:grid-cols-2">
+            <div data-reveal="left">
+              <h2 className="text-2xl font-semibold tracking-tight">Co robi Twój klient</h2>
+              <ul className="mt-5 space-y-3 text-zinc-400">
+                <li>Wchodzi na Twoją stronę, wybiera usługę i wolny termin.</li>
+                <li><Hi>Bez rejestracji</Hi>, bez instalowania aplikacji. Działa na telefonie.</li>
+                <li>Dostaje potwierdzenie mailem i sam <Hi>odwoła albo przełoży</Hi> wizytę.</li>
+              </ul>
+            </div>
+            <div data-reveal="left" style={{ "--reveal-delay": "90ms" } as React.CSSProperties}>
+              <h2 className="text-2xl font-semibold tracking-tight">Co masz Ty</h2>
+              <ul className="mt-5 space-y-3 text-zinc-400">
+                <li>Grafik dnia i tygodnia, <Hi>wszyscy pracownicy w jednym widoku</Hi>.</li>
+                <li>Wizyty dopisujesz ręcznie — klient i tak dostanie potwierdzenie.</li>
+                <li>Godziny otwarcia, urlopy, dni wolne. <Hi>Baza klientów z historią.</Hi></li>
+                <li>Osobna strona zapisów albo <Hi>widget na Twojej stronie</Hi>.</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" data-section-reveal className="section-glow border-b border-zinc-800/60 bg-zinc-950">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Co dostajesz</h2>
-          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-            {features.map((f, i) => (
-              <li
-                key={i}
-                data-reveal="left"
-                style={{ "--reveal-delay": `${(i % 2) * 80 + Math.floor(i / 2) * 60}ms` } as React.CSSProperties}
-                className="glow-card flex items-start gap-3 rounded-lg border border-zinc-800/60 bg-zinc-900 p-4"
-              >
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)] text-xs font-bold text-zinc-950">
-                  ✓
-                </span>
-                <span className="text-sm text-zinc-300">{f}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Cena — transparent, shows grid */}
-      <section id="cena" data-section-reveal className="border-b border-zinc-800/60">
-        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
+      {/* Cena — the hero's treatment: flat dark with one accent glow. It used
+          to be transparent so the calendar grid showed through, and with the
+          grid gone a see-through section has nothing behind it. */}
+      <section id="cena" data-section-reveal className="relative overflow-hidden border-b border-zinc-800/60 bg-zinc-950">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,color-mix(in_srgb,var(--color-accent)_14%,transparent),transparent_60%)]"
+        />
+        <div className="relative mx-auto max-w-3xl px-6 py-24 text-center">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Ile to kosztuje</h2>
           <p className="mt-6 text-4xl font-semibold tracking-tight text-[var(--color-accent)]">
             od 50 zł <span className="text-2xl font-normal text-zinc-400">/ miesiąc</span>
