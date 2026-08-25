@@ -212,8 +212,13 @@ export default function StartPage() {
               Bez prowizji od rezerwacji.
             </p>
             <p>
-              Przypomnienia SMS-em doliczam osobno — ile ich potrzebujesz, ustalamy przy wdrożeniu.
-              Salon z dziesięcioma wizytami dziennie potrzebuje czegoś innego niż gabinet z trzema.
+              <Hi>„Od”</Hi>, bo dwie rzeczy zależą od Twojej firmy: ile <Hi>przypomnień</Hi> wysyłasz
+              klientom i jak złożona jest <Hi>konfiguracja</Hi>. Jeden fotel to nie to samo co pięć osób
+              z osobnymi grafikami, usługami i cenami.
+            </p>
+            <p>
+              Jedno i drugie ustalamy przy wdrożeniu — <Hi>zanim cokolwiek zapłacisz</Hi>, wiesz,
+              ile to u Ciebie wychodzi.
             </p>
           </div>
           <p className="mt-6 text-xs text-zinc-600">
