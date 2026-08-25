@@ -237,8 +237,8 @@ export default function StartPage() {
               na istniejącej stronie, samodzielny panel do zarządzania rezerwacjami albo pełną stronę rezerwacji.
             </p>
             <p>
-              Jeśli masz już stronę, <Hi>dopasujemy wygląd</Hi> do Twojej marki.
-              Jeśli jej nie masz — <Hi>możemy przygotować wszystko od zera</Hi>.
+              Jeśli masz już stronę, <Hi>dopasuję wygląd</Hi> do Twojej marki.
+              Jeśli jej nie masz — <Hi>przygotuję wszystko od zera</Hi>.
             </p>
             <p>
               Wdrożenie odbywa się indywidualnie. <Hi>Nie zostajesz z konfiguracją sam</Hi> — przeprowadzam przez wszystko od początku do końca.
@@ -268,7 +268,6 @@ export default function StartPage() {
           <p className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="when" className="h-6 logo-adaptive" />
-            <span className="text-zinc-300">— system rezerwacji online</span>
           </p>
           <p className="flex items-center gap-3">
             <Link href="/polityka-prywatnosci" className="text-zinc-400 hover:text-zinc-100 transition-colors">
