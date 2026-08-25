@@ -165,7 +165,7 @@ export default function StartPage() {
           section further down. Prospects are picked by hand now, so the page
           has nobody left to qualify. */}
       <section id="features" data-section-reveal className="border-b border-zinc-800/60 bg-black">
-        <div className="mx-auto max-w-5xl px-6 py-20">
+        <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="grid gap-12 sm:grid-cols-2">
             <div data-reveal="left">
               <h2 className="text-2xl font-semibold tracking-tight">Co robi Twój klient</h2>
@@ -196,12 +196,17 @@ export default function StartPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,color-mix(in_srgb,var(--color-accent)_14%,transparent),transparent_60%)]"
         />
-        <div className="relative mx-auto max-w-3xl px-6 py-24 text-center">
+        {/* Left, like everything above it. Centring works for a headline of
+            three words and works against a paragraph: every line starts
+            somewhere else, so the eye has to hunt for the beginning of each
+            one. The page opens left-aligned and now keeps a single edge all
+            the way down. */}
+        <div className="relative mx-auto max-w-6xl px-6 py-24">
           <h2 data-reveal className="text-3xl font-semibold tracking-tight">Ile to kosztuje</h2>
           <p className="mt-6 text-4xl font-semibold tracking-tight text-[var(--color-accent)]">
             od 50 zł <span className="text-2xl font-normal text-zinc-400">/ miesiąc</span>
           </p>
-          <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
+          <div className="mt-6 max-w-xl space-y-4 text-zinc-400">
             <p>
               W tej cenie kalendarz, strona zapisów dla Twoich klientów i potwierdzenia mailem.
               Bez prowizji od rezerwacji.
@@ -219,12 +224,12 @@ export default function StartPage() {
 
       {/* Wdrożenie — black */}
       <section id="wdrozenie" data-section-reveal className="bg-black">
-        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
+        <div className="mx-auto max-w-6xl px-6 py-24">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-200">Wdrożenie</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
             Chcesz uruchomić WHEN w swojej firmie?
           </h2>
-          <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
+          <div className="mt-6 max-w-xl space-y-4 text-zinc-400">
             <p>
               System można wdrożyć <Hi>na różne sposoby</Hi> — jako widget
               na istniejącej stronie, samodzielny panel do zarządzania rezerwacjami albo pełną stronę rezerwacji.
@@ -237,7 +242,7 @@ export default function StartPage() {
               Wdrożenie odbywa się indywidualnie. <Hi>Nie zostajesz z konfiguracją sam</Hi> — przeprowadzam przez wszystko od początku do końca.
             </p>
           </div>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
+          <div className="mt-10 flex flex-wrap gap-3">
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
