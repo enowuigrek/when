@@ -129,7 +129,7 @@ export default function StartPage() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-zinc-400">
             Wizyty wpisujesz tak jak dotąd. Klient może zapisać się sam — <Hi>o 23:00 i w niedzielę</Hi>,
-            bez dzwonienia w środku strzyżenia. Baza klientów zostaje u Ciebie:
+            bez dzwonienia do Ciebie w środku pracy. Baza klientów zostaje u Ciebie:
             <Hi> bez prowizji</Hi> i bez cudzego portalu.
           </p>
 
@@ -213,17 +213,14 @@ export default function StartPage() {
             </p>
             <p>
               <Hi>„Od”</Hi>, bo dwie rzeczy zależą od Twojej firmy: ile <Hi>przypomnień</Hi> wysyłasz
-              klientom i jak złożona jest <Hi>konfiguracja</Hi>. Jeden fotel to nie to samo co pięć osób
-              z osobnymi grafikami, usługami i cenami.
+              klientom i jak złożona jest <Hi>konfiguracja</Hi>. Jedna osoba i jedna usługa to nie to
+              samo co kilkoro pracowników, osobne grafiki, różne ceny i zajęcia grupowe.
             </p>
             <p>
               Jedno i drugie ustalamy przy wdrożeniu — <Hi>zanim cokolwiek zapłacisz</Hi>, wiesz,
               ile to u Ciebie wychodzi.
             </p>
           </div>
-          <p className="mt-6 text-xs text-zinc-600">
-            Pierwsze pięć firm ma tę cenę na stałe — w zamian za szczerą opinię, co działa, a co nie.
-          </p>
         </div>
       </section>
 
