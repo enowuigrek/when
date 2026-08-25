@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { GlowCursor } from "@/components/glow-cursor";
 import { ThemeApplier } from "@/components/theme-applier";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = {
   title: "WHEN — system rezerwacji online",
-  description: "Zobacz swój salon w działającym demo — bez rejestracji. Postaw demo w 30 sekund.",
+  description:
+    "Kalendarz wizyt i strona zapisów dla Twojej firmy. Klient rezerwuje sam, baza klientów zostaje u Ciebie. Od 50 zł miesięcznie, bez prowizji.",
   alternates: { canonical: "/" },
 };
 
@@ -31,12 +31,19 @@ const jsonLd = {
     name: "Łukasz Nowak",
     url: "https://lukasznowak.dev",
   },
+  // A floor, not a fixed price: what a business pays depends on how many SMS
+  // reminders it sends. This used to declare 0 PLN, left over from when the
+  // page sold a free demo — which told search engines the product was free.
   offers: {
     "@type": "Offer",
-    price: "0",
     priceCurrency: "PLN",
     availability: "https://schema.org/InStock",
-    description: "Demo bez rejestracji",
+    priceSpecification: {
+      "@type": "PriceSpecification",
+      minPrice: "50",
+      priceCurrency: "PLN",
+      valueAddedTaxIncluded: false,
+    },
   },
 };
 
@@ -78,13 +85,13 @@ const features: ReactNode[] = [
 const ownerSteps: Step[] = [
   {
     n: "01",
-    title: "Kliknij demo poniżej",
-    body: <>Wybierasz branżę — barber, kosmetyka albo studio. Wchodzisz prosto do <Hi>panelu managera</Hi> z gotowymi danymi. <Hi>Bez formularzy, bez podpinania karty.</Hi></>,
+    title: "Piszesz do mnie",
+    body: <>Mówisz, co robisz i jak dziś zapisujesz wizyty. Dostajesz <Hi>demo z Twoimi usługami</Hi> i cenami — nie ogólne, tylko wyglądające jak Twoja firma.</>,
   },
   {
     n: "02",
-    title: "Poznaj panel w 5 minut",
-    body: <>Sprawdź harmonogram, edytuj usługi i ceny, zmień kolory. <Hi>Dane demo są realistyczne</Hi> — wyglądają jak prawdziwy salon.</>,
+    title: "Oglądasz i mówisz, co zmienić",
+    body: <>Klikasz po panelu tak, jakby był już Twój. <Hi>Konto zakładamy dopiero, gdy ma to sens</Hi> — nie ma czego wypowiadać, jeśli nie podejdzie.</>,
   },
   {
     n: "03",
@@ -142,55 +149,28 @@ function Steps({ steps }: { steps: typeof ownerSteps }) {
   );
 }
 
-function DemoCTAs() {
-  const baseLink = "rounded-lg px-6 py-3 text-base font-medium transition-colors text-center";
-  const primary = `${baseLink} bg-[var(--color-accent)] text-zinc-950 hover:opacity-90`;
-  const secondary = `${baseLink} border border-zinc-700 bg-zinc-900 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800`;
-  // Same labels for both variants — keeps the three buttons visually equal.
-  const labels = { barber: "Barber Shop", kosmetyka: "Gabinet Kosmetyczny", joga: "Studio Jogi" };
-  // Grid: stacked on mobile, three equal columns from sm up.
+/**
+ * One quiet way in for somebody who wants to click before they write.
+ *
+ * This used to be three buttons carrying the hero. Selling now starts with a
+ * demo built for the person by name, so a generic one is a worse version of
+ * what they will get anyway — and "spin one up in 30 seconds" is a
+ * SaaS-native gesture aimed at people who keep their diary on paper. The
+ * generator still works and still helps mid-conversation, so it stays: one
+ * line, low on the page, where it costs nobody anything.
+ */
+function DemoLink() {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <a href="/api/demo/start?wariant=barber" className={primary}>Demo — {labels.barber}</a>
-      <a href="/api/demo/start?wariant=kosmetyka" className={secondary}>Demo — {labels.kosmetyka}</a>
-      <a href="/api/demo/start?wariant=joga" className={secondary}>Demo — {labels.joga}</a>
-    </div>
+    <a
+      href="/api/demo/start?wariant=barber"
+      className="text-sm text-zinc-400 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline"
+    >
+      Wolisz najpierw poklikać? Otwórz demo →
+    </a>
   );
 }
 
-/**
- * Returns the direct booking URL for the owner's "Book a meeting" CTA.
- * Looks up the owner tenant by OWNER_EMAIL env var, then picks the
- * first active service (ordered by sort_order).
- */
-async function getOwnerBookingUrl(): Promise<string> {
-  const fallback = "/rezerwacja";
-  const ownerEmail = process.env.OWNER_EMAIL ?? CONTACT_EMAIL;
-
-  const supabase = createAdminClient();
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, slug")
-    .eq("email", ownerEmail)
-    .maybeSingle();
-
-  if (!tenant?.slug) return fallback;
-
-  const { data: svc } = await supabase
-    .from("services")
-    .select("slug")
-    .eq("tenant_id", tenant.id)
-    .eq("active", true)
-    .order("sort_order")
-    .limit(1)
-    .maybeSingle();
-
-  return svc ? `/widget/${tenant.slug}/${svc.slug}` : fallback;
-}
-
-export default async function StartPage() {
-  const ownerBookingUrl = await getOwnerBookingUrl();
-
+export default function StartPage() {
   return (
     <main className="min-h-screen text-zinc-100">
       {/* Force dark theme on the landing — without this, a previous visit to
@@ -214,12 +194,13 @@ export default async function StartPage() {
           <nav className="flex items-center gap-6 text-sm">
             <a href="#jak-to-dziala" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Jak to działa?</a>
             <a href="#features" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Funkcje</a>
-            <Link
-              href={ownerBookingUrl}
+            <a href="#cena" className="hidden text-zinc-300 hover:text-zinc-100 sm:block transition-colors font-medium">Cena</a>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
               className="rounded-lg bg-[var(--color-accent)] px-4 py-2 font-medium text-zinc-950 transition-opacity hover:opacity-90"
             >
-              Umów rozmowę
-            </Link>
+              Napisz do mnie
+            </a>
           </nav>
         </div>
       </header>
@@ -233,26 +214,36 @@ export default async function StartPage() {
         <div className="relative mx-auto max-w-6xl px-6 py-24 sm:py-32">
           <p className="mb-4 text-sm uppercase tracking-widest text-[var(--color-accent)]">System rezerwacji online</p>
           <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight sm:text-6xl">
-            Zobacz swój salon w działającym demo —<br />
-            <span className="text-zinc-400">bez rejestracji.</span>
+            Kalendarz wizyt, który jest<br />
+            <span className="text-zinc-400">dalej Twój.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-zinc-400">
-            Postaw demo w <Hi>30 sekund</Hi>. Sprawdź jak wygląda <Hi>panel managera</Hi> i strona, którą zobaczą Twoi klienci.
-            Demo jest <Hi>pełnoprawne</Hi> — z pracownikami, usługami i przykładowymi rezerwacjami.
+            Wizyty wpisujesz tak jak dotąd. Klient może zapisać się sam — <Hi>o 23:00 i w niedzielę</Hi>,
+            bez dzwonienia w środku strzyżenia. Baza klientów zostaje u Ciebie:
+            <Hi> bez prowizji</Hi> i bez cudzego portalu.
           </p>
 
-          <div id="demo" className="mt-10">
-            <DemoCTAs />
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-4">
-            <p className="text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
+          <div id="demo" className="mt-10 flex flex-wrap items-center gap-4">
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline transition-colors"
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 text-base font-medium text-zinc-950 transition-opacity hover:opacity-90"
             >
-              Wolisz najpierw pogadać? Napisz do mnie →
+              Napisz do mnie →
             </a>
+            <DemoLink />
           </div>
+          <p className="mt-5 max-w-2xl text-sm text-zinc-500">
+            WHEN zbudowałem sam i sam go wdrażam — <Hi>Łukasz Nowak</Hi>,{" "}
+            <a
+              href="https://lukasznowak.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-zinc-700 underline-offset-4 transition-colors hover:text-zinc-300"
+            >
+              lukasznowak.dev
+            </a>
+            . Piszesz do człowieka, nie do działu obsługi.
+          </p>
         </div>
       </section>
 
@@ -265,13 +256,8 @@ export default async function StartPage() {
             </span>
           </div>
           <h2 data-reveal className="mt-3 text-3xl font-semibold tracking-tight">Jak to działa?</h2>
-          <p className="mt-2 text-zinc-500">Od kliknięcia demo do działającego formularza na Twojej stronie — bez IT.</p>
+          <p className="mt-2 text-zinc-500">Od pierwszej rozmowy do działającego formularza na Twojej stronie — bez IT.</p>
           <Steps steps={ownerSteps} />
-
-          <div className="mt-10">
-            <DemoCTAs />
-            <p className="mt-3 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
-          </div>
         </div>
       </section>
 
@@ -336,15 +322,26 @@ export default async function StartPage() {
         </div>
       </section>
 
-      {/* Final CTA — transparent, shows grid */}
-      <section data-section-reveal className="border-b border-zinc-800/60">
+      {/* Cena — transparent, shows grid */}
+      <section id="cena" data-section-reveal className="border-b border-zinc-800/60">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
-          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Najszybsza droga to po prostu spróbować.</h2>
-          <p className="mt-4 text-zinc-400">Wybierz branżę najbliższą Twojej. Demo wygląda jakby było już Twoje.</p>
-          <div className="mt-8 flex justify-center">
-            <DemoCTAs />
+          <h2 data-reveal className="text-3xl font-semibold tracking-tight">Ile to kosztuje</h2>
+          <p className="mt-6 text-4xl font-semibold tracking-tight text-[var(--color-accent)]">
+            od 50 zł <span className="text-2xl font-normal text-zinc-400">/ miesiąc</span>
+          </p>
+          <div className="mx-auto mt-6 max-w-xl space-y-4 text-zinc-400">
+            <p>
+              W tej cenie kalendarz, strona zapisów dla Twoich klientów i potwierdzenia mailem.
+              Bez prowizji od rezerwacji.
+            </p>
+            <p>
+              Przypomnienia SMS-em doliczam osobno — ile ich potrzebujesz, ustalamy przy wdrożeniu.
+              Salon z dziesięcioma wizytami dziennie potrzebuje czegoś innego niż gabinet z trzema.
+            </p>
           </div>
-          <p className="mt-4 text-xs text-zinc-600">Bez rejestracji, bez karty. Demo znika po 24h.</p>
+          <p className="mt-6 text-xs text-zinc-600">
+            Pierwsze pięć firm ma tę cenę na stałe — w zamian za szczerą opinię, co działa, a co nie.
+          </p>
         </div>
       </section>
 
@@ -369,21 +366,19 @@ export default async function StartPage() {
             </p>
           </div>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link
-              href={ownerBookingUrl}
-              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
-            >
-              Umów bezpłatną rozmowę →
-            </Link>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-6 py-3 font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+              className="rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-zinc-950 transition-opacity hover:opacity-90"
             >
               Napisz do mnie →
             </a>
           </div>
-          <p className="mt-4 text-xs text-zinc-600">
-            Najpierw rozmowa albo wiadomość — konto zakładamy dopiero, gdy ma to sens
+          <p className="mt-4 text-sm text-zinc-500">
+            Napisz, co robisz i jak dziś zapisujesz wizyty. Odpiszę, czy WHEN ma u Ciebie sens —
+            a jeśli nie ma, powiem wprost.
+          </p>
+          <p className="mt-6">
+            <DemoLink />
           </p>
         </div>
       </section>
