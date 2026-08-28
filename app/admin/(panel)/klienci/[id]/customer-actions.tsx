@@ -57,7 +57,13 @@ export function CustomerActions({
         ) : (
           <form action={deleteCustomerAction} className="flex items-center gap-2">
             <input type="hidden" name="id" value={customerId} />
-            <span className="text-sm text-zinc-400">Na pewno?</span>
+            {/* Says what actually happens: the visits stay in the books, the
+                person stops being identifiable in them. "Na pewno?" alone left
+                the owner guessing whether the history would go too. */}
+            <span className="text-sm text-zinc-400">
+              Usunąć dane tego klienta? Wizyty zostaną w historii, ale bez jego
+              nazwiska, telefonu i notatek.
+            </span>
             <Button type="submit" variant="dangerSolid" radius="full" className="py-1.5">
               Tak, usuń
             </Button>

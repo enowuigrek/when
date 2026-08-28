@@ -81,6 +81,27 @@ export async function createCustomerAction(
   return { status: "ok", id: data.id };
 }
 
+/** What a booking says once the person it belonged to has been erased. */
+const ERASED_NAME = "Klient usunięty";
+const ERASED_PHONE = "—";
+
+/**
+ * Erase a customer: remove the record, and strip their details from
+ * everything that copied them.
+ *
+ * Deleting the `customers` row alone used to leave the person's name, phone
+ * and email sitting in every booking they ever made, plus their name on every
+ * notification event — because bookings carry those as plain columns rather
+ * than a reference. So "delete this customer" removed a row and erased almost
+ * nothing, which is not what the word means and not what someone asking to be
+ * forgotten is owed.
+ *
+ * The appointments themselves stay. A salon's history of what was done and
+ * what it earned is the business's own record, and destroying it to honour an
+ * erasure request would be answering one obligation by breaking another. What
+ * goes is everything that identifies a person: name, phone, email, and the
+ * notes, which exist to describe them.
+ */
 export async function deleteCustomerAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const id = formData.get("id")?.toString();
@@ -88,8 +109,48 @@ export async function deleteCustomerAction(formData: FormData): Promise<void> {
 
   const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
-  // Detach historical bookings — set customer_phone unchanged but customers row removed.
-  // Bookings reference customer_phone (text), not customers.id, so deleting the customer is safe.
+
+  // Read the phone first: it is the only link from a booking back to a
+  // customer, and it is about to stop existing.
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("phone")
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (customer?.phone) {
+    const { data: theirs } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", customer.phone);
+
+    const { error: bookingsError } = await supabase
+      .from("bookings")
+      .update({
+        customer_name: ERASED_NAME,
+        // Not null on this column, so a marker rather than an empty value.
+        customer_phone: ERASED_PHONE,
+        customer_email: null,
+        notes: null,
+      })
+      .eq("tenant_id", tenantId)
+      .eq("customer_phone", customer.phone);
+    if (bookingsError) throw new Error(`Nie udało się usunąć danych z rezerwacji: ${bookingsError.message}`);
+
+    // The bell keeps its own copy of the name on every event.
+    const ids = (theirs ?? []).map((b) => b.id);
+    if (ids.length > 0) {
+      const { error: eventsError } = await supabase
+        .from("booking_events")
+        .update({ customer_name: ERASED_NAME })
+        .eq("tenant_id", tenantId)
+        .in("booking_id", ids);
+      if (eventsError) throw new Error(`Nie udało się usunąć danych z powiadomień: ${eventsError.message}`);
+    }
+  }
+
   const { error } = await supabase
     .from("customers")
     .delete()
@@ -98,6 +159,7 @@ export async function deleteCustomerAction(formData: FormData): Promise<void> {
   if (error) throw new Error(`Nie udało się usunąć: ${error.message}`);
 
   revalidatePath("/admin/klienci");
+  revalidatePath("/admin/harmonogram");
   redirect(`${await getAdminBasePath()}/klienci`);
 }
 
