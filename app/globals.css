@@ -448,3 +448,17 @@ html {
    reference and the full-height sidebar scrolls away, leaving a void below
    it. Width is contained on the panel's <main> instead, which is not an
    ancestor of the sidebar. */
+
+/* ── Scroll without a track ─────────────────────────────
+   For panels whose header sits outside the scrolling area: a scrollbar
+   appearing inside narrows the rows and knocks their controls out of line
+   with the header's. Scrolling itself is untouched — wheel, trackpad and
+   touch all still work, and this is only applied where the list is short
+   enough that losing the visible track costs nothing. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

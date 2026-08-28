@@ -186,7 +186,14 @@ function NotifRow({
       <button
         type="button"
         onClick={onDelete}
-        className={iconButtonClasses("-my-2 text-lg leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
+        // No negative right margin here or in the header. On a flex row a
+        // negative margin on the last child does not pull it into the parent's
+        // padding — it grows the container instead, which pushed the header's
+        // × past the panel edge and left the row buttons 13px short of it.
+        // Both now stop at the same content edge, so every × lines up.
+        // -my-2 stays: that one only keeps the 44px target from making the
+        // row taller than its text.
+        className={iconButtonClasses("-my-2 text-2xl leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
         aria-label={`Usuń powiadomienie — ${item.customerName}`}
       >
         ×
@@ -463,15 +470,19 @@ export function AdminNotificationBell({
           >
             {/* Header with close */}
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800/60 px-4">
-              <span className="text-sm font-semibold text-zinc-200">Powiadomienia</span>
-              <div className="flex items-center gap-3">
+              {/* The heading gives way, the controls do not: with all three
+                  buttons at a 44px target the row needed more width than the
+                  panel has, and the overflow pushed the × past the panel edge
+                  where it was clipped. */}
+              <span className="min-w-0 truncate text-sm font-semibold text-zinc-200">Powiadomienia</span>
+              <div className="flex shrink-0 items-center gap-1">
                 {unread > 0 && (
-                  <button type="button" onClick={markAllRead} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={markAllRead} className="min-h-11 px-1 text-xs text-zinc-500 hover:text-zinc-300">
                     Przeczytane
                   </button>
                 )}
                 {items.length > 0 && (
-                  <button type="button" onClick={clearAll} className="min-h-11 px-2 text-xs text-zinc-500 hover:text-zinc-300">
+                  <button type="button" onClick={clearAll} className="min-h-11 px-1 text-xs text-zinc-500 hover:text-zinc-300">
                     Wyczyść
                   </button>
                 )}
@@ -479,7 +490,7 @@ export function AdminNotificationBell({
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Zamknij"
-                  className={iconButtonClasses("-mr-2 text-lg leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
+                  className={iconButtonClasses("text-2xl leading-none text-zinc-600 hover:bg-zinc-800/60 hover:text-zinc-300")}
                 >
                   ×
                 </button>
@@ -491,7 +502,15 @@ export function AdminNotificationBell({
               {items.length === 0 ? (
                 <p className="px-4 py-6 text-center text-sm text-zinc-500">Brak powiadomień.</p>
               ) : (
-                <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#3f3f46 transparent" }}>
+                // No scrollbar track in this list. The header sits outside the
+                // scroll container, so a bar appearing here narrowed the rows
+                // and pushed every row's × 13px left of the header's — near
+                // enough to look like a mistake rather than a choice. Reserving
+                // a gutter instead would make that gap permanent, and matching
+                // it in the header means measuring the bar in JavaScript for a
+                // panel this small. The list still scrolls by wheel, trackpad
+                // and touch, and the row dividers show it continues.
+                <ul className="flex-1 divide-y divide-zinc-800/60 overflow-y-auto no-scrollbar">
                   {items.map((item) => (
             <NotifRow
               key={item.id}
@@ -535,7 +554,7 @@ export function AdminNotificationBell({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className={iconButtonClasses("-mr-2 text-2xl leading-none text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200")}
+                className={iconButtonClasses("text-2xl leading-none text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-200")}
                 aria-label="Zamknij"
               >
                 ×
