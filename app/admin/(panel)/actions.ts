@@ -157,6 +157,17 @@ export async function rescheduleBookingAction(formData: FormData): Promise<{ ok:
 
   if (!booking) return { ok: false, message: "Rezerwacja nie znaleziona." };
 
+  // A seat in a recurring class is not a movable appointment. Dragging one
+  // would take a single child out of the class and leave them alone in the
+  // room at 14:00 — and dragging it never means that. The class itself moves
+  // by changing the group, which is a decision about every child in it.
+  if ((booking as { class_group_id: string | null }).class_group_id) {
+    return {
+      ok: false,
+      message: "To jest zapis na stałe zajęcia — termin zmienia się w grupie, nie tutaj.",
+    };
+  }
+
   // Scoped to the tenant on purpose: an id from another account must not be
   // assignable by handing it to this action.
   const staffChanged = staffGiven && staffId !== booking.staff_id;

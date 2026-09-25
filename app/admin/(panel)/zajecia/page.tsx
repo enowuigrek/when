@@ -14,7 +14,7 @@ import {
   meetingTimeLabel,
   nextMeetings,
 } from "@/lib/class-groups";
-import { formatWarsawDate } from "@/lib/slots";
+import { formatWarsawDate, warsawDayBoundsUtc } from "@/lib/slots";
 import { AddToGroupDialog } from "./add-to-group-dialog";
 
 export const metadata = { title: "Zajęcia", robots: { index: false } };
@@ -49,15 +49,12 @@ export default async function ZajeciaPage() {
   const meetingsByGroup = new Map(
     groups.map((g) => [g.id, nextMeetings(g, HORIZON)] as const)
   );
-  const allInstants = [...meetingsByGroup.values()].flat();
-  const from = allInstants.reduce(
-    (a, m) => (a < m.startsAtIso ? a : m.startsAtIso),
-    allInstants[0].startsAtIso
-  );
-  const to = allInstants.reduce(
-    (a, m) => (a > m.endsAtIso ? a : m.endsAtIso),
-    allInstants[0].endsAtIso
-  );
+  // Whole days rather than the exact meeting windows: seats are keyed by group
+  // and date, so counting a narrower slice would lose any seat whose hour has
+  // drifted from its class.
+  const allDates = [...meetingsByGroup.values()].flat().map((m) => m.date).sort();
+  const from = warsawDayBoundsUtc(allDates[0]).startIso;
+  const to = warsawDayBoundsUtc(allDates[allDates.length - 1]).endIso;
 
   const ids = groups.map((g) => g.id);
   const [seats, roster] = await Promise.all([

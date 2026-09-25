@@ -6,7 +6,13 @@ import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
 import { DayBookingCard } from "./day-booking-card";
 import { DraggableBooking } from "./draggable-booking";
-import { UNASSIGNED_COLUMN, withUnassignedColumn } from "./columns";
+import {
+  UNASSIGNED_COLUMN,
+  CLASS_COLUMN,
+  classColumn,
+  bookingsColumn,
+  withUnassignedColumn,
+} from "./columns";
 import { NewBookingButton, type ServiceOption } from "@/components/booking-create-modal";
 import { StaffCarousel } from "@/components/schedule/staff-carousel";
 import { ScheduleDatePicker } from "./schedule-date-picker";
@@ -17,7 +23,12 @@ import { PageShell } from "@/components/ui/page-shell";
 import { calendarWindow } from "@/lib/calendar-window";
 import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
 import { hasFeature } from "@/lib/features";
-import { getClassGroupsForTenant, getSeatCountsForTenant, seatsKey } from "@/lib/db/class-groups";
+import {
+  getClassGroupsForTenant,
+  getSeatCountsForTenant,
+  getGroupRosterForTenant,
+  seatsKey,
+} from "@/lib/db/class-groups";
 import { meetingInstants, meetingTimeLabel } from "@/lib/class-groups";
 import { AdminLink } from "@/components/admin-link";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
@@ -137,38 +148,62 @@ export default async function HarmonogramPage({
       warsawDayBoundsUtc(calWindowEnd).endIso
     ),
   ]);
-  // Classes running on the day being viewed, enrolled or not.
+  // Classes running in the range being viewed, enrolled or not.
   //
   // The grid draws bookings, so a group nobody has signed up for yet is an
   // empty afternoon there — indistinguishable from a free one, which is how a
   // haircut ends up booked on top of a class. Only fetched where the tenant
   // runs groups; everyone else pays nothing for this.
   const features = await getAdminTenantFeatures();
-  let classMeetings: ClassMeeting[] = [];
-  if (view === "dzien" && hasFeature(features, "grupy")) {
+  const classByDate = new Map<string, ClassMeeting[]>();
+  if (hasFeature(features, "grupy")) {
     const tenantId = await getAdminTenantId();
-    const dow = warsawDayOfWeek(baseDate);
-    const todayGroups = (await getClassGroupsForTenant(tenantId)).filter(
-      (g) => g.day_of_week === dow
-    );
-    if (todayGroups.length > 0) {
-      const instants = todayGroups.map((g) => meetingInstants(g, baseDate));
-      const seats = await getSeatCountsForTenant(
-        todayGroups.map((g) => g.id),
-        instants.reduce((a, b) => (a < b.startsAtIso ? a : b.startsAtIso), instants[0].startsAtIso),
-        instants.reduce((a, b) => (a > b.endsAtIso ? a : b.endsAtIso), instants[0].endsAtIso),
-        tenantId
+    const groups = await getClassGroupsForTenant(tenantId);
+    if (groups.length > 0) {
+      const dates: string[] = [];
+      for (let d = startDate; d <= endDate; d = addDays(d, 1)) dates.push(d);
+
+      const pairs = dates.flatMap((d) =>
+        groups
+          .filter((g) => g.day_of_week === warsawDayOfWeek(d))
+          .map((g) => ({ date: d, group: g, ...meetingInstants(g, d) }))
       );
-      classMeetings = todayGroups.map((g) => ({
-        id: g.id,
-        time: meetingTimeLabel(g),
-        name: g.age_label ?? g.service.name,
-        taken: seats.get(seatsKey(g.id, baseDate)) ?? 0,
-        min: g.min_participants,
-        max: g.max_participants,
-      }));
+
+      if (pairs.length > 0) {
+        const ids = [...new Set(pairs.map((p) => p.group.id))];
+        // Whole days, not the exact meeting windows. Seats are counted per
+        // group and date, so a seat whose hour has drifted — a booking moved
+        // before class seats were made unmovable — still belongs to its class
+        // rather than disappearing from the count and from the grid alike.
+        const from = warsawDayBoundsUtc(dates[0]).startIso;
+        const to = warsawDayBoundsUtc(dates[dates.length - 1]).endIso;
+        const [seats, roster] = await Promise.all([
+          getSeatCountsForTenant(ids, from, to, tenantId),
+          getGroupRosterForTenant(ids, from, to, tenantId),
+        ]);
+        const minutes = (t: string) => {
+          const [hh, mm] = t.split(":").map(Number);
+          return hh * 60 + mm;
+        };
+        for (const p of pairs) {
+          const list = classByDate.get(p.date) ?? [];
+          list.push({
+            id: `${p.group.id}@${p.date}`,
+            time: meetingTimeLabel(p.group),
+            name: p.group.age_label ?? p.group.service.name,
+            taken: seats.get(seatsKey(p.group.id, p.date)) ?? 0,
+            min: p.group.min_participants,
+            max: p.group.max_participants,
+            startMin: minutes(p.group.start_time),
+            endMin: minutes(p.group.end_time),
+            names: roster.get(seatsKey(p.group.id, p.date)) ?? [],
+          });
+          classByDate.set(p.date, list);
+        }
+      }
     }
   }
+  const classMeetings = classByDate.get(baseDate) ?? [];
 
   // Numbering needs every lesson of the packages on screen, not just the ones
   // inside this window — a lesson booked for next month still decides whether
@@ -332,7 +367,7 @@ export default async function HarmonogramPage({
 
           <div className="mt-4">
             {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classMeetings={classMeetings} />}
-            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
+            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classByDate={classByDate} />}
           </div>
         </div>
       </div>
@@ -356,6 +391,11 @@ type ClassMeeting = {
   taken: number;
   min: number | null;
   max: number | null;
+  /** Warsaw minutes from midnight — where the block sits in the grid. */
+  startMin: number;
+  endMin: number;
+  /** Who is already down for it. */
+  names: string[];
 };
 
 const ROW_H = 52;
@@ -372,6 +412,13 @@ const ROW_H = 52;
  */
 type CellPlan =
   | {
+      kind: "class";
+      meeting: ClassMeeting;
+      span: number;
+      offsetMin: number;
+      durationMin: number;
+    }
+  | {
       kind: "start";
       booking: Awaited<ReturnType<typeof getBookingsBetween>>[number];
       span: number;
@@ -379,6 +426,68 @@ type CellPlan =
       durationMin: number;
     }
   | { kind: "covered" };
+
+/**
+ * A class drawn in the grid.
+ *
+ * Deliberately not a booking card: it carries no drag handle and no
+ * management modal, because a class does not move and is not cancelled by
+ * dropping it somewhere else. What it shows instead is the one thing the
+ * owner needs before the day starts — how full it is, and whether it has
+ * reached the number of children it takes to run at all.
+ */
+function ClassBlock({ plan }: { plan: Extract<CellPlan, { kind: "class" }> }) {
+  const m = plan.meeting;
+  const blockH = Math.max(28, (plan.durationMin / 30) * ROW_H - 6);
+  const goal = m.min ?? m.max ?? null;
+  const ready = goal === null || m.taken >= goal;
+  const pct = goal ? Math.min(100, Math.round((m.taken / goal) * 100)) : 100;
+
+  return (
+    <div
+      className="absolute inset-x-1 overflow-hidden rounded-lg border px-2 py-1.5"
+      style={{
+        top: (plan.offsetMin / 30) * ROW_H + 3,
+        height: blockH,
+        // Full groups read in the accent; one still filling stays muted, so a
+        // glance down the column says which classes are actually running.
+        borderColor: ready ? "var(--color-accent)" : "var(--color-zinc-700, #3f3f46)",
+        backgroundColor: ready
+          ? "color-mix(in srgb, var(--color-accent) 18%, transparent)"
+          : "color-mix(in srgb, var(--color-accent) 7%, transparent)",
+      }}
+    >
+      <p className="truncate font-mono text-[11px] text-zinc-400">{m.time}</p>
+      <p className="truncate text-xs font-medium text-zinc-100">{m.name}</p>
+
+      {goal !== null && (
+        <div className="mt-1.5">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+            <div
+              className="h-full rounded-full transition-[width]"
+              style={{
+                width: `${pct}%`,
+                backgroundColor: ready ? "var(--color-accent)" : "#71717a",
+              }}
+            />
+          </div>
+          <p className="mt-1 truncate text-[10px] text-zinc-400">
+            {m.taken} z {goal} {ready ? "— komplet" : "— zbieramy"}
+          </p>
+        </div>
+      )}
+      {goal === null && (
+        <p className="mt-1 truncate text-[10px] text-zinc-400">zapisanych {m.taken}</p>
+      )}
+
+      {blockH > 110 && m.names.length > 0 && (
+        <p className="mt-1.5 line-clamp-3 text-[10px] leading-snug text-zinc-500">
+          {m.names.join(", ")}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * One booking drawn in the grid: the card, the drag, and the outline the drag
@@ -481,8 +590,17 @@ function DayView({
 
   const [openH, openM] = openTime.split(":").map(Number);
   const [closeH, closeM] = closeTime.split(":").map(Number);
-  const startMin = openH * 60 + openM;
-  const endMin = closeH * 60 + closeM;
+  // Classes are not bound by opening hours — a pracownia whose only "open"
+  // day is Saturday still teaches on Monday at 15:45, and a grid that stopped
+  // at closing time would simply not draw it.
+  const startMin = Math.min(
+    openH * 60 + openM,
+    ...classMeetings.map((m) => Math.floor(m.startMin / 30) * 30)
+  );
+  const endMin = Math.max(
+    closeH * 60 + closeM,
+    ...classMeetings.map((m) => Math.ceil(m.endMin / 30) * 30)
+  );
 
   const slots: { label: string; min: number }[] = [];
   for (let m = startMin; m < endMin; m += 30) {
@@ -491,11 +609,44 @@ function DayView({
     slots.push({ label: `${h}:${min}`, min: m });
   }
 
-  const dayBookings = active.filter((b) => warsawDate(b.starts_at) === date);
+  // A seat in a class is not drawn as its own card: four children on Monday
+  // would be four cards stacked on one another saying the same thing. The
+  // class block carries the count instead.
+  const dayBookings = active.filter(
+    (b) =>
+      warsawDate(b.starts_at) === date &&
+      !(b as { class_group_id?: string | null }).class_group_id
+  );
 
   const planKey = (staffId: string, slotMin: number) => `${staffId}@${slotMin}`;
-  const columns = withUnassignedColumn(visibleStaff, dayBookings);
+  // With no staff the grid normally falls back to one implicit column. Once
+  // the class column sits beside it that fallback never fires, so the
+  // bookings column has to be spelled out or every unassigned booking on the
+  // day disappears from the schedule.
+  const staffColumns = withUnassignedColumn(visibleStaff, dayBookings);
+  const columns =
+    classMeetings.length > 0
+      ? [classColumn, ...(staffColumns.length > 0 ? staffColumns : [bookingsColumn])]
+      : staffColumns;
   const cellPlans = new Map<string, CellPlan>();
+
+  for (const m of classMeetings) {
+    const mStart = Math.max(m.startMin, startMin);
+    const mEnd = Math.min(m.endMin, endMin);
+    if (mEnd <= mStart) continue;
+    const firstSlot = startMin + Math.floor((mStart - startMin) / 30) * 30;
+    const span = Math.max(1, Math.ceil((mEnd - firstSlot) / 30));
+    cellPlans.set(planKey(CLASS_COLUMN, firstSlot), {
+      kind: "class",
+      meeting: m,
+      span,
+      offsetMin: mStart - firstSlot,
+      durationMin: mEnd - mStart,
+    });
+    for (let k = 1; k < span; k++) {
+      cellPlans.set(planKey(CLASS_COLUMN, firstSlot + k * 30), { kind: "covered" });
+    }
+  }
 
   for (const b of dayBookings) {
     // A tenant with nobody on the books yet has bookings with no staff_id.
@@ -642,6 +793,14 @@ function DayView({
                 // was already consumed by that booking's rowSpan.
                 if (plan?.kind === "covered") return null;
 
+                if (plan?.kind === "class") {
+                  return (
+                    <td key={s.id} rowSpan={plan.span} className="relative border-r border-dashed border-zinc-800/40 align-top">
+                      <ClassBlock plan={plan} />
+                    </td>
+                  );
+                }
+
                 if (plan?.kind === "start") {
                   return (
                     <td key={s.id} rowSpan={plan.span} className="relative border-r border-dashed border-zinc-800/40 align-top">
@@ -656,6 +815,14 @@ function DayView({
                         openBookingId={openBookingId}
                       />
                     </td>
+                  );
+                }
+
+                if (s.id === CLASS_COLUMN) {
+                  // Nothing to offer here: the column holds the timetable, and
+                  // an hour with no class on it is not a slot to book.
+                  return (
+                    <td key={s.id} className="border-r border-dashed border-zinc-800/40 p-0 align-top" />
                   );
                 }
 
@@ -715,11 +882,56 @@ function DayView({
           ))}
         </tbody>
       </table>
-      {dayHours?.closed && (
+      {/* Not said on a day that has classes on it. Opening hours describe when
+          the room takes walk-in bookings; a pracownia whose only open day is
+          Saturday still teaches on Monday, and "dzień wolny" printed under two
+          classes is simply wrong. */}
+      {dayHours?.closed && classMeetings.length === 0 && (
         <p className="px-4 py-6 text-center text-sm text-zinc-600">Dzień wolny według godzin biznesu.</p>
       )}
     </StaffCarousel>
     </>
+  );
+}
+
+/**
+ * A class in the week grid: the same fact as the day block, in one line.
+ *
+ * No management button — a class does not open a booking modal, because it is
+ * not one person's appointment and nothing about it is cancelled from here.
+ */
+function WeekClassChip({ meeting }: { meeting: ClassMeeting }) {
+  const goal = meeting.min ?? meeting.max ?? null;
+  const ready = goal === null || meeting.taken >= goal;
+  const pct = goal ? Math.min(100, Math.round((meeting.taken / goal) * 100)) : 100;
+  return (
+    <div
+      className="rounded px-1.5 py-1"
+      style={{
+        borderLeft: "2px solid var(--color-accent)",
+        backgroundColor: ready
+          ? "color-mix(in srgb, var(--color-accent) 18%, transparent)"
+          : "color-mix(in srgb, var(--color-accent) 7%, transparent)",
+      }}
+    >
+      <p className="font-mono text-xs text-zinc-300">{meeting.time}</p>
+      <p className="text-xs font-medium text-zinc-200">{meeting.name}</p>
+      {goal !== null ? (
+        <>
+          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${pct}%`, backgroundColor: ready ? "var(--color-accent)" : "#71717a" }}
+            />
+          </div>
+          <p className="mt-0.5 text-[10px] text-zinc-500">
+            {meeting.taken} z {goal}
+          </p>
+        </>
+      ) : (
+        <p className="mt-0.5 text-[10px] text-zinc-500">zapisanych {meeting.taken}</p>
+      )}
+    </div>
   );
 }
 
@@ -733,6 +945,7 @@ function WeekView({
   navUrl,
   openBookingId,
   lessonPositions,
+  classByDate,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -742,11 +955,24 @@ function WeekView({
   navUrl: (v: View, d: string) => string;
   openBookingId: string | null;
   lessonPositions: Map<string, LessonPosition>;
+  classByDate: Map<string, ClassMeeting[]>;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
-  const columns = withUnassignedColumn(visibleStaff, active);
+  // Seats in a class belong to the class chip, not to the bookings column —
+  // three children at 15:45 listed one under another say nothing the chip's
+  // "3 z 5" does not, and push the day's real bookings off the screen.
+  const loose = active.filter(
+    (b) => !(b as { class_group_id?: string | null }).class_group_id
+  );
+  const hasClasses = days.some((d) => (classByDate.get(d)?.length ?? 0) > 0);
+  // Same reasoning as the day view: the timetable gets its own column so the
+  // week says what actually runs, not only who booked what.
+  const staffColumns = withUnassignedColumn(visibleStaff, loose);
+  const columns = hasClasses
+    ? [classColumn, ...(staffColumns.length > 0 ? staffColumns : [bookingsColumn])]
+    : staffColumns;
   const byDayStaff = new Map<string, Map<string, typeof active>>();
-  for (const b of active) {
+  for (const b of loose) {
     const ds = warsawDate(b.starts_at);
     if (!byDayStaff.has(ds)) byDayStaff.set(ds, new Map());
     const sid = b.staff_id ?? UNASSIGNED_COLUMN;
@@ -796,7 +1022,7 @@ function WeekView({
             const dow = warsawDayOfWeek(d);
             const isToday = d === today;
             const dayMap = byDayStaff.get(d);
-            const totalForDay = active.filter((b) => warsawDate(b.starts_at) === d).length;
+            const totalForDay = loose.filter((b) => warsawDate(b.starts_at) === d).length;
 
             return (
               <tr key={d} className="border-b border-dashed border-zinc-800/40">
@@ -821,6 +1047,24 @@ function WeekView({
                   </Link>
                 </td>
                 {columns.map((s) => {
+                  if (s.id === CLASS_COLUMN) {
+                    const meetings = classByDate.get(d) ?? [];
+                    return (
+                      <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-3 py-3 align-top">
+                        {meetings.length === 0 ? (
+                          <span className="text-zinc-700">—</span>
+                        ) : (
+                          <ul className="space-y-1.5">
+                            {meetings.map((m) => (
+                              <li key={m.id}>
+                                <WeekClassChip meeting={m} />
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    );
+                  }
                   const bookings = dayMap?.get(s.id) ?? [];
                   return (
                     <td key={s.id} className="border-r border-dashed border-zinc-800/40 px-3 py-3 align-top">
