@@ -51,6 +51,10 @@ export type CreateBookingInput = {
   durationMinSnapshot?: number | null;
   /** Set when the service is sold as a package of lessons. */
   packageId?: string | null;
+  /** How many people, when the service is priced per head. */
+  participants?: number | null;
+  /** Set when this booking is one meeting of a recurring group. */
+  classGroupId?: string | null;
 };
 
 export type CreateBookingResult =
@@ -78,6 +82,8 @@ export async function createBooking(
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
       package_id: input.packageId ?? null,
+      participants: input.participants ?? null,
+      class_group_id: input.classGroupId ?? null,
     })
     .select("id")
     .single();

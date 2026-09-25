@@ -15,6 +15,11 @@ import { StaffChip } from "@/components/ui/staff-chip";
 import { NoteBadge } from "@/components/ui/note-badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { calendarWindow } from "@/lib/calendar-window";
+import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
+import { getClassGroupsForTenant, getSeatCountsForTenant, seatsKey } from "@/lib/db/class-groups";
+import { meetingInstants, meetingTimeLabel } from "@/lib/class-groups";
+import { AdminLink } from "@/components/admin-link";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -132,6 +137,39 @@ export default async function HarmonogramPage({
       warsawDayBoundsUtc(calWindowEnd).endIso
     ),
   ]);
+  // Classes running on the day being viewed, enrolled or not.
+  //
+  // The grid draws bookings, so a group nobody has signed up for yet is an
+  // empty afternoon there — indistinguishable from a free one, which is how a
+  // haircut ends up booked on top of a class. Only fetched where the tenant
+  // runs groups; everyone else pays nothing for this.
+  const features = await getAdminTenantFeatures();
+  let classMeetings: ClassMeeting[] = [];
+  if (view === "dzien" && hasFeature(features, "grupy")) {
+    const tenantId = await getAdminTenantId();
+    const dow = warsawDayOfWeek(baseDate);
+    const todayGroups = (await getClassGroupsForTenant(tenantId)).filter(
+      (g) => g.day_of_week === dow
+    );
+    if (todayGroups.length > 0) {
+      const instants = todayGroups.map((g) => meetingInstants(g, baseDate));
+      const seats = await getSeatCountsForTenant(
+        todayGroups.map((g) => g.id),
+        instants.reduce((a, b) => (a < b.startsAtIso ? a : b.startsAtIso), instants[0].startsAtIso),
+        instants.reduce((a, b) => (a > b.endsAtIso ? a : b.endsAtIso), instants[0].endsAtIso),
+        tenantId
+      );
+      classMeetings = todayGroups.map((g) => ({
+        id: g.id,
+        time: meetingTimeLabel(g),
+        name: g.age_label ?? g.service.name,
+        taken: seats.get(seatsKey(g.id, baseDate)) ?? 0,
+        min: g.min_participants,
+        max: g.max_participants,
+      }));
+    }
+  }
+
   // Numbering needs every lesson of the packages on screen, not just the ones
   // inside this window — a lesson booked for next month still decides whether
   // today's is 2/5 or 3/5. Depends on `all`, so it cannot join the batch above;
@@ -293,7 +331,7 @@ export default async function HarmonogramPage({
 
 
           <div className="mt-4">
-            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classMeetings={classMeetings} />}
             {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} />}
           </div>
         </div>
@@ -310,6 +348,16 @@ export default async function HarmonogramPage({
  * gets. At 36 a half-hour block was 30px, which fitted two lines only by
  * putting the name beside the time and dropping the service entirely.
  */
+/** A group meeting on the day being viewed — drawn whether or not anyone is in it. */
+type ClassMeeting = {
+  id: string;
+  time: string;
+  name: string;
+  taken: number;
+  min: number | null;
+  max: number | null;
+};
+
 const ROW_H = 52;
 
 /**
@@ -412,6 +460,7 @@ function DayView({
   services,
   openBookingId,
   lessonPositions,
+  classMeetings,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -423,6 +472,7 @@ function DayView({
   /** Booking to open on arrival — see BookingManagementButton.openOnMount. */
   openBookingId: string | null;
   lessonPositions: Map<string, LessonPosition>;
+  classMeetings: ClassMeeting[];
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
   const dayHours = hours.find((h) => h.day_of_week === dayOfWeek);
@@ -476,6 +526,38 @@ function DayView({
   const isToday = date === today;
 
   return (
+    <>
+      {/* Classes running today, above the grid rather than in it.
+          A group with nobody signed up has no bookings to draw, so the grid
+          shows the afternoon as free — and that is precisely the afternoon
+          that is not. The strip states it once, in words, and links to where
+          somebody can be added. */}
+      {classMeetings.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-zinc-800/60 bg-zinc-900/30 px-4 py-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Zajęcia tego dnia
+          </span>
+          {classMeetings.map((m) => (
+            <span key={m.id} className="text-xs text-zinc-300">
+              <span className="font-mono text-zinc-100">{m.time}</span> {m.name}
+              <span className="text-zinc-500">
+                {" · "}
+                {m.max != null
+                  ? `${m.taken} z ${m.max}`
+                  : m.min != null && m.taken < m.min
+                    ? `zapisanych ${m.taken} z ${m.min}`
+                    : `zapisanych ${m.taken}`}
+              </span>
+            </span>
+          ))}
+          <AdminLink
+            href="/admin/zajecia"
+            className="ml-auto rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
+          >
+            Dopisz dziecko
+          </AdminLink>
+        </div>
+      )}
     <StaffCarousel staff={columns} gutter={64}>
       {/* width:100% + minWidth keeps both ends working: with many staff the
           table exceeds the container and scrolls at ~180px per column; with
@@ -637,6 +719,7 @@ function DayView({
         <p className="px-4 py-6 text-center text-sm text-zinc-600">Dzień wolny według godzin biznesu.</p>
       )}
     </StaffCarousel>
+    </>
   );
 }
 

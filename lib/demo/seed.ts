@@ -1,12 +1,25 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec" | "zorba";
+export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec" | "zorba" | "teczowka";
 
 type ServiceSeed = {
   slug: string; name: string; description: string;
   duration_min: number; price_pln: number; sort_order: number;
   is_group?: boolean; max_participants?: number;
+  price_per_person?: boolean; participants_min?: number;
+  participants_label?: string; extra_question_label?: string;
+  extra_choice_label?: string; extra_choices?: string[];
+  total_lessons?: number;
+  /** Parked rather than removed — shown as "chwilowo zawieszone". */
+  active?: boolean;
+};
+/** A weekly meeting of a service. `service` is the slug it belongs to. */
+type ClassGroupSeed = {
+  service: string; slug: string; day_of_week: number;
+  start_time: string; end_time: string;
+  age_label?: string; min_participants?: number; max_participants?: number;
+  sort_order?: number; active?: boolean;
 };
 type StaffSeed = { name: string; bio: string; color: string; sort_order: number };
 type GroupSeed = { name: string; sort_order: number; staffNames: string[]; priceMultiplier: number };
@@ -140,6 +153,150 @@ const ZORBA_CUSTOMERS = [
   ["Krzysztof Baran",      "+48502100215", null],
 ] as const;
 
+/**
+ * Pracownia Tęczówka — przepisane z teczowka.com, nic tu nie jest zmyślone.
+ *
+ * Pracownia sprzedaje czas na dwa różne sposoby i to jest tu cała rzecz.
+ *
+ * Zajęcia to stała pozycja w tygodniu, do której dopisuje się kolejne dzieci:
+ * „poniedziałek 15:45, grupa 6–10". Rezerwacja terminu jest wtedy odwrotnością
+ * tego, co trzeba — zapis ma dołożyć dziecko, nie zająć salę. Stąd grupy.
+ *
+ * Urodziny to jeden termin dla jednej rodziny, czyli dokładnie to, co WHEN
+ * umiał od początku. Zostają w rezerwacji terminu — jedna usługa, bo temat
+ * warsztatu to pytanie w formularzu, a nie szesnaście pozycji w cenniku.
+ */
+const TECZOWKA_TEMATY = [
+  "Malowanie na szkle (pleksi)",
+  "Malowanie kubków",
+  "Warsztaty graficzne",
+  "Malowanie toreb ekologicznych",
+  "Drzewka szczęścia z koralików i kamieni",
+  "Kirigami",
+  "Indiańskie łapacze snów",
+  "Malowanie masek",
+  "Tworzenie pacynek",
+  "Makiety zwierząt z tektury",
+  "Jednorożce z tektury",
+  "Malowanie na plastrach drewna",
+  "Marmurkowanie papieru",
+  "Wyplatanie makatek",
+  "Japońskie inspiracje — malowanie w stylu japońskim",
+  "Inny — ustalimy indywidualnie",
+];
+
+const TECZOWKA_SERVICES: ServiceSeed[] = [
+  {
+    slug: "zajecia-6-10",
+    name: "Zajęcia plastyczne dla dzieci 6–10 lat",
+    description:
+      "Malowanie, rysunek, wycinanie, maski, pacynki, papier czerpany i druk na " +
+      "prasie drukarskiej. Bez wymaganych umiejętności — wystarczy chęć.",
+    duration_min: 90,
+    price_pln: 220,
+    total_lessons: 4,
+    sort_order: 1,
+  },
+  {
+    slug: "zajecia-11-15",
+    name: "Zajęcia artystyczne 11–15 lat z grafiką warsztatową",
+    description:
+      "Rysunek i malarstwo, papier czerpany, książka artystyczna. Monotypia, " +
+      "linoryt i sucha igła, drukowane na profesjonalnej prasie.",
+    duration_min: 120,
+    price_pln: 220,
+    total_lessons: 4,
+    sort_order: 2,
+  },
+  {
+    slug: "kurs-rysunku",
+    name: "Kurs rysunku i malarstwa",
+    description:
+      "Przygotowanie teczki na studia, rysunek i malarstwo studyjne, studium " +
+      "postaci i portretu, martwa natura.",
+    duration_min: 180,
+    // Cennika tego kursu nie ma na ich stronie i nie będę go zgadywał.
+    price_pln: 0,
+    sort_order: 3,
+  },
+  {
+    slug: "zajecia-3-5",
+    name: "Zajęcia plastyczne dla dzieci 3–5 lat",
+    description: "tymczasowo odwołane",
+    duration_min: 90,
+    price_pln: 200,
+    total_lessons: 4,
+    sort_order: 4,
+    active: false,
+  },
+  {
+    slug: "warsztaty-urodzinowe",
+    name: "Artystyczne urodziny w Tęczówce",
+    description:
+      "Dwie godziny warsztatu wybranego pod jubilata. W cenie prowadzenie, " +
+      "dekoracja stołu, naczynia i sztućce, serwetki, ceramika na poczęstunek " +
+      "i malowanie twarzy w razie potrzeby. Wiek 5+.",
+    duration_min: 120,
+    price_pln: 65,
+    sort_order: 5,
+    price_per_person: true,
+    participants_min: 5,
+    participants_label: "Liczba dzieci",
+    extra_question_label: "Wiek dzieci",
+    extra_choice_label: "Temat warsztatu",
+    extra_choices: TECZOWKA_TEMATY,
+  },
+];
+
+/**
+ * Grafik przepisany z ich tygodniowego planu: środa nieczynna, czwartek
+ * pracuje. Dwie grupy jednego dnia to u nich norma, nie wyjątek — i to jest
+ * dokładnie to, czego nie dało się powiedzieć godzinami otwarcia.
+ */
+const TECZOWKA_CLASS_GROUPS: ClassGroupSeed[] = [
+  { service: "zajecia-6-10",  slug: "6-10-pon", day_of_week: 1, start_time: "15:45", end_time: "17:15", age_label: "6–10 lat", min_participants: 5, sort_order: 1 },
+  { service: "zajecia-11-15", slug: "11-15-pon", day_of_week: 1, start_time: "17:30", end_time: "19:30", age_label: "11–15 lat", min_participants: 5, sort_order: 2 },
+  { service: "zajecia-6-10",  slug: "6-10-wt",  day_of_week: 2, start_time: "17:15", end_time: "18:45", age_label: "6–10 lat", min_participants: 5, sort_order: 1 },
+  { service: "zajecia-6-10",  slug: "6-10-czw", day_of_week: 4, start_time: "15:45", end_time: "17:15", age_label: "6–10 lat", min_participants: 5, sort_order: 1 },
+  { service: "zajecia-11-15", slug: "11-15-czw", day_of_week: 4, start_time: "17:30", end_time: "19:30", age_label: "11–15 lat", min_participants: 5, sort_order: 2 },
+  { service: "zajecia-6-10",  slug: "6-10-pt",  day_of_week: 5, start_time: "15:45", end_time: "17:15", age_label: "6–10 lat", min_participants: 5, sort_order: 1 },
+  { service: "zajecia-11-15", slug: "11-15-pt", day_of_week: 5, start_time: "17:30", end_time: "19:30", age_label: "11–15 lat", min_participants: 5, sort_order: 2 },
+  { service: "kurs-rysunku",  slug: "rysunek-pt", day_of_week: 5, start_time: "17:15", end_time: "20:15", age_label: "Kurs rysunku i malarstwa", sort_order: 3 },
+];
+
+// Pracownię prowadzi jedna osoba, więc wybór instruktora nie ma czego
+// rozstrzygać — funkcja „pracownicy" jest u nich wyłączona i tabela pusta.
+const TECZOWKA_STAFF: StaffSeed[] = [];
+
+const TECZOWKA_GROUPS: GroupSeed[] = [];
+
+/**
+ * Godziny otwarcia obsługują tu wyłącznie urodziny — zajęcia mają własny
+ * grafik i nie przechodzą przez wolne okienka.
+ *
+ * Dlatego otwarta jest tylko sobota. Gdyby dni powszednie też były otwarte,
+ * warsztat urodzinowy dałoby się zamówić na wtorek po południu, czego
+ * pracownia nie robi: WHEN nie umie jeszcze ograniczyć usługi do wybranych
+ * dni, a otwarcie salonu jest jedyną dźwignią, jaka tu działa.
+ *
+ * Sobota 11:00–16:00 przy `slot_granularity_min: 180` daje dokładnie dwa
+ * starty: 11:00 i 14:00. Warsztat trwa 120 minut, więc oba się mieszczą i nic
+ * nie wypada pomiędzy.
+ */
+const HOURS_TECZOWKA: HoursSeed[] = [
+  { day_of_week: 0, open_time: null, close_time: null, closed: true },
+  { day_of_week: 1, open_time: null, close_time: null, closed: true },
+  { day_of_week: 2, open_time: null, close_time: null, closed: true },
+  { day_of_week: 3, open_time: null, close_time: null, closed: true },
+  { day_of_week: 4, open_time: null, close_time: null, closed: true },
+  { day_of_week: 5, open_time: null, close_time: null, closed: true },
+  { day_of_week: 6, open_time: "11:00", close_time: "16:00", closed: false },
+];
+
+// Pusto z rozmysłem: klientów i zapisy dokłada się przy testach, żeby demo
+// nie zaczynało życia od wymyślonych dzieci.
+const TECZOWKA_CUSTOMERS: readonly (readonly [string, string, string | null])[] = [];
+
 const SETTINGS = {
   barber: {
     business_name: "Demo Barber",
@@ -182,6 +339,25 @@ const SETTINGS = {
     theme: "light" as const,
     slot_granularity_min: 30,
     booking_horizon_days: 28,
+  },
+  teczowka: {
+    business_name: "Tęczówka Studio",
+    tagline: "Urodziny w soboty, zajęcia plastyczne w tygodniu — wolne terminy widać od razu.",
+    description: "Konto demo przygotowane dla Pracowni Tęczówka. Klikaj śmiało — to kopia, nic tu nie jest prawdziwe.",
+    address_street: "ul. Kopernika 4",
+    address_city: "Częstochowa",
+    address_postal: "42-200",
+    phone: "+48 34 300 00 00",
+    email: null,
+    color_accent: "#e07a5f",
+    // Jasny motyw: pracownia plastyczna dla dzieci, a rodzic ogląda to
+    // wieczorem na telefonie. Ciemne tło czytałoby się tu jak panel techniczny.
+    theme: "light" as const,
+    // 180 nie jest kosmetyką: to ono sprawia, że w sobotę wypadają dokładnie
+    // dwa terminy, 11:00 i 14:00, zamiast siedmiu startów co pół godziny,
+    // z których pięć i tak byłoby wyszarzonych. Zob. HOURS_TECZOWKA.
+    slot_granularity_min: 180,
+    booking_horizon_days: 42,
   },
   zorba: {
     business_name: "Szkoła Tańca Zorba",
@@ -269,24 +445,63 @@ const VARIANTS: Record<DemoVariant, {
   groups: GroupSeed[];
   hours: HoursSeed[];
   customers: readonly (readonly [string, string, string | null])[];
+  /** Weekly class groups, for variants that sell time that way. */
+  classGroups?: ClassGroupSeed[];
+  /**
+   * What this demo's WHEN has. Left off means the classic set, which is what
+   * every variant before Tęczówka showed — see lib/features.ts.
+   */
+  features?: string[];
 }> = {
   barber:    { services: BARBER_SERVICES,    staff: BARBER_STAFF,    groups: BARBER_GROUPS,    hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
   kosmetyka: { services: KOSMETYKA_SERVICES, staff: KOSMETYKA_STAFF, groups: KOSMETYKA_GROUPS, hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
   joga:      { services: JOGA_SERVICES,      staff: JOGA_STAFF,      groups: JOGA_GROUPS,      hours: HOURS_STUDIO,   customers: SAMPLE_NAMES },
   taniec:    { services: TANIEC_SERVICES,    staff: TANIEC_STAFF,    groups: TANIEC_GROUPS,    hours: HOURS_DANCE,    customers: SAMPLE_NAMES },
   zorba:     { services: ZORBA_SERVICES,     staff: ZORBA_STAFF,     groups: ZORBA_GROUPS,     hours: HOURS_DANCE,    customers: ZORBA_CUSTOMERS },
+  teczowka:  {
+    services: TECZOWKA_SERVICES, staff: TECZOWKA_STAFF, groups: TECZOWKA_GROUPS,
+    hours: HOURS_TECZOWKA, customers: TECZOWKA_CUSTOMERS,
+    classGroups: TECZOWKA_CLASS_GROUPS,
+    // Bez „pracownicy": pracownię prowadzi jedna osoba i wybór instruktora nie
+    // ma czego rozstrzygać. Bez „platnosci": rozliczają się na miejscu.
+    features: ["grupy", "karnety", "cena-od-osoby"],
+  },
 };
 
 export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Promise<void> {
   const supabase = createAdminClient();
-  const { services, staff, groups, hours, customers: customerSeed } = VARIANTS[variant];
+  const { services, staff, groups, hours, customers: customerSeed, classGroups, features } =
+    VARIANTS[variant];
   const settings = SETTINGS[variant];
 
+  // Every step below is checked. Silence here is how a demo reaches a prospect
+  // looking half-built: the seed carries on regardless, so a failed settings
+  // row leaves the widget with WHEN's own name and colours instead of theirs.
+  const report = (krok: string, error: { message: string } | null) => {
+    if (error) console.error(`[demo-seed] ${krok} failed for variant "${variant}":`, error.message);
+  };
+
+  // What this demo's WHEN has. Written before anything else so a half-failed
+  // seed still produces a panel shaped like the client it was made for.
+  if (features) {
+    const { error: featuresError } = await supabase
+      .from("tenants")
+      .update({ features })
+      .eq("id", tenantId);
+    report("tenant features", featuresError);
+  }
+
   // Settings
-  await supabase.from("settings").insert({ tenant_id: tenantId, ...settings });
+  const { error: settingsError } = await supabase
+    .from("settings")
+    .insert({ tenant_id: tenantId, ...settings });
+  report("settings insert", settingsError);
 
   // Business hours
-  await supabase.from("business_hours").insert(hours.map((h) => ({ ...h, tenant_id: tenantId })));
+  const { error: hoursError } = await supabase
+    .from("business_hours")
+    .insert(hours.map((h) => ({ ...h, tenant_id: tenantId })));
+  report("business_hours insert", hoursError);
 
   // Time filters
   await supabase.from("time_filters").insert([
@@ -297,23 +512,75 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
   ]);
 
   // Services
-  const { data: insertedServices } = await supabase
+  const { data: insertedServices, error: servicesError } = await supabase
     .from("services")
     .insert(services.map((s) => ({
       ...s,
-      active: true,
+      active: s.active ?? true,
       tenant_id: tenantId,
+      // Every optional field is spelled out, not left to the spread. Inserting
+      // an array whose objects have different keys makes the client pad the
+      // gaps with null to keep one uniform payload — so a row that simply
+      // omits a NOT NULL column arrives as null and takes the whole batch
+      // down with it. That is how this variant first shipped with no services.
       is_group: s.is_group ?? false,
       max_participants: s.max_participants ?? null,
+      price_per_person: s.price_per_person ?? false,
+      participants_min: s.participants_min ?? null,
+      participants_label: s.participants_label ?? null,
+      extra_question_label: s.extra_question_label ?? null,
+      extra_choice_label: s.extra_choice_label ?? null,
+      extra_choices: s.extra_choices ?? null,
+      total_lessons: s.total_lessons ?? null,
     })))
     .select("id, slug");
+  // Same lesson as the bookings insert below: this is atomic, so one bad row
+  // leaves the demo with no services at all — and a demo with no services is
+  // the thing you send to a prospect without noticing.
+  if (servicesError) {
+    console.error(
+      `[demo-seed] services insert failed for variant "${variant}" — the demo will have no services:`,
+      servicesError.message
+    );
+  }
   const serviceByName = new Map((insertedServices ?? []).map((s) => [s.slug as string, s.id as string]));
 
-  // Staff
-  const { data: insertedStaff } = await supabase
-    .from("staff")
-    .insert(staff.map((s) => ({ ...s, active: true, tenant_id: tenantId })))
-    .select("id, name");
+  // Class groups. They hang off the services just inserted, so this has to come
+  // after them — a group whose service is missing is dropped rather than sent
+  // with a null FK, which would take the whole batch down.
+  if (classGroups?.length) {
+    const rows = classGroups
+      .map((g) => {
+        const serviceId = serviceByName.get(g.service);
+        if (!serviceId) return null;
+        return {
+          tenant_id: tenantId,
+          service_id: serviceId,
+          slug: g.slug,
+          day_of_week: g.day_of_week,
+          start_time: g.start_time,
+          end_time: g.end_time,
+          age_label: g.age_label ?? null,
+          min_participants: g.min_participants ?? null,
+          max_participants: g.max_participants ?? null,
+          note: null,
+          sort_order: g.sort_order ?? 0,
+          active: g.active ?? true,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    const { error: groupsError } = await supabase.from("class_groups").insert(rows);
+    report("class_groups insert", groupsError);
+  }
+
+  // Staff. An empty list is a real answer — a pracownia run by one person has
+  // the capability switched off — and inserting nothing errors, so skip it.
+  const { data: insertedStaff } = staff.length
+    ? await supabase
+        .from("staff")
+        .insert(staff.map((s) => ({ ...s, active: true, tenant_id: tenantId })))
+        .select("id, name")
+    : { data: [] as { id: string; name: string }[] };
   const staffByName = new Map((insertedStaff ?? []).map((s) => [s.name as string, s.id as string]));
 
   // staff_services: everyone offers everything, and the price variation that
@@ -656,6 +923,9 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
         });
       }
     }
+  } else if (variant === "teczowka") {
+    // Nic. Zapisy i klientów dokłada się ręcznie przy testach — demo ma
+    // zaczynać od pustego grafiku, a nie od wymyślonych dzieci w grupach.
   } else {
     // Individual bookings (barber / kosmetyka)
     const slotsThisDay = [10, 12, 14, 16];

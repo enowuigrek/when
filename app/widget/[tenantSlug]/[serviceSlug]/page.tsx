@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { serviceMeta } from "@/lib/service-label";
+import { serviceMeta, priceLabel } from "@/lib/service-label";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getTenantIdBySlug } from "@/lib/tenant";
@@ -102,9 +102,12 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
             <span>Dane</span>
           </div>
 
-          {/* Service summary card */}
-          <div className="mt-6 flex items-start justify-between gap-6 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
-            <div>
+          {/* Service summary card — stacked on a phone, side by side from sm up.
+              A per-head price is a long string ("65 zł / dziecko"), and in a
+              row with the name it squeezed the heading into a two-word column
+              and pushed itself off the right edge of a 375px screen. */}
+          <div className="mt-6 flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+            <div className="min-w-0">
               <h1 className="text-2xl font-semibold tracking-tight">{service.name}</h1>
               {service.description && (
                 <p className="mt-1 text-sm text-zinc-400">{service.description}</p>
@@ -119,9 +122,9 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
                 </p>
               )}
             </div>
-            <div className="text-right">
-              <div className="whitespace-nowrap font-mono text-xl font-semibold" style={{ color: accent }}>
-                {service.price_pln} zł
+            <div className="shrink-0 sm:text-right">
+              <div className="font-mono text-xl font-semibold sm:whitespace-nowrap" style={{ color: accent }}>
+                {priceLabel(service)}
               </div>
               <Link
                 href={`${basePath || "/"}${isEmbed ? "?embed=1" : ""}`}
@@ -144,6 +147,15 @@ export default async function WidgetServicePage({ params, searchParams }: Props)
             staffUnavailable={staffUnavailable}
             isEmbed={isEmbed}
             initialStaffId={initialStaffId}
+            pricing={{
+              pricePln: service.price_pln,
+              perPerson: service.price_per_person,
+              min: service.participants_min ?? 1,
+              label: service.participants_label ?? "Liczba osób",
+              extraQuestion: service.extra_question_label,
+              extraChoiceLabel: service.extra_choice_label,
+              extraChoices: service.extra_choices,
+            }}
           />
         </section>
       </main>

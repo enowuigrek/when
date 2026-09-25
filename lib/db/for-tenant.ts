@@ -10,6 +10,17 @@ import { FALLBACK_SETTINGS } from "@/lib/db/settings";
 import type { Settings, TimeFilter } from "@/lib/db/settings";
 import type { Staff } from "@/lib/db/staff";
 import type { CreateBookingInput, CreateBookingResult } from "@/lib/db/bookings";
+import { featuresOf, type Feature } from "@/lib/features";
+
+/** Capabilities switched on for this tenant. See lib/features.ts. */
+export async function getFeaturesForTenant(tenantId: string): Promise<Set<Feature>> {
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("features")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return featuresOf(data?.features as string[] | undefined);
+}
 
 
 export async function getServicesForTenant(tenantId: string): Promise<Service[]> {
@@ -18,6 +29,23 @@ export async function getServicesForTenant(tenantId: string): Promise<Service[]>
     .select("*")
     .eq("tenant_id", tenantId)
     .eq("active", true)
+    .order("sort_order");
+  return (data ?? []) as Service[];
+}
+
+/**
+ * What the business has parked rather than removed.
+ *
+ * A suspended course is still news to a customer looking for it — "zajęcia
+ * 3–5 lat, tymczasowo odwołane" answers the question, and an empty page does
+ * not. Deleting the service would lose its history along with the answer.
+ */
+export async function getSuspendedServicesForTenant(tenantId: string): Promise<Service[]> {
+  const { data } = await createAdminClient()
+    .from("services")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("active", false)
     .order("sort_order");
   return (data ?? []) as Service[];
 }
@@ -120,6 +148,8 @@ export async function createBookingForTenant(
       staff_id: input.staffId ?? null,
       price_pln_snapshot: input.pricePlnSnapshot ?? null,
       package_id: input.packageId ?? null,
+      participants: input.participants ?? null,
+      class_group_id: input.classGroupId ?? null,
       duration_min_snapshot: input.durationMinSnapshot ?? null,
     })
     .select("id")
@@ -232,11 +262,31 @@ export async function getTenantSlugById(tenantId: string): Promise<string | null
 export async function getBookingByIdPublic(id: string) {
   const { data, error } = await createAdminClient()
     .from("bookings")
-    .select("*, service:services(name, slug, duration_min, price_pln)")
+    .select("*, service:services(name, slug, duration_min, price_pln, participants_label)")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`Failed to load booking: ${error.message}`);
   return data as (typeof data & { tenant_id: string }) | null;
+}
+
+/**
+ * The other meetings bought in the same package.
+ *
+ * A month of classes is one decision and four appointments. The confirmation
+ * that shows only the first reads as though the rest did not happen.
+ */
+export async function getPackageBookingsForTenant(
+  packageId: string,
+  tenantId: string
+): Promise<{ id: string; starts_at: string; status: string }[]> {
+  const { data } = await createAdminClient()
+    .from("bookings")
+    .select("id, starts_at, status")
+    .eq("tenant_id", tenantId)
+    .eq("package_id", packageId)
+    .neq("status", "cancelled")
+    .order("starts_at");
+  return (data ?? []) as { id: string; starts_at: string; status: string }[];
 }
 
 export async function getStaffUnavailableDatesMapForTenant(

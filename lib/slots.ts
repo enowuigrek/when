@@ -43,7 +43,7 @@ function warsawOffsetMinutes(utc: Date): number {
  * Build a UTC Date from a Warsaw-local wall-clock specification.
  * Iterative because the offset itself depends on the instant (DST).
  */
-function warsawLocalToUtc(
+export function warsawLocalToUtc(
   year: number,
   month: number, // 1-12
   day: number,

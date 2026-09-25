@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth/admin-session";
 import { isSessionSuperAdmin, listSwitchableTenants } from "@/lib/auth/super-admin";
 import { logoutAction } from "./actions";
-import { getSettingsForTenant } from "@/lib/db/for-tenant";
+import { getSettingsForTenant, getFeaturesForTenant } from "@/lib/db/for-tenant";
 import {
   getAdminTenantId,
   getAdminTenantKind,
@@ -42,7 +42,10 @@ export default async function PanelLayout({
       notFound();
     }
     const demoTenantId = demo.id;
-    const settings = await getSettingsForTenant(demoTenantId);
+    const [settings, features] = await Promise.all([
+      getSettingsForTenant(demoTenantId),
+      getFeaturesForTenant(demoTenantId),
+    ]);
     return (
       <TenantThemeWrapper settings={settings}>
         {/* App shell: the window itself never scrolls. Everything vertical
@@ -60,6 +63,7 @@ export default async function PanelLayout({
             // for a named prospect does not.
             showHomeLink={demo.kind === "demo"}
             isSuperAdmin={false}
+            features={[...features]}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
             <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
@@ -114,6 +118,7 @@ export default async function PanelLayout({
           logoutAction={logoutAction}
           isDemo={tenantKind === "demo"}
           isSuperAdmin={isSuperAdmin}
+          features={[...(await getFeaturesForTenant(tenantId))]}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}
         <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">

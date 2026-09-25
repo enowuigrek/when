@@ -8,7 +8,10 @@ import type { Settings } from "@/lib/db/settings";
 import { updateSettingsAction, type SettingsFormState } from "./actions";
 import { Button } from "@/components/ui/button";
 
-const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30];
+// Beyond half an hour because not every business books in half hours: a
+// two-hour workshop wants starts at 11:00 and 14:00, not thirteen options
+// between them. Must stay in step with the check constraint on the column.
+const GRANULARITY_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
 
 type Tab = "firma" | "narzedzie";
 

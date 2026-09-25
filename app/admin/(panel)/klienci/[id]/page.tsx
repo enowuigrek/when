@@ -155,7 +155,10 @@ function BookingItem({
     <BookingRow
       allStaff={allStaff}
       badge={badge}
-      price={b.service?.price_pln ?? null}
+      // What this visit was agreed at, not what the service costs today. A
+      // month of classes is paid once, so the other three meetings carry 0 —
+      // reading the service price here billed the karnet four times over.
+      price={b.price_pln_snapshot ?? b.service?.price_pln ?? null}
       // On a customer's page the service is what distinguishes one visit from
       // the next; who performed it is the supporting line.
       title={

@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeApplier } from "@/components/theme-applier";
-import { getBookingByIdPublic, getSettingsForTenant, getTenantSlugById } from "@/lib/db/for-tenant";
+import {
+  getBookingByIdPublic,
+  getSettingsForTenant,
+  getTenantSlugById,
+  getPackageBookingsForTenant,
+} from "@/lib/db/for-tenant";
 import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
@@ -43,7 +48,25 @@ export default async function SuccessPage({
     getTenantSlugById(booking.tenant_id),
   ]);
 
-  const service = (booking as { service?: { name: string; price_pln: number } }).service;
+  const service = (
+    booking as {
+      service?: { name: string; price_pln: number; participants_label: string | null };
+    }
+  ).service;
+  // What the customer agreed to, not what the service costs today. For a
+  // per-person workshop the two differ by the number of people.
+  const paid =
+    (booking as { price_pln_snapshot: number | null }).price_pln_snapshot ??
+    service?.price_pln ??
+    null;
+  const participants = (booking as { participants: number | null }).participants;
+
+  // A package is one decision and several appointments; confirming only the
+  // first would read as though the rest had not been booked.
+  const packageId = (booking as { package_id: string | null }).package_id;
+  const series = packageId
+    ? await getPackageBookingsForTenant(packageId, booking.tenant_id)
+    : [];
   const accent = s.color_accent ?? "#d4a26a";
   const theme = (s.theme === "system" ? "dark" : s.theme) as "light" | "dark";
 
@@ -70,8 +93,14 @@ export default async function SuccessPage({
 
   return (
     <div
+      // The /rezerwacja layout paints WHEN's own theme, which is dark. This
+      // page belongs to the tenant whose booking it confirms, so it has to
+      // take the theme back — otherwise a light-themed studio gets its dark
+      // text on the layout's near-black panel and the page reads as blank.
+      data-theme={theme}
       className="flex min-h-screen flex-col"
       style={{
+        backgroundColor: theme === "light" ? "#f4f4f5" : "#09090b",
         "--color-accent": accent,
         "--color-accent-hover": accent,
         "--color-accent-fg": accentFg(accent),
@@ -123,10 +152,33 @@ export default async function SuccessPage({
               value={booking.customer_phone}
               mono
             />
-            {service && (
-              <Row label="Cena" value={`${service.price_pln} zł`} mono />
+            {participants !== null && (
+              <Row
+                label={service?.participants_label ?? "Liczba osób"}
+                value={String(participants)}
+                mono
+              />
             )}
+            {paid !== null && <Row label="Cena" value={`${paid} zł`} mono />}
           </dl>
+
+          {series.length > 1 && (
+            <div className="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-5">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                Wszystkie spotkania z tego zapisu
+              </p>
+              <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                {series.map((b, i) => (
+                  <li key={b.id} className="flex items-baseline gap-2 text-sm text-zinc-300">
+                    <span className="font-mono text-xs text-zinc-500">
+                      {i + 1}/{series.length}
+                    </span>
+                    {formatWarsawDate(b.starts_at)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-5 text-sm text-zinc-400">
             <p className="leading-relaxed">

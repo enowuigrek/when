@@ -2,6 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { createAdminClient } from "./supabase/admin";
 import { getSessionTenantId } from "./auth/admin-session";
+import { featuresOf, type Feature } from "./features";
 
 /**
  * Tenant that owns the public marketing site at whenbooking.pl/* and
@@ -137,6 +138,22 @@ export async function getAdminTenantSlug(): Promise<string> {
     .eq("id", tenantId)
     .maybeSingle();
   return (data?.slug as string | undefined) ?? "main";
+}
+
+/**
+ * Capabilities switched on for the tenant whose panel this is.
+ *
+ * Admin-side only — the widget resolves its tenant from the URL and uses
+ * `getTenantFeaturesForTenant(id)` instead.
+ */
+export async function getAdminTenantFeatures(): Promise<Set<Feature>> {
+  const tenantId = await getAdminTenantId();
+  const { data } = await createAdminClient()
+    .from("tenants")
+    .select("features")
+    .eq("id", tenantId)
+    .maybeSingle();
+  return featuresOf(data?.features as string[] | undefined);
 }
 
 export type TenantKind = "main" | "demo" | "trial" | "customer";

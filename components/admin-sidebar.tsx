@@ -1,5 +1,7 @@
 "use client";
 
+import type { Feature } from "@/lib/features";
+
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -147,17 +149,36 @@ function rewriteAdminHref(href: string, demoSlug: string | null): string {
   return href;
 }
 
-type NavItem = { href: string; label: string; icon: React.ReactNode; exact?: boolean };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  exact?: boolean;
+  /** Hidden unless the tenant has this capability switched on. */
+  feature?: Feature;
+};
+
+/**
+ * Nav the tenant actually has.
+ *
+ * An item without a feature is part of every WHEN. The rest appear only where
+ * they mean something — a pracownia with no staff should not be looking at a
+ * "Pracownicy" tab wondering what it wants from her.
+ */
+function visible(items: NavItem[], features: readonly string[]): NavItem[] {
+  return items.filter((i) => !i.feature || features.includes(i.feature));
+}
 
 const NAV_MAIN: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: <IcHome />, exact: true },
   { href: "/admin/harmonogram", label: "Harmonogram", icon: <IcCalendar /> },
-  { href: "/admin/grafik", label: "Grafik", icon: <IcGrid /> },
+  { href: "/admin/grafik", label: "Grafik", icon: <IcGrid />, feature: "pracownicy" },
+  { href: "/admin/zajecia", label: "Zajęcia", icon: <IcGrid />, feature: "grupy" },
 ];
 
 const NAV_MANAGE: NavItem[] = [
   { href: "/admin/uslugi", label: "Usługi", icon: <IcTag /> },
-  { href: "/admin/pracownicy", label: "Pracownicy", icon: <IcBriefcase /> },
+  { href: "/admin/pracownicy", label: "Pracownicy", icon: <IcBriefcase />, feature: "pracownicy" },
   { href: "/admin/klienci", label: "Klienci", icon: <IcPerson /> },
   { href: "/admin/ustawienia", label: "Ustawienia", icon: <IcSettings /> },
 ];
@@ -215,12 +236,14 @@ function NavWithStripe({
   onNavClick,
   demoSlug,
   isSuperAdmin,
+  features,
 }: {
   expanded: boolean;
   pathname: string;
   onNavClick?: () => void;
   demoSlug: string | null;
   isSuperAdmin?: boolean;
+  features: readonly string[];
 }) {
   const navRef = useRef<HTMLElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; h: number; visible: boolean }>({
@@ -270,7 +293,7 @@ function NavWithStripe({
         style={{ height: stripe.h, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
-      {NAV_MAIN.map((item) => (
+      {visible(NAV_MAIN, features).map((item) => (
         <SidebarLink
           key={item.href}
           item={item}
@@ -283,7 +306,7 @@ function NavWithStripe({
 
       <div className="my-2 mx-1 border-t border-zinc-800/60" />
 
-      {NAV_MANAGE.map((item) => (
+      {visible(NAV_MANAGE, features).map((item) => (
         <SidebarLink
           key={item.href}
           item={item}
@@ -325,7 +348,15 @@ function NavWithStripe({
  * The active tab carries the same treatment as the sidebar: the filled row and
  * the accent stripe, laid along the bottom edge here rather than down the left.
  */
-function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string | null }) {
+function BottomNav({
+  pathname,
+  demoSlug,
+  features,
+}: {
+  pathname: string;
+  demoSlug: string | null;
+  features: readonly string[];
+}) {
   const navRef = useRef<HTMLDivElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; w: number; visible: boolean }>({
     x: 0, y: 0, w: 0, visible: false,
@@ -394,7 +425,7 @@ function BottomNav({ pathname, demoSlug }: { pathname: string; demoSlug: string 
         style={{ width: stripe.w, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
-      {NAV_MAIN.map((item) => {
+      {visible(NAV_MAIN, features).map((item) => {
         const href = rewriteAdminHref(item.href, demoSlug);
         const active = item.exact ? pathname === href : pathname.startsWith(href);
         return (
@@ -440,6 +471,7 @@ function SidebarBody({
   onNavClick,
   demoSlug,
   isSuperAdmin,
+  features,
   showNotifications = true,
   showHomeLink = true,
 }: {
@@ -454,6 +486,7 @@ function SidebarBody({
   onNavClick?: () => void;
   demoSlug: string | null;
   isSuperAdmin?: boolean;
+  features: readonly string[];
   /** Off in the mobile drawer — the top bar already carries the bell. */
   showNotifications?: boolean;
   /** Off for a demo prepared for someone: no way out of the panel. */
@@ -549,6 +582,7 @@ function SidebarBody({
         onNavClick={onNavClick}
         demoSlug={demoSlug}
         isSuperAdmin={isSuperAdmin}
+        features={features}
       />
 
 
@@ -618,6 +652,7 @@ export function AdminSidebar({
   logoutAction,
   isDemo,
   isSuperAdmin,
+  features = [],
 }: {
   tenantId: string;
   businessName: string;
@@ -625,6 +660,8 @@ export function AdminSidebar({
   logoutAction: () => Promise<void>;
   isDemo?: boolean;
   isSuperAdmin?: boolean;
+  /** Capabilities switched on for this tenant — see lib/features.ts. */
+  features?: readonly string[];
   /** Off for a demo prepared for a named prospect — no way out of the panel. */
   showHomeLink?: boolean;
 }) {
@@ -670,6 +707,7 @@ export function AdminSidebar({
           logoutAction={logoutAction}
           isDemo={isDemo}
           isSuperAdmin={isSuperAdmin}
+          features={features}
           showHomeLink={showHomeLink}
           onToggle={toggleExpanded}
           pathname={pathname}
@@ -722,6 +760,7 @@ export function AdminSidebar({
             logoutAction={logoutAction}
             isDemo={isDemo}
             isSuperAdmin={isSuperAdmin}
+            features={features}
             showHomeLink={showHomeLink}
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
@@ -731,7 +770,7 @@ export function AdminSidebar({
           />
         </aside>
 
-        <BottomNav pathname={pathname} demoSlug={demoSlug} />
+        <BottomNav pathname={pathname} demoSlug={demoSlug} features={features} />
       </div>
     </>
   );

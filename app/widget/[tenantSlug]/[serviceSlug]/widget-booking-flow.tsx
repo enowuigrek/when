@@ -48,6 +48,7 @@ export function WidgetBookingFlow({
   staffUnavailable,
   isEmbed = false,
   initialStaffId = null,
+  pricing,
 }: {
   tenantSlug: string;
   serviceSlug: string;
@@ -60,6 +61,20 @@ export function WidgetBookingFlow({
   staffUnavailable: Record<string, string[]>;
   isEmbed?: boolean;
   initialStaffId?: string | null;
+  /**
+   * Set when the service charges per head. The form then asks how many people
+   * and shows what that comes to, because "65 zł" on its own answers nothing
+   * for a parent booking a party for nine.
+   */
+  pricing: {
+    pricePln: number;
+    perPerson: boolean;
+    min: number;
+    label: string;
+    extraQuestion: string | null;
+    extraChoiceLabel: string | null;
+    extraChoices: string[] | null;
+  };
 }) {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
@@ -67,6 +82,9 @@ export function WidgetBookingFlow({
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string>(initialStaffId ?? "");
   const [loadingSlots, startSlotLoad] = useTransition();
+  // Starts at the minimum rather than at one: the studio will not run the room
+  // for fewer, so offering a number that cannot be booked is a trap.
+  const [participants, setParticipants] = useState(pricing.min);
 
   const [formState, formAction, formPending] = useActionState<WidgetBookingState, FormData>(
     submitWidgetBooking,
@@ -159,6 +177,85 @@ export function WidgetBookingFlow({
           {selectedStaffId && <input type="hidden" name="staffId" value={selectedStaffId} />}
           {isEmbed && <input type="hidden" name="embed" value="1" />}
 
+          {pricing.perPerson && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-300">
+                {pricing.label} *
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  name="participants"
+                  inputMode="numeric"
+                  min={pricing.min}
+                  max={100}
+                  required
+                  value={participants}
+                  onChange={(e) => setParticipants(Number(e.target.value))}
+                  className={fieldClasses({ className: "!w-24" })}
+                />
+                {/* The sum updates as the number does. This is the whole reason
+                    the field exists: the parent should never have to multiply. */}
+                <p className="text-sm text-zinc-400">
+                  × {pricing.pricePln} zł ={" "}
+                  <span className="text-base font-semibold text-[var(--color-accent)]">
+                    {Math.max(participants, 0) * pricing.pricePln} zł
+                  </span>
+                </p>
+              </div>
+              {participants < pricing.min && (
+                <p className="mt-1.5 text-xs text-amber-400">
+                  Warsztat odbywa się dla grupy od {pricing.min} dzieci.
+                </p>
+              )}
+              {formState.status === "error" && formState.fieldErrors?.participants && (
+                <p className="mt-1.5 text-xs text-red-400">{formState.fieldErrors.participants}</p>
+              )}
+            </div>
+          )}
+
+          {/* A question answered from a list. The studio has sixteen workshop
+              themes and a standing "whatever you can think of", so the last
+              option is deliberately open rather than a closed menu that would
+              turn the offer into less than it is. */}
+          {pricing.extraChoiceLabel && pricing.extraChoices && pricing.extraChoices.length > 0 && (
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+                {pricing.extraChoiceLabel} *
+              </span>
+              <select
+                name="extraChoice"
+                required
+                defaultValue=""
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors focus:border-[var(--color-accent)]"
+              >
+                <option value="" disabled>
+                  Wybierz…
+                </option>
+                {pricing.extraChoices.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              {formState.status === "error" && formState.fieldErrors?.extraChoice && (
+                <span className="mt-1.5 block text-xs text-red-400">
+                  {formState.fieldErrors.extraChoice}
+                </span>
+              )}
+            </label>
+          )}
+
+          {pricing.extraQuestion && (
+            <Field
+              label={`${pricing.extraQuestion} *`}
+              name="extraAnswer"
+              required
+              placeholder="np. 7–9 lat"
+              error={formState.status === "error" ? formState.fieldErrors?.extraAnswer : undefined}
+            />
+          )}
+
           <Field
             label="Imię i nazwisko *"
             name="customerName"
@@ -202,7 +299,11 @@ export function WidgetBookingFlow({
             disabled={formPending}
             className="w-full rounded-full bg-[var(--color-accent)] py-2.5 text-sm font-semibold text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
           >
-            {formPending ? "Rezerwuję…" : "Potwierdź rezerwację"}
+            {formPending
+              ? "Rezerwuję…"
+              : pricing.perPerson
+                ? `Potwierdź rezerwację — ${Math.max(participants, 0) * pricing.pricePln} zł`
+                : "Potwierdź rezerwację"}
           </button>
         </form>
       )}

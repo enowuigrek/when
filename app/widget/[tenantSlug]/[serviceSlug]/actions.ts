@@ -83,6 +83,11 @@ const bookingSchema = z.object({
   customerPhone: z.string().trim().min(6, "Podaj numer telefonu").max(30),
   customerEmail: z.string().trim().email("Niepoprawny email").optional().or(z.literal("").transform(() => undefined)),
   notes: z.string().trim().max(500).optional(),
+  // Validated loosely here and against the service's own minimum below: the
+  // schema does not know which service this is.
+  participants: z.coerce.number().int().min(1).max(100).optional(),
+  extraAnswer: z.string().trim().max(120).optional(),
+  extraChoice: z.string().trim().max(160).optional(),
 });
 
 export type WidgetBookingState =
@@ -102,6 +107,9 @@ export async function submitWidgetBooking(
     customerPhone: formData.get("customerPhone")?.toString() ?? "",
     customerEmail: formData.get("customerEmail")?.toString() ?? "",
     notes: formData.get("notes")?.toString() ?? "",
+    participants: formData.get("participants")?.toString() || undefined,
+    extraAnswer: formData.get("extraAnswer")?.toString() || undefined,
+    extraChoice: formData.get("extraChoice")?.toString() || undefined,
   };
   const isEmbed = formData.get("embed")?.toString() === "1";
 
@@ -120,6 +128,44 @@ export async function submitWidgetBooking(
 
   const service = await getServiceBySlugForTenant(parsed.data.serviceSlug, tenantId);
   if (!service) return { status: "error", message: "Usługa nie istnieje." };
+
+  // The browser's min= is a convenience, not a guarantee. A studio that will
+  // not open for fewer than five children must not be given four by anyone who
+  // edits the field or posts the form directly.
+  if (service.price_per_person) {
+    const min = service.participants_min ?? 1;
+    const count = parsed.data.participants ?? 0;
+    if (count < min) {
+      return {
+        status: "error",
+        message: "Sprawdź dane.",
+        fieldErrors: {
+          participants: `Warsztat odbywa się dla grupy od ${min} ${min === 5 ? "dzieci" : "osób"}.`,
+        },
+      };
+    }
+  }
+  // The answer has to be one the service actually offers: the select is the
+  // only thing stopping anything else, and a form post does not have to come
+  // from the select.
+  if (service.extra_choice_label && (service.extra_choices?.length ?? 0) > 0) {
+    const choice = parsed.data.extraChoice;
+    if (!choice || !service.extra_choices!.includes(choice)) {
+      return {
+        status: "error",
+        message: `Wybierz: ${service.extra_choice_label}.`,
+        fieldErrors: { extraChoice: `Wybierz: ${service.extra_choice_label}.` },
+      };
+    }
+  }
+
+  if (service.extra_question_label && !parsed.data.extraAnswer) {
+    return {
+      status: "error",
+      message: "Sprawdź dane.",
+      fieldErrors: { extraAnswer: `Uzupełnij: ${service.extra_question_label}.` },
+    };
+  }
 
   const startsAt = new Date(parsed.data.startsAtIso);
   const endsAt = new Date(startsAt.getTime() + service.duration_min * 60_000);
@@ -182,9 +228,25 @@ export async function submitWidgetBooking(
       customerEmail: parsed.data.customerEmail ?? null,
       startsAtIso: startsAt.toISOString(),
       endsAtIso: endsAt.toISOString(),
-      notes: parsed.data.notes ?? null,
+      // The extra answer rides along in the notes: it is one short line the
+      // owner reads next to everything else about the booking, and a column
+      // per prospect's question would not have scaled.
+      notes: [
+        service.extra_choice_label && parsed.data.extraChoice
+          ? `${service.extra_choice_label}: ${parsed.data.extraChoice}`
+          : null,
+        service.extra_question_label && parsed.data.extraAnswer
+          ? `${service.extra_question_label}: ${parsed.data.extraAnswer}`
+          : null,
+        parsed.data.notes || null,
+      ].filter(Boolean).join(" · ") || null,
       staffId: resolvedStaffId,
-      pricePlnSnapshot: service.price_pln,
+      participants: service.price_per_person ? (parsed.data.participants ?? null) : null,
+      // What the booking actually costs, not the per-head rate — the snapshot
+      // is what the schedule and the revenue figures read later.
+      pricePlnSnapshot: service.price_per_person
+        ? service.price_pln * (parsed.data.participants ?? 1)
+        : service.price_pln,
       durationMinSnapshot: service.duration_min,
       packageId,
     },

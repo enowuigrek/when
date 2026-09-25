@@ -65,7 +65,12 @@ const restrictedTenantImports = {
     },
     {
       name: "@/lib/tenant",
-      importNames: ["getAdminTenantId", "getAdminTenantSlug", "getAdminTenantKind"],
+      importNames: [
+        "getAdminTenantId",
+        "getAdminTenantSlug",
+        "getAdminTenantKind",
+        "getAdminTenantFeatures",
+      ],
       message:
         "Reads admin session cookie — only admin code may use it. Public/widget code derives tenant from URL slug (getTenantIdBySlug) or MAIN_TENANT_ID.",
     },
