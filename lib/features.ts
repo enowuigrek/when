@@ -15,16 +15,20 @@
  * Adding one is a string here and the code that reads it. No migration.
  *
  * Only capabilities that actually switch a piece of the panel belong here.
- * "karnety" and "cena-od-osoby" were on this list and read by nothing, because
- * both are already decided by data: a service with `total_lessons` is a
- * package, a service with `price_per_person` is priced per head. A flag
- * repeating what the data says is a second source of truth and the first
- * thing to drift, so they are gone rather than made real.
+ * Three were on this list and read by nothing. "karnety" and "cena-od-osoby"
+ * are already decided by data — a service with `total_lessons` is a package,
+ * one with `price_per_person` is priced per head — and a flag repeating the
+ * data is a second source of truth and the first thing to drift. "platnosci"
+ * had no panel to switch: payments are configured per service and the form
+ * does not show them yet. All three are gone rather than kept as promises;
+ * a name comes back the day something reads it.
+ *
+ * Tenants may still carry the retired names in their column. Unknown names
+ * are ignored, so nothing has to be migrated to catch up.
  */
 export const FEATURES = {
   pracownicy: "Pracownicy",
   grupy: "Zajęcia grupowe",
-  platnosci: "Płatności online",
 } as const;
 
 export type Feature = keyof typeof FEATURES;

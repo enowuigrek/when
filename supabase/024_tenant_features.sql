@@ -13,10 +13,10 @@
 --
 -- Known names (see lib/features.ts, which is the authority):
 --   pracownicy      staff: the picker in the widget, the tab and the roster
---   karnety         packages: a service sold as N lessons, progress counters
 --   grupy           recurring class groups and the weekly enrolment grid
---   cena-od-osoby   per-head pricing and the group-size question
---   platnosci       online payments and deposits
+--   (karnety, cena-od-osoby and platnosci were listed here at first and read
+--    by nothing; see lib/features.ts for why they were dropped rather than
+--    kept as promises. Retired names in this column are simply ignored.)
 --
 -- An unknown name is ignored rather than rejected: a half-deployed feature
 -- must not take the tenant's panel down with it.
