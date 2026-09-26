@@ -4,6 +4,7 @@ import { getBookingsBetween, getBookingCountsByDay } from "@/lib/db/bookings";
 import { getLessonPositions, type LessonPosition } from "@/lib/db/packages";
 import { getActiveStaff } from "@/lib/db/staff";
 import { getBusinessHours, getServices } from "@/lib/db/services";
+import { getSettings } from "@/lib/db/settings";
 import { DayBookingCard } from "./day-booking-card";
 import { DraggableBooking } from "./draggable-booking";
 import {
@@ -30,7 +31,7 @@ import {
   seatsKey,
 } from "@/lib/db/class-groups";
 import { meetingTimeLabel, nextMeetings } from "@/lib/class-groups";
-import { enrollVocabulary } from "@/lib/vocabulary";
+import { enrollVocabulary, classesLabel } from "@/lib/vocabulary";
 import { ClassBlock, ClassChip, type ClassBlockData } from "./class-block";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
@@ -101,7 +102,14 @@ function warsawDate(iso: string): string {
 export default async function HarmonogramPage({
   searchParams,
 }: {
-  searchParams: Promise<{ widok?: string; od?: string; pracownik?: string; pracownicy?: string; rezerwacja?: string }>;
+  searchParams: Promise<{
+    widok?: string;
+    od?: string;
+    pracownik?: string;
+    pracownicy?: string;
+    rezerwacja?: string;
+    kolumny?: string;
+  }>;
 }) {
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
@@ -109,7 +117,7 @@ export default async function HarmonogramPage({
   // so the proxy keeps injecting x-demo-slug on every navigation.
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";
 
-  const { widok, od, pracownik, pracownicy, rezerwacja } = await searchParams;
+  const { widok, od, pracownik, pracownicy, rezerwacja, kolumny } = await searchParams;
   // Day is the operational view — the panel root already redirects here,
   // so week-as-fallback was an inconsistency rather than a choice.
   const view: View = widok === "tydzien" ? "tydzien" : "dzien";
@@ -150,6 +158,24 @@ export default async function HarmonogramPage({
       warsawDayBoundsUtc(calWindowEnd).endIso
     ),
   ]);
+  // ── Which halves of the grid are on screen ────────────────────────────────
+  //
+  // A day with classes splits the schedule in two, and the two halves answer
+  // different questions: "who is coming to Monday's group" and "what else is
+  // in the diary". Either can be looked at on its own.
+  //
+  // The same shape as the staff filter one row up, and for the same reason —
+  // what a column *is* differs by trade (a person here, a class there), but
+  // choosing which ones to look at does not.
+  const LANES = ["zajecia", "rezerwacje"] as const;
+  type Lane = (typeof LANES)[number];
+  const pickedLanes = (kolumny ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter((v): v is Lane => (LANES as readonly string[]).includes(v));
+  // Nothing picked means both, exactly like "Wszyscy" above.
+  const laneOn = (lane: Lane) => pickedLanes.length === 0 || pickedLanes.includes(lane);
+
   // Classes running in the range being viewed, enrolled or not.
   //
   // The grid draws bookings, so a group nobody has signed up for yet is an
@@ -158,9 +184,11 @@ export default async function HarmonogramPage({
   // runs groups; everyone else pays nothing for this.
   const features = await getAdminTenantFeatures();
   const classByDate = new Map<string, ClassBlockData[]>();
+  const classWeekdays = new Set<number>();
   if (hasFeature(features, "grupy")) {
     const tenantId = await getAdminTenantId();
     const groups = await getClassGroupsForTenant(tenantId);
+    for (const g of groups) classWeekdays.add(g.day_of_week);
     if (groups.length > 0) {
       const dates: string[] = [];
       for (let d = startDate; d <= endDate; d = addDays(d, 1)) dates.push(d);
@@ -216,7 +244,14 @@ export default async function HarmonogramPage({
       }
     }
   }
+  const classesSectionLabel = classesLabel(await getSettings());
   const classMeetings = classByDate.get(baseDate) ?? [];
+  const hasClassesInView =
+    view === "dzien" ? classMeetings.length > 0 : classByDate.size > 0;
+  // The toggles only make sense where there are two halves to choose between.
+  const laneToggles = hasClassesInView;
+  const showClasses = !hasClassesInView ? false : laneOn("zajecia");
+  const showBookings = !hasClassesInView || laneOn("rezerwacje");
 
   // Numbering needs every lesson of the packages on screen, not just the ones
   // inside this window — a lesson booked for next month still decides whether
@@ -248,10 +283,24 @@ export default async function HarmonogramPage({
     : activeAll;
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
-  function navUrl(v: View, date: string, ids: string[] = selectedIds) {
+  function navUrl(
+    v: View,
+    date: string,
+    ids: string[] = selectedIds,
+    lanes: Lane[] = pickedLanes
+  ) {
     const params = new URLSearchParams({ widok: v, od: date });
     if (ids.length) params.set("pracownicy", ids.join(","));
+    if (lanes.length) params.set("kolumny", lanes.join(","));
     return `${adminBase}/harmonogram?${params.toString()}`;
+  }
+
+  /** Add or drop one half; dropping the last one falls back to both. */
+  function toggleLaneUrl(lane: Lane) {
+    const next = pickedLanes.includes(lane)
+      ? pickedLanes.filter((x) => x !== lane)
+      : [...pickedLanes, lane];
+    return navUrl(view, baseDate, selectedIds, next.length === LANES.length ? [] : next);
   }
 
   /** Add or drop one person; dropping the last one falls back to everyone. */
@@ -318,6 +367,7 @@ export default async function HarmonogramPage({
             weekHref={weekHrefMap}
             todayHref={navUrl(view, today)}
             badges={dayCounts}
+            markWeekdays={[...classWeekdays]}
             days={calendarDays}
           />
           <div className="hidden lg:block">
@@ -329,6 +379,33 @@ export default async function HarmonogramPage({
           {/* Filter row, above the split so the rail and the grid start from the
               same edge. */}
           <div className="flex flex-wrap items-center gap-3">
+            {laneToggles && (
+              <div className="flex min-h-[38px] flex-wrap items-center gap-2">
+                <StaffChip
+                  selected={pickedLanes.length === 0}
+                  dimmed={pickedLanes.length > 0}
+                  href={navUrl(view, baseDate, selectedIds, [])}
+                >
+                  Wszystko
+                </StaffChip>
+                <StaffChip
+                  selected={showClasses}
+                  dimmed={!showClasses}
+                  href={toggleLaneUrl("zajecia")}
+                  title={showClasses ? "Ukryj zajęcia" : "Pokaż zajęcia"}
+                >
+                  {classesSectionLabel}
+                </StaffChip>
+                <StaffChip
+                  selected={showBookings}
+                  dimmed={!showBookings}
+                  href={toggleLaneUrl("rezerwacje")}
+                  title={showBookings ? "Ukryj rezerwacje" : "Pokaż rezerwacje"}
+                >
+                  Rezerwacje
+                </StaffChip>
+              </div>
+            )}
               {/*
             One row of toggles, replacing the old filter chips + a second row of
             summary cards that repeated the same people. Money is deliberately
@@ -379,8 +456,8 @@ export default async function HarmonogramPage({
 
 
           <div className="mt-4">
-            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classMeetings={classMeetings} />}
-            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classByDate={classByDate} />}
+            {view === "dzien" && <DayView date={baseDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} hours={hours} today={today} services={services} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classMeetings={showClasses ? classMeetings : []} showBookings={showBookings} />}
+            {view === "tydzien" && <WeekView startDate={startDate} active={active} visibleStaff={visibleStaff} allStaff={allStaff} today={today} navUrl={navUrl} openBookingId={rezerwacja ?? null} lessonPositions={lessonPositions} classByDate={showClasses ? classByDate : new Map()} showBookings={showBookings} />}
           </div>
         </div>
       </div>
@@ -526,6 +603,7 @@ function DayView({
   openBookingId,
   lessonPositions,
   classMeetings,
+  showBookings,
 }: {
   date: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -538,6 +616,8 @@ function DayView({
   openBookingId: string | null;
   lessonPositions: Map<string, LessonPosition>;
   classMeetings: ClassBlockData[];
+  /** False while the owner is looking at the timetable on its own. */
+  showBookings: boolean;
 }) {
   const dayOfWeek = warsawDayOfWeek(date);
   const dayHours = hours.find((h) => h.day_of_week === dayOfWeek);
@@ -549,14 +629,26 @@ function DayView({
   // Classes are not bound by opening hours — a pracownia whose only "open"
   // day is Saturday still teaches on Monday at 15:45, and a grid that stopped
   // at closing time would simply not draw it.
-  const startMin = Math.min(
-    openH * 60 + openM,
-    ...classMeetings.map((m) => Math.floor(m.startMin / 30) * 30)
-  );
-  const endMin = Math.max(
-    closeH * 60 + closeM,
-    ...classMeetings.map((m) => Math.ceil(m.endMin / 30) * 30)
-  );
+  //
+  // On a day the business calls closed the classes are the only thing here,
+  // so they set the range on their own. Falling back to the notional
+  // 08:00–20:00 opened the day with eight empty hours before the first class
+  // and made the owner scroll past all of them.
+  const classFirst = classMeetings.length
+    ? Math.min(...classMeetings.map((m) => Math.floor(m.startMin / 30) * 30)) - 30
+    : null;
+  const classLast = classMeetings.length
+    ? Math.max(...classMeetings.map((m) => Math.ceil(m.endMin / 30) * 30)) + 30
+    : null;
+  const closedDay = !!dayHours?.closed;
+  const startMin =
+    closedDay && classFirst !== null
+      ? Math.max(0, classFirst)
+      : Math.min(openH * 60 + openM, ...(classFirst !== null ? [classFirst] : []));
+  const endMin =
+    closedDay && classLast !== null
+      ? Math.min(24 * 60, classLast)
+      : Math.max(closeH * 60 + closeM, ...(classLast !== null ? [classLast] : []));
 
   const slots: { label: string; min: number }[] = [];
   for (let m = startMin; m < endMin; m += 30) {
@@ -579,11 +671,16 @@ function DayView({
   // the class column sits beside it that fallback never fires, so the
   // bookings column has to be spelled out or every unassigned booking on the
   // day disappears from the schedule.
-  const staffColumns = withUnassignedColumn(visibleStaff, dayBookings);
+  const staffColumns = showBookings
+    ? withUnassignedColumn(visibleStaff, dayBookings)
+    : [];
+  const bookingColumns = showBookings
+    ? staffColumns.length > 0
+      ? staffColumns
+      : [bookingsColumn]
+    : [];
   const columns =
-    classMeetings.length > 0
-      ? [classColumn, ...(staffColumns.length > 0 ? staffColumns : [bookingsColumn])]
-      : staffColumns;
+    classMeetings.length > 0 ? [classColumn, ...bookingColumns] : staffColumns;
   const cellPlans = new Map<string, CellPlan>();
 
   for (const b of dayBookings) {
@@ -827,6 +924,7 @@ function WeekView({
   openBookingId,
   lessonPositions,
   classByDate,
+  showBookings,
 }: {
   startDate: string;
   active: Awaited<ReturnType<typeof getBookingsBetween>>;
@@ -837,6 +935,8 @@ function WeekView({
   openBookingId: string | null;
   lessonPositions: Map<string, LessonPosition>;
   classByDate: Map<string, ClassBlockData[]>;
+  /** False while the owner is looking at the timetable on its own. */
+  showBookings: boolean;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
   // Seats in a class belong to the class chip, not to the bookings column —
@@ -848,10 +948,13 @@ function WeekView({
   const hasClasses = days.some((d) => (classByDate.get(d)?.length ?? 0) > 0);
   // Same reasoning as the day view: the timetable gets its own column so the
   // week says what actually runs, not only who booked what.
-  const staffColumns = withUnassignedColumn(visibleStaff, loose);
-  const columns = hasClasses
-    ? [classColumn, ...(staffColumns.length > 0 ? staffColumns : [bookingsColumn])]
-    : staffColumns;
+  const staffColumns = showBookings ? withUnassignedColumn(visibleStaff, loose) : [];
+  const bookingColumns = showBookings
+    ? staffColumns.length > 0
+      ? staffColumns
+      : [bookingsColumn]
+    : [];
+  const columns = hasClasses ? [classColumn, ...bookingColumns] : staffColumns;
   const byDayStaff = new Map<string, Map<string, typeof active>>();
   for (const b of loose) {
     const ds = warsawDate(b.starts_at);

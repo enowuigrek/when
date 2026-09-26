@@ -21,6 +21,8 @@ type Props = {
   todayHref: string;
   /** Bookings per day, shown on the calendar cells. */
   badges: Record<string, number>;
+  /** Weekdays (0 = Sunday) the class timetable runs on. */
+  markWeekdays?: number[];
   /** Days outside opening hours, greyed out. */
   days: { date: string; closed: boolean }[];
 };
@@ -55,6 +57,7 @@ export function ScheduleDatePicker({
   weekHref,
   todayHref,
   badges,
+  markWeekdays,
   days,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -64,6 +67,7 @@ export function ScheduleDatePicker({
       today={today}
       days={days}
       badges={badges}
+          markWeekdays={markWeekdays}
       size={size}
       allowPastNav
       variant="browse"

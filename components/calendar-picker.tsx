@@ -71,6 +71,12 @@ type CalendarPickerProps = {
   onPick?: (date: string) => void;
   hrefMap?: Record<string, string>;
   badges?: Record<string, string | number>;
+  /**
+   * Weekdays (0 = Sunday) that carry something recurring — a class timetable.
+   * Marked across the whole month rather than date by date, because that is
+   * what "every Monday" means and a list of dates would only restate it.
+   */
+  markWeekdays?: number[];
 
   // Week-pick mode (grafik)
   weekMode?: boolean;
@@ -184,6 +190,7 @@ export function CalendarPicker({
   onPick,
   hrefMap,
   badges,
+  markWeekdays,
   weekMode = false,
   viewedWeekStart,
   currentWeekStart,
@@ -432,6 +439,10 @@ export function CalendarPicker({
               const isAvailable = !!dayInfo && !dayInfo.closed;
               const isClosed = !!dayInfo && dayInfo.closed;
               const badge = isAvailable && badges ? badges[date] : undefined;
+              // A day the timetable runs on, whether or not anyone has booked.
+              const marked =
+                !!markWeekdays?.length &&
+                markWeekdays.includes(new Date(`${date}T12:00:00Z`).getUTCDay());
               const href = isAvailable && hrefMap ? hrefMap[date] : undefined;
 
               if (!isCurrentMonth) {
@@ -466,6 +477,14 @@ export function CalendarPicker({
                 cls += "cursor-not-allowed opacity-40 ";
               } else {
                 cls += "cursor-default font-normal ";
+              }
+
+              // A timetable day is tinted in the tenant's accent, so a month
+              // shows at a glance which days the studio teaches on. Skipped
+              // under the solid pick, where a tint on a filled cell reads as
+              // a rendering fault rather than a mark.
+              if (marked && !solidPick) {
+                cls += "cal-day-marked ";
               }
 
               // Today is bold and in the accent colour — the way the schedule

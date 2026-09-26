@@ -214,6 +214,18 @@ body {
   background-color: #f4f4f5;
 }
 
+/* ── A day the timetable runs on ──
+   Tinted rather than badged: the badge slot under the number already carries
+   the booking count, and the question this answers — "which days do classes
+   happen" — is read across a whole month at once, not cell by cell. */
+.cal-day-marked {
+  background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+.cal-day-marked:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+
 /* Text sitting on a saturated fill has to stay light in both themes. The light
    theme forces .text-zinc-100 and .text-red-400 to near-black with !important,
    which quietly turned white-on-red into black-on-red — unreadable on the
