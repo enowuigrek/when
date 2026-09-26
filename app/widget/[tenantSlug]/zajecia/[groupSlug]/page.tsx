@@ -15,6 +15,7 @@ import { hasFeature } from "@/lib/features";
 import { nextMeetings, meetingTimeLabel, WEEKDAY_NAMES } from "@/lib/class-groups";
 import { formatWarsawDate } from "@/lib/slots";
 import { accentFg } from "@/lib/color-utils";
+import { enrollVocabulary } from "@/lib/vocabulary";
 import { EnrollForm } from "./enroll-form";
 
 type Props = {
@@ -153,6 +154,7 @@ export default async function ClassGroupPage({ params, searchParams }: Props) {
             tenantSlug={tenantSlug}
             groupSlug={group.slug}
             karnet={karnet}
+            words={enrollVocabulary(service)}
             trialLabel={
               meetings[0] ? `jedno spotkanie — ${formatWarsawDate(meetings[0].startsAtIso)}` : "jedno spotkanie"
             }

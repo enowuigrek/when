@@ -15,6 +15,8 @@ import {
   nextMeetings,
 } from "@/lib/class-groups";
 import { formatWarsawDate, warsawDayBoundsUtc } from "@/lib/slots";
+import { enrollVocabulary, classesLabel } from "@/lib/vocabulary";
+import { getSettingsForTenant } from "@/lib/db/for-tenant";
 import { AddToGroupDialog } from "./add-to-group-dialog";
 
 export const metadata = { title: "Zajęcia", robots: { index: false } };
@@ -35,10 +37,14 @@ export default async function ZajeciaPage() {
   const features = await getAdminTenantFeatures();
   if (!hasFeature(features, "grupy")) notFound();
 
-  const groups = await getClassGroupsForTenant(tenantId, { includeInactive: true });
+  const [groups, settings] = await Promise.all([
+    getClassGroupsForTenant(tenantId, { includeInactive: true }),
+    getSettingsForTenant(tenantId),
+  ]);
+  const sectionLabel = classesLabel(settings);
   if (groups.length === 0) {
     return (
-      <PageShell title="Zajęcia" narrow>
+      <PageShell title={sectionLabel} narrow>
         <p className="mt-6 text-sm text-zinc-500">
           Nie ma jeszcze żadnych grup.
         </p>
@@ -72,8 +78,8 @@ export default async function ZajeciaPage() {
 
   return (
     <PageShell
-      title="Zajęcia"
-      subtitle="Stałe grupy w tygodniu. Dopisujesz tu dziecko od razu na cały karnet."
+      title={sectionLabel}
+      subtitle="Stałe grupy w tygodniu. Zapis obejmuje od razu cały karnet."
     >
       <div className="mt-8 space-y-10">
         {days.map((dow) => (
@@ -142,6 +148,7 @@ export default async function ZajeciaPage() {
                             : null
                         }
                         dates={meetings.map((m) => formatWarsawDate(m.startsAtIso))}
+                        words={enrollVocabulary(g.service)}
                       />
                     )}
                   </div>

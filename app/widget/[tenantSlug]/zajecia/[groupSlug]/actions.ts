@@ -13,6 +13,7 @@ import { sendPushToTenant } from "@/lib/push";
 import { sendEmail } from "@/lib/email/send";
 import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
 import { hasFeature } from "@/lib/features";
+import { enrollVocabulary } from "@/lib/vocabulary";
 
 export type EnrollState = { status: "idle" | "error"; message?: string };
 
@@ -57,6 +58,14 @@ export async function enrollAction(
   if (!group || !group.active) return { status: "error", message: "Te zajęcia nie są dostępne." };
 
   const service = group.service;
+
+  // A service that names a guardian needs one: the phone and the e-mail are
+  // theirs, and without the name the studio has a child's booking against an
+  // adult's number with nothing saying whose.
+  const words = enrollVocabulary(service);
+  if (words.guardian && !parsed.data.guardianName?.trim()) {
+    return { status: "error", message: `Uzupełnij: ${words.guardian}.` };
+  }
 
   const enrolled = await enrollInGroup({
     group,

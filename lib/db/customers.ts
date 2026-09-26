@@ -10,6 +10,11 @@ export type Customer = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Who is called about this person. A child attends and holds the karnet;
+   * the parent is the contact, and the two share the phone number.
+   */
+  guardian_id: string | null;
 };
 
 /**
@@ -49,20 +54,88 @@ export async function upsertCustomer(data: {
  * Same, with the tenant handed in — for public and widget paths, which have no
  * admin session to read one from.
  */
+/**
+ * The person reachable at this number.
+ *
+ * Read-then-write rather than an upsert: the phone is unique only among
+ * clients who have no guardian — a child shares its parent's number, and
+ * three siblings would otherwise fight over one row. A partial unique index
+ * cannot be named as an ON CONFLICT target through the client, so the lookup
+ * is explicit.
+ */
 export async function upsertCustomerForTenant(
   data: { phone: string; name: string; email: string | null },
   tenantId: string
 ): Promise<string> {
-  const { data: result, error } = await createAdminClient()
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase
     .from("customers")
-    .upsert(
-      { tenant_id: tenantId, phone: data.phone, name: data.name, email: data.email, updated_at: new Date().toISOString() },
-      { onConflict: "tenant_id,phone" }
-    )
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("phone", data.phone)
+    .is("guardian_id", null)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("customers")
+      .update({ name: data.name, email: data.email, updated_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    if (error) throw new Error(`upsertCustomer: ${error.message}`);
+    return existing.id as string;
+  }
+
+  const { data: created, error } = await supabase
+    .from("customers")
+    .insert({
+      tenant_id: tenantId,
+      phone: data.phone,
+      name: data.name,
+      email: data.email,
+      updated_at: new Date().toISOString(),
+    })
     .select("id")
     .single();
   if (error) throw new Error(`upsertCustomer: ${error.message}`);
-  return result.id;
+  return created.id as string;
+}
+
+/**
+ * The person who attends, under the person who is called about it.
+ *
+ * Matched on the name within one guardian, because that is how a parent
+ * identifies their own child to a studio — there is no other handle, and
+ * inventing one would mean asking a parent for their child's phone number.
+ */
+export async function upsertChildForTenant(
+  data: { name: string; guardianId: string; guardianPhone: string },
+  tenantId: string
+): Promise<string> {
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("guardian_id", data.guardianId)
+    .ilike("name", data.name)
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const { data: created, error } = await supabase
+    .from("customers")
+    .insert({
+      tenant_id: tenantId,
+      // Kept in step with the guardian so a call from the child's profile
+      // reaches somebody. The child is not reachable at it; the parent is.
+      phone: data.guardianPhone,
+      name: data.name,
+      guardian_id: data.guardianId,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`upsertChild: ${error.message}`);
+  return created.id as string;
 }
 
 export async function getAllCustomers(): Promise<Customer[]> {
@@ -76,6 +149,10 @@ export async function getAllCustomers(): Promise<Customer[]> {
 }
 
 export type CustomerSummary = Customer & {
+  /** Set on a child: the name of whoever is called about them. */
+  guardianName: string | null;
+  /** Set on a guardian: how many people they are the contact for. */
+  childCount: number;
   visitCount: number;
   totalSpent: number;
   lastVisit: string | null;
@@ -89,33 +166,68 @@ export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
     supabase.from("customers").select("*").eq("tenant_id", tenantId).order("updated_at", { ascending: false }),
     supabase
       .from("bookings")
-      .select("customer_phone, status, starts_at, service:services(price_pln)")
+      .select("customer_phone, customer_name, status, starts_at, service:services(price_pln)")
       .eq("tenant_id", tenantId),
   ]);
 
   const now = new Date().toISOString();
-  type BookingRow = { customer_phone: string; status: string; starts_at: string; service: { price_pln: number } | null };
+  type BookingRow = { customer_phone: string; customer_name: string; status: string; starts_at: string; service: { price_pln: number } | null };
   const bookings = (bookingsRaw.data ?? []) as unknown as BookingRow[];
 
-  const byPhone = new Map<string, BookingRow[]>();
+  // Keyed by number and name together: siblings share a phone, and keying on
+  // it alone gave every child the whole family's history.
+  const key = (phone: string, name: string) => `${phone}|${name.trim().toLowerCase()}`;
+  const byPerson = new Map<string, BookingRow[]>();
   for (const b of bookings) {
-    const arr = byPhone.get(b.customer_phone) ?? [];
+    const k = key(b.customer_phone, b.customer_name);
+    const arr = byPerson.get(k) ?? [];
     arr.push(b);
-    byPhone.set(b.customer_phone, arr);
+    byPerson.set(k, arr);
   }
 
-  return (customers.data ?? []).map((c) => {
-    const cBookings = byPhone.get(c.phone) ?? [];
+  const all = (customers.data ?? []) as Customer[];
+  const nameById = new Map(all.map((c) => [c.id, c.name]));
+  const childCounts = new Map<string, number>();
+  for (const c of all) {
+    if (c.guardian_id) childCounts.set(c.guardian_id, (childCounts.get(c.guardian_id) ?? 0) + 1);
+  }
+
+  return all.map((c) => {
+    const cBookings = byPerson.get(key(c.phone, c.name)) ?? [];
     const past = cBookings.filter((b) => (b.status === "confirmed" || b.status === "completed") && b.starts_at < now);
     const lastVisit = past.sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0]?.starts_at ?? null;
     return {
       ...(c as Customer),
+      guardianName: c.guardian_id ? nameById.get(c.guardian_id) ?? null : null,
+      childCount: childCounts.get(c.id) ?? 0,
       visitCount: past.length,
       totalSpent: past.reduce((s, b) => s + (b.service?.price_pln ?? 0), 0),
       lastVisit,
       noShowCount: cBookings.filter((b) => b.status === "no_show").length,
     };
   });
+}
+
+/**
+ * The people this client is filed with: who is called about them, and who
+ * they are called about.
+ */
+export async function getFamily(customer: {
+  id: string;
+  guardian_id: string | null;
+}): Promise<{ guardian: Customer | null; children: Customer[] }> {
+  const tenantId = await getAdminTenantId();
+  const supabase = createAdminClient();
+  const [guardianRes, childrenRes] = await Promise.all([
+    customer.guardian_id
+      ? supabase.from("customers").select("*").eq("tenant_id", tenantId).eq("id", customer.guardian_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("customers").select("*").eq("tenant_id", tenantId).eq("guardian_id", customer.id).order("name"),
+  ]);
+  return {
+    guardian: (guardianRes.data as Customer | null) ?? null,
+    children: ((childrenRes as { data: Customer[] | null }).data ?? []) as Customer[],
+  };
 }
 
 export async function getCustomerByPhone(phone: string): Promise<Customer | null> {
@@ -155,13 +267,21 @@ export type CustomerStats = {
   bookings: CustomerBooking[];
 };
 
-export async function getCustomerStats(phone: string): Promise<CustomerStats> {
+/**
+ * One person's history.
+ *
+ * Matched on the number *and* the name, not the number alone. A parent and
+ * their children share one phone, so a family of four all had each other's
+ * visits, each other's spend and each other's next appointment.
+ */
+export async function getCustomerStats(phone: string, name: string): Promise<CustomerStats> {
   const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("bookings")
     .select("id, starts_at, ends_at, status, notes, staff_id, package_id, price_pln_snapshot, service:services(name, price_pln, duration_min), staff:staff(name, color)")
     .eq("tenant_id", tenantId)
     .eq("customer_phone", phone)
+    .ilike("customer_name", name)
     .order("starts_at", { ascending: false });
 
   const bookings = (data ?? []) as unknown as CustomerBooking[];

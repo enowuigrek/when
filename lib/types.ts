@@ -36,6 +36,10 @@ export type Service = {
   extra_choice_label: string | null;
   /** What that list offers. Null when there is no such question. */
   extra_choices: string[] | null;
+  /** See lib/vocabulary.ts — what this business calls the people it teaches. */
+  enrollee_label: string | null;
+  guardian_label: string | null;
+  enroll_action_label: string | null;
 };
 
 /**

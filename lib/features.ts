@@ -7,18 +7,23 @@
  * panel into somebody else's business plus your own.
  *
  * So each capability lives in the codebase once and is switched on per tenant.
- * The flag governs what is *offered* — which tabs exist, which fields the form
- * asks for. It never governs what already exists: a service sold as a package
- * stays a package whether or not "karnety" is on, because hiding the counter
- * would not unsell it.
+ * The flag governs what is *offered* — which tabs exist, which pages answer.
+ * It never governs what already exists: a service sold as a package stays a
+ * package whichever way the flags are set, because hiding a counter would not
+ * unsell what somebody bought.
  *
  * Adding one is a string here and the code that reads it. No migration.
+ *
+ * Only capabilities that actually switch a piece of the panel belong here.
+ * "karnety" and "cena-od-osoby" were on this list and read by nothing, because
+ * both are already decided by data: a service with `total_lessons` is a
+ * package, a service with `price_per_person` is priced per head. A flag
+ * repeating what the data says is a second source of truth and the first
+ * thing to drift, so they are gone rather than made real.
  */
 export const FEATURES = {
   pracownicy: "Pracownicy",
-  karnety: "Karnety",
   grupy: "Zajęcia grupowe",
-  "cena-od-osoby": "Cena od osoby",
   platnosci: "Płatności online",
 } as const;
 

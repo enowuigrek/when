@@ -12,6 +12,7 @@ import {
 import { getClassGroupsForTenant, getSeatCountsForTenant } from "@/lib/db/class-groups";
 import { ClassWeekGrid } from "@/components/class-week-grid";
 import { hasFeature } from "@/lib/features";
+import { classesLabel } from "@/lib/vocabulary";
 import { nextMeetingDates, meetingInstants } from "@/lib/class-groups";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -139,7 +140,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
           {groups.length > 0 && (
             <section className="mt-8">
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                Zajęcia — zapisy
+                {classesLabel(settings)} — zapisy
               </h1>
               <p className="mt-2 mb-6 text-sm text-zinc-400">
                 {settings.tagline ??

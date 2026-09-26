@@ -1,6 +1,8 @@
 import "server-only";
 import { createBookingForTenant } from "@/lib/db/for-tenant";
-import { attachToPackageForTenant } from "@/lib/db/packages";
+import { ensurePackageForTenant } from "@/lib/db/packages";
+import { upsertCustomerForTenant, upsertChildForTenant } from "@/lib/db/customers";
+import { enrollVocabulary } from "@/lib/vocabulary";
 import {
   getSeatCountsForTenant,
   seatsKey,
@@ -68,24 +70,48 @@ export async function enrollInGroup(input: EnrollInput): Promise<EnrollResult> {
 
   const guardian = input.guardianName?.trim() || null;
   const email = input.email?.trim() || null;
+  const words = enrollVocabulary(service);
   const firstNotes =
     [
-      guardian ? `Rodzic/opiekun: ${guardian}` : null,
+      guardian ? `${words.guardianNote}: ${guardian}` : null,
       mode === "probne" ? "Zajęcia próbne" : null,
       input.notes?.trim() || null,
     ]
       .filter(Boolean)
       .join(" · ") || null;
 
+  // Who the client is.
+  //
+  // With a guardian there are two people, and both belong in the book: the
+  // parent is who you call, the child is who attends and who holds the
+  // karnet. Storing only the child left "Klienci" listing children against
+  // somebody else's phone number with no way to see whose.
+  let attendeeId: string | null = null;
+  try {
+    const contactId = await upsertCustomerForTenant(
+      { phone: input.phone, name: guardian ?? input.childName, email },
+      tenantId
+    );
+    attendeeId = guardian
+      ? await upsertChildForTenant(
+          { name: input.childName, guardianId: contactId, guardianPhone: input.phone },
+          tenantId
+        )
+      : contactId;
+  } catch (e) {
+    // The appointment is the thing the parent is waiting on; the address book
+    // catching up can fail without taking it down.
+    console.error("[zapisy] could not record the client:", e);
+  }
+
   // A trial is a single visit, not a month — it opens no package, so nothing
   // is counted against a karnet nobody bought.
   const packageId =
-    mode === "karnet" && service.total_lessons
-      ? await attachToPackageForTenant({
-          service: { id: service.id, total_lessons: service.total_lessons },
-          customerName: input.childName,
-          customerPhone: input.phone,
-          customerEmail: email,
+    mode === "karnet" && service.total_lessons && attendeeId
+      ? await ensurePackageForTenant({
+          serviceId: service.id,
+          customerId: attendeeId,
+          totalLessons: service.total_lessons,
           tenantId,
         })
       : null;
@@ -101,7 +127,7 @@ export async function enrollInGroup(input: EnrollInput): Promise<EnrollResult> {
         customerEmail: email,
         startsAtIso: m.startsAtIso,
         endsAtIso: m.endsAtIso,
-        notes: i === 0 ? firstNotes : guardian ? `Rodzic/opiekun: ${guardian}` : null,
+        notes: i === 0 ? firstNotes : guardian ? `${words.guardianNote}: ${guardian}` : null,
         staffId: null,
         classGroupId: group.id,
         packageId,

@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
 import { AdminLink } from "@/components/admin-link";
 import { AddAction } from "@/components/ui/add-action";
 import { PageShell } from "@/components/ui/page-shell";
@@ -10,6 +13,9 @@ import { DeleteStaffButton } from "./delete-button";
 export const metadata = { title: "Pracownicy", robots: { index: false } };
 
 export default async function PracownicyPage() {
+  // Hidden in the nav is not the same as off. A tenant without staff should
+  // not reach the roster by typing the address.
+  if (!hasFeature(await getAdminTenantFeatures(), "pracownicy")) notFound();
   const staff = await getAllStaff();
 
   return (

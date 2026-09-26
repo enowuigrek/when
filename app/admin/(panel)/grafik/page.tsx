@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getActiveStaff } from "@/lib/db/staff";
@@ -34,6 +37,9 @@ export default async function GrafikPage({
 }: {
   searchParams: Promise<{ tydzien?: string; pracownik?: string; pracownicy?: string }>;
 }) {
+  // Hidden in the nav is not the same as off. A tenant without staff should
+  // not reach the roster by typing the address.
+  if (!hasFeature(await getAdminTenantFeatures(), "pracownicy")) notFound();
   const h = await headers();
   const demoSlug = h.get("x-demo-slug");
   const adminBase = demoSlug ? `/demo/${demoSlug}` : "/admin";

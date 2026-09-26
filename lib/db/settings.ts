@@ -21,6 +21,8 @@ export type Settings = {
   booking_horizon_days: number;
   color_accent: string;
   theme: "dark" | "light" | "system";
+  /** What this business calls its recurring groups. See lib/vocabulary.ts. */
+  classes_label: string | null;
 };
 
 export type TimeFilter = {
@@ -51,6 +53,7 @@ export const FALLBACK_SETTINGS: Settings = {
   booking_horizon_days: 21,
   color_accent: "#d4a26a",
   theme: "system" as const,
+  classes_label: null,
 };
 
 export async function getSettings(): Promise<Settings> {

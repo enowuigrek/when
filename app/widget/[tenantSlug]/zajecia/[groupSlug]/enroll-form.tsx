@@ -29,12 +29,15 @@ export function EnrollForm({
   groupSlug,
   karnet,
   trialLabel,
+  words,
 }: {
   tenantSlug: string;
   groupSlug: string;
   /** Null when the course is not sold as a month — then there is only a trial. */
   karnet: { lessons: number; pricePln: number } | null;
   trialLabel: string;
+  /** What this service calls the people it teaches. See lib/vocabulary.ts. */
+  words: { enrollee: string; guardian: string | null; action: string };
 }) {
   const [state, formAction, pending] = useActionState<EnrollState, FormData>(
     enrollAction,
@@ -65,13 +68,18 @@ export function EnrollForm({
         </div>
       )}
 
-      <Field label="Imię i nazwisko dziecka *">
+      <Field label={`${words.enrollee} *`}>
         <input name="childName" required maxLength={120} placeholder="Zosia Kowalska" className={input} />
       </Field>
 
-      <Field label="Imię i nazwisko rodzica lub opiekuna">
-        <input name="guardianName" maxLength={120} placeholder="Anna Kowalska" className={input} />
-      </Field>
+      {words.guardian && (
+        <Field
+          label={`${words.guardian} *`}
+          hint="Telefon i e-mail zapisujemy przy opiekunie — po nich rozpoznajemy rodzeństwo."
+        >
+          <input name="guardianName" required maxLength={120} placeholder="Anna Kowalska" className={input} />
+        </Field>
+      )}
 
       <Field label="Telefon *">
         <input name="phone" type="tel" required maxLength={30} placeholder="+48 600 000 000" className={input} />

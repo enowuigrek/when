@@ -7,6 +7,7 @@ import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
 import { hasFeature } from "@/lib/features";
 import { getClassGroupsForTenant } from "@/lib/db/class-groups";
 import { enrollInGroup } from "@/lib/db/class-enrollment";
+import { enrollVocabulary } from "@/lib/vocabulary";
 
 export type AddToGroupState = { status: "idle" | "error" | "ok"; message?: string };
 
@@ -48,6 +49,11 @@ export async function addToGroupAction(
     (g) => g.id === parsed.data.groupId
   );
   if (!group) return { status: "error", message: "Nie ma takiej grupy." };
+
+  const words = enrollVocabulary(group.service);
+  if (words.guardian && !parsed.data.guardianName?.trim()) {
+    return { status: "error", message: `Uzupełnij: ${words.guardian}.` };
+  }
 
   const result = await enrollInGroup({
     group,

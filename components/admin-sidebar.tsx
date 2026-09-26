@@ -165,8 +165,17 @@ type NavItem = {
  * they mean something — a pracownia with no staff should not be looking at a
  * "Pracownicy" tab wondering what it wants from her.
  */
-function visible(items: NavItem[], features: readonly string[]): NavItem[] {
-  return items.filter((i) => !i.feature || features.includes(i.feature));
+function visible(
+  items: NavItem[],
+  features: readonly string[],
+  classesLabel?: string
+): NavItem[] {
+  return items
+    .filter((i) => !i.feature || features.includes(i.feature))
+    // A studio calls them "Zajęcia", a gym "Treningi", a school "Kursy".
+    .map((i) =>
+      i.href === "/admin/zajecia" && classesLabel ? { ...i, label: classesLabel } : i
+    );
 }
 
 const NAV_MAIN: NavItem[] = [
@@ -237,6 +246,7 @@ function NavWithStripe({
   demoSlug,
   isSuperAdmin,
   features,
+  classesLabel,
 }: {
   expanded: boolean;
   pathname: string;
@@ -244,6 +254,7 @@ function NavWithStripe({
   demoSlug: string | null;
   isSuperAdmin?: boolean;
   features: readonly string[];
+  classesLabel?: string;
 }) {
   const navRef = useRef<HTMLElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; h: number; visible: boolean }>({
@@ -293,7 +304,7 @@ function NavWithStripe({
         style={{ height: stripe.h, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
-      {visible(NAV_MAIN, features).map((item) => (
+      {visible(NAV_MAIN, features, classesLabel).map((item) => (
         <SidebarLink
           key={item.href}
           item={item}
@@ -306,7 +317,7 @@ function NavWithStripe({
 
       <div className="my-2 mx-1 border-t border-zinc-800/60" />
 
-      {visible(NAV_MANAGE, features).map((item) => (
+      {visible(NAV_MANAGE, features, classesLabel).map((item) => (
         <SidebarLink
           key={item.href}
           item={item}
@@ -352,10 +363,12 @@ function BottomNav({
   pathname,
   demoSlug,
   features,
+  classesLabel,
 }: {
   pathname: string;
   demoSlug: string | null;
   features: readonly string[];
+  classesLabel?: string;
 }) {
   const navRef = useRef<HTMLDivElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; w: number; visible: boolean }>({
@@ -425,7 +438,7 @@ function BottomNav({
         style={{ width: stripe.w, transform: `translate(${stripe.x}px, ${stripe.y}px)` }}
       />
 
-      {visible(NAV_MAIN, features).map((item) => {
+      {visible(NAV_MAIN, features, classesLabel).map((item) => {
         const href = rewriteAdminHref(item.href, demoSlug);
         const active = item.exact ? pathname === href : pathname.startsWith(href);
         return (
@@ -472,6 +485,7 @@ function SidebarBody({
   demoSlug,
   isSuperAdmin,
   features,
+  classesLabel,
   showNotifications = true,
   showHomeLink = true,
 }: {
@@ -487,6 +501,7 @@ function SidebarBody({
   demoSlug: string | null;
   isSuperAdmin?: boolean;
   features: readonly string[];
+  classesLabel?: string;
   /** Off in the mobile drawer — the top bar already carries the bell. */
   showNotifications?: boolean;
   /** Off for a demo prepared for someone: no way out of the panel. */
@@ -583,6 +598,7 @@ function SidebarBody({
         demoSlug={demoSlug}
         isSuperAdmin={isSuperAdmin}
         features={features}
+        classesLabel={classesLabel}
       />
 
 
@@ -653,6 +669,7 @@ export function AdminSidebar({
   isDemo,
   isSuperAdmin,
   features = [],
+  classesLabel,
 }: {
   tenantId: string;
   businessName: string;
@@ -662,6 +679,8 @@ export function AdminSidebar({
   isSuperAdmin?: boolean;
   /** Capabilities switched on for this tenant — see lib/features.ts. */
   features?: readonly string[];
+  /** What this tenant calls its recurring groups. See lib/vocabulary.ts. */
+  classesLabel?: string;
   /** Off for a demo prepared for a named prospect — no way out of the panel. */
   showHomeLink?: boolean;
 }) {
@@ -708,6 +727,7 @@ export function AdminSidebar({
           isDemo={isDemo}
           isSuperAdmin={isSuperAdmin}
           features={features}
+          classesLabel={classesLabel}
           showHomeLink={showHomeLink}
           onToggle={toggleExpanded}
           pathname={pathname}
@@ -761,6 +781,7 @@ export function AdminSidebar({
             isDemo={isDemo}
             isSuperAdmin={isSuperAdmin}
             features={features}
+          classesLabel={classesLabel}
             showHomeLink={showHomeLink}
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
@@ -770,7 +791,7 @@ export function AdminSidebar({
           />
         </aside>
 
-        <BottomNav pathname={pathname} demoSlug={demoSlug} features={features} />
+        <BottomNav pathname={pathname} demoSlug={demoSlug} features={features} classesLabel={classesLabel} />
       </div>
     </>
   );

@@ -16,6 +16,7 @@ import {
 } from "@/lib/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
+import { classesLabel } from "@/lib/vocabulary";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { DemoVisitBeacon } from "@/components/demo-visit-beacon";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
@@ -64,6 +65,7 @@ export default async function PanelLayout({
             showHomeLink={demo.kind === "demo"}
             isSuperAdmin={false}
             features={[...features]}
+            classesLabel={classesLabel(settings)}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
             <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
@@ -119,6 +121,7 @@ export default async function PanelLayout({
           isDemo={tenantKind === "demo"}
           isSuperAdmin={isSuperAdmin}
           features={[...(await getFeaturesForTenant(tenantId))]}
+          classesLabel={classesLabel(s)}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}
         <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">

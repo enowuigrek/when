@@ -10,6 +10,7 @@ type ServiceSeed = {
   price_per_person?: boolean; participants_min?: number;
   participants_label?: string; extra_question_label?: string;
   extra_choice_label?: string; extra_choices?: string[];
+  enrollee_label?: string; guardian_label?: string; enroll_action_label?: string;
   total_lessons?: number;
   /** Parked rather than removed — shown as "chwilowo zawieszone". */
   active?: boolean;
@@ -196,6 +197,9 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     price_pln: 220,
     total_lessons: 4,
     sort_order: 1,
+    enrollee_label: "Imię i nazwisko dziecka",
+    guardian_label: "Rodzic lub opiekun",
+    enroll_action_label: "Dopisz dziecko",
   },
   {
     slug: "zajecia-11-15",
@@ -207,6 +211,9 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     price_pln: 220,
     total_lessons: 4,
     sort_order: 2,
+    enrollee_label: "Imię i nazwisko dziecka",
+    guardian_label: "Rodzic lub opiekun",
+    enroll_action_label: "Dopisz dziecko",
   },
   {
     slug: "kurs-rysunku",
@@ -218,6 +225,8 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     // Cennika tego kursu nie ma na ich stronie i nie będę go zgadywał.
     price_pln: 0,
     sort_order: 3,
+    enrollee_label: "Imię i nazwisko uczestnika",
+    enroll_action_label: "Dopisz uczestnika",
   },
   {
     slug: "zajecia-3-5",
@@ -228,6 +237,9 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     total_lessons: 4,
     sort_order: 4,
     active: false,
+    enrollee_label: "Imię i nazwisko dziecka",
+    guardian_label: "Rodzic lub opiekun",
+    enroll_action_label: "Dopisz dziecko",
   },
   {
     slug: "warsztaty-urodzinowe",
@@ -358,6 +370,7 @@ const SETTINGS = {
     // z których pięć i tak byłoby wyszarzonych. Zob. HOURS_TECZOWKA.
     slot_granularity_min: 180,
     booking_horizon_days: 42,
+    classes_label: "Zajęcia",
   },
   zorba: {
     business_name: "Szkoła Tańca Zorba",
@@ -464,7 +477,7 @@ const VARIANTS: Record<DemoVariant, {
     classGroups: TECZOWKA_CLASS_GROUPS,
     // Bez „pracownicy": pracownię prowadzi jedna osoba i wybór instruktora nie
     // ma czego rozstrzygać. Bez „platnosci": rozliczają się na miejscu.
-    features: ["grupy", "karnety", "cena-od-osoby"],
+    features: ["grupy"],
   },
 };
 
@@ -531,6 +544,9 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
       extra_question_label: s.extra_question_label ?? null,
       extra_choice_label: s.extra_choice_label ?? null,
       extra_choices: s.extra_choices ?? null,
+      enrollee_label: s.enrollee_label ?? null,
+      guardian_label: s.guardian_label ?? null,
+      enroll_action_label: s.enroll_action_label ?? null,
       total_lessons: s.total_lessons ?? null,
     })))
     .select("id, slug");

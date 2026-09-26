@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { sectionHeading } from "@/components/ui/surface";
 import { AdminLink } from "@/components/admin-link";
-import { getCustomerStats, getAllCustomers } from "@/lib/db/customers";
+import { getCustomerStats, getAllCustomers, getFamily } from "@/lib/db/customers";
 import { getCustomerPackages, getLessonPositions, type LessonPosition } from "@/lib/db/packages";
 import { CustomerPackages } from "./packages";
 import type { CustomerBooking } from "@/lib/db/customers";
@@ -25,10 +25,11 @@ export default async function CustomerProfilePage({ params }: { params: Params }
   const customer = all.find((c) => c.id === id);
   if (!customer) notFound();
 
-  const [stats, allStaff, packages] = await Promise.all([
-    getCustomerStats(customer.phone),
+  const [stats, allStaff, packages, family] = await Promise.all([
+    getCustomerStats(customer.phone, customer.name),
     getActiveStaff(),
     getCustomerPackages(customer.id),
+    getFamily(customer),
   ]);
   // The customer's own lists say which lesson each booking is, using the same
   // date ordering as the schedule — so the two never disagree.
@@ -88,6 +89,42 @@ export default async function CustomerProfilePage({ params }: { params: Params }
           <StatTile label="Następna wizyta" value={`${formatWarsawDate(stats.nextVisit)}, ${formatWarsawTime(stats.nextVisit)}`} size="sm" tone="accent" />
         )}
       </div>
+
+      {/* Who this person is filed with. The phone on a child's profile is the
+          guardian's, and without saying so the number looks like the child's
+          own — which is the sort of thing somebody dials before a class. */}
+      {(family.guardian || family.children.length > 0) && (
+        <div className="mt-6 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-5 py-4">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            {family.guardian ? "Opiekun" : "Podopieczni"}
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {family.guardian && (
+              <li>
+                <AdminLink
+                  href={`/admin/klienci/${family.guardian.id}`}
+                  className="text-sm text-zinc-300 hover:text-zinc-100"
+                >
+                  {family.guardian.name}
+                </AdminLink>
+                <span className="ml-2 font-mono text-xs text-zinc-600">
+                  {family.guardian.phone}
+                </span>
+              </li>
+            )}
+            {family.children.map((c) => (
+              <li key={c.id}>
+                <AdminLink
+                  href={`/admin/klienci/${c.id}`}
+                  className="text-sm text-zinc-300 hover:text-zinc-100"
+                >
+                  {c.name}
+                </AdminLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <CustomerPackages packages={packages} />
 
