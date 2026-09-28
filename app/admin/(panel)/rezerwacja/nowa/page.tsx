@@ -5,6 +5,9 @@ import { computeAvailableSlots, warsawToday, addDays, warsawDayOfWeek } from "@/
 import { getAllStaff } from "@/lib/db/staff";
 import { AdminBookingForm } from "./admin-booking-form";
 import { PageShell } from "@/components/ui/page-shell";
+import { getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
+import { newEntryLabel } from "@/lib/vocabulary";
 
 export const metadata = { title: "Nowa rezerwacja", robots: { index: false } };
 
@@ -15,13 +18,15 @@ export default async function AdminNewBookingPage({
 }) {
   const { data: dataParam, godzina: godzinaParam, phone, name, email } = await searchParams;
 
-  const [services, hours, settings, timeFilters, allStaff] = await Promise.all([
+  const [services, hours, settings, timeFilters, allStaff, features] = await Promise.all([
     getServices(),
     getBusinessHours(),
     getSettings(),
     getTimeFilters(),
     getAllStaff(),
+    getAdminTenantFeatures(),
   ]);
+  const words = newEntryLabel(hasFeature(features, "grupy"));
 
   const activeStaff = allStaff.filter((s) => s.active);
   const staffCount = Math.max(1, activeStaff.length);
@@ -56,8 +61,8 @@ export default async function AdminNewBookingPage({
   return (
     <PageShell
       narrow
-      title="Nowa rezerwacja"
-      subtitle="Rezerwacja przez telefon lub wizytę osobistą."
+      title={words.title}
+      subtitle={words.subtitle}
     >
       <AdminBookingForm
         services={services}

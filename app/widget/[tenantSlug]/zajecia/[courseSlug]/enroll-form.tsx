@@ -60,7 +60,7 @@ export function EnrollForm({
           <ModeCard
             active={mode === "karnet"}
             onClick={() => setMode("karnet")}
-            title={`Karnet — ${karnet.lessons} spotkania`}
+            title={`${karnet.lessons} spotkania`}
             detail={`${karnet.pricePln} zł za miesiąc`}
           />
           <ModeCard

@@ -43,3 +43,16 @@ export function enrollVocabulary(service: {
 export function classesLabel(settings: { classes_label?: string | null }): string {
   return settings.classes_label?.trim() || "Zajęcia";
 }
+
+/**
+ * What the panel's main action is called.
+ *
+ * A salon takes bookings; a studio signs children up for classes. Naming the
+ * button after the trade is the difference between a panel that reads as
+ * theirs and one that reads as somebody else's software.
+ */
+export function newEntryLabel(runsGroups: boolean): { title: string; subtitle: string } {
+  return runsGroups
+    ? { title: "Nowy zapis", subtitle: "Zapis przez telefon lub wizytę osobistą." }
+    : { title: "Nowa rezerwacja", subtitle: "Rezerwacja przez telefon lub wizytę osobistą." };
+}

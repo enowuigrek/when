@@ -16,7 +16,8 @@ import {
 } from "@/lib/tenant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
-import { classesLabel } from "@/lib/vocabulary";
+import { classesLabel, newEntryLabel } from "@/lib/vocabulary";
+import { hasFeature } from "@/lib/features";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { DemoVisitBeacon } from "@/components/demo-visit-beacon";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
@@ -66,6 +67,7 @@ export default async function PanelLayout({
             isSuperAdmin={false}
             features={[...features]}
             classesLabel={classesLabel(settings)}
+            newEntryLabel={newEntryLabel(hasFeature(features, "grupy")).title}
           />
           <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">
             <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">{children}</main>
@@ -109,6 +111,7 @@ export default async function PanelLayout({
 
   const switchableTenants = isSuperAdmin ? await listSwitchableTenants() : [];
   const isImpersonating = Boolean(originalTenantId) && originalTenantId !== tenantId;
+  const realFeatures = await getFeaturesForTenant(tenantId);
 
   return (
     <TenantThemeWrapper settings={s}>
@@ -120,8 +123,9 @@ export default async function PanelLayout({
           logoutAction={logoutAction}
           isDemo={tenantKind === "demo"}
           isSuperAdmin={isSuperAdmin}
-          features={[...(await getFeaturesForTenant(tenantId))]}
+          features={[...realFeatures]}
           classesLabel={classesLabel(s)}
+          newEntryLabel={newEntryLabel(hasFeature(realFeatures, "grupy")).title}
         />
         {/* pt-12 on mobile = height of the fixed top bar */}
         <div className="flex min-w-0 flex-1 flex-col pt-12 md:pt-0">

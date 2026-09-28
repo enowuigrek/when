@@ -94,10 +94,10 @@ export function GroupEnrollForm({
                   : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
               }`}
             >
-              {/* Not "4 × 220 zł" — that reads as 880. The karnet is one price
-                  for the month. */}
+              {/* Not "4 × 220 zł" — that reads as 880. It is one price for
+                  the month. */}
               {m === "karnet"
-                ? `Karnet — ${karnet.lessons} spotkania, ${karnet.pricePln} zł`
+                ? `Miesiąc — ${karnet.lessons} spotkania, ${karnet.pricePln} zł`
                 : "Jedno spotkanie"}
             </button>
           ))}

@@ -674,10 +674,16 @@ function DayView({
   const staffColumns = showBookings
     ? withUnassignedColumn(visibleStaff, dayBookings)
     : [];
+  // Beside a timetable, a bookings column with nothing in it is a wide empty
+  // stripe that says only "this studio takes appointments too". It appears
+  // when there is something to put in it, or when there is no timetable and
+  // it is the whole grid.
   const bookingColumns = showBookings
     ? staffColumns.length > 0
       ? staffColumns
-      : [bookingsColumn]
+      : classMeetings.length > 0 && dayBookings.length === 0
+        ? []
+        : [bookingsColumn]
     : [];
   const columns =
     classMeetings.length > 0 ? [classColumn, ...bookingColumns] : staffColumns;
@@ -952,7 +958,9 @@ function WeekView({
   const bookingColumns = showBookings
     ? staffColumns.length > 0
       ? staffColumns
-      : [bookingsColumn]
+      : hasClasses && loose.length === 0
+        ? []
+        : [bookingsColumn]
     : [];
   const columns = hasClasses ? [classColumn, ...bookingColumns] : staffColumns;
   const byDayStaff = new Map<string, Map<string, typeof active>>();

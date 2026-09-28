@@ -26,7 +26,7 @@ export type Course = {
 };
 
 const WEEKDAY = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
-const WEEKDAY_SHORT = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"];
+const WEEKDAY_FULL = WEEKDAY;
 
 /** Warsaw-safe enough for whole dates: no time component, so no DST to lose. */
 function addDays(date: string, days: number): string {
@@ -88,7 +88,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
         <div className="shrink-0 text-right">
           <p className="font-mono text-sm text-zinc-300">
             {course.karnet
-              ? `${course.karnet.pricePln} zł / ${course.karnet.lessons} spotkania`
+              ? `${course.karnet.pricePln} zł / miesiąc`
               : "cena do ustalenia"}
           </p>
           {course.suspended && (
@@ -98,26 +98,34 @@ export function CourseCard({ course, today }: { course: Course; today: string })
       </div>
 
       {/* The week, in one line per day it runs. */}
-      <ul className="mt-4 flex flex-wrap gap-2">
+      <ul className="mt-4 space-y-1.5">
         {course.slots.map((s) => (
           <li
             key={s.id}
-            className={`rounded-lg border px-3 py-2 ${
+            className={`flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-lg border px-3 py-2 ${
               s.active
-                ? "border-zinc-800 bg-zinc-900/50"
+                ? "border-zinc-800/60 bg-zinc-900/40"
                 : "border-zinc-800/40 bg-zinc-900/20 opacity-60"
             }`}
           >
-            <p className="font-mono text-xs text-zinc-300">
-              {WEEKDAY_SHORT[s.dayOfWeek]} {s.startTime}–{s.endTime}
-            </p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
+            <span className="flex items-baseline gap-3">
+              <span className="w-24 shrink-0 text-xs text-zinc-300">
+                {WEEKDAY_FULL[s.dayOfWeek]}
+              </span>
+              <span className="font-mono text-xs text-zinc-200">
+                {s.startTime}–{s.endTime}
+              </span>
+              {s.ageLabel && (
+                <span className="text-[11px] text-zinc-500">{s.ageLabel}</span>
+              )}
+            </span>
+            <span className="text-[11px] text-zinc-500">
               {s.active
                 ? s.minParticipants && s.taken < s.minParticipants
                   ? `zapisanych ${s.taken} z ${s.minParticipants}`
                   : `zapisanych ${s.taken}`
                 : "wyłączone z zapisów"}
-            </p>
+            </span>
           </li>
         ))}
         {course.slots.length === 0 && (
@@ -177,6 +185,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
                 days={days}
                 selectedDate={undefined}
                 today={today}
+                markWeekdays={weekdays}
                 onPick={(d) => setStartDate(d)}
                 size="lg"
               />

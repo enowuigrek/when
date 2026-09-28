@@ -50,7 +50,10 @@ export function BookingRow({
           {subtitle && <div className="mt-0.5 min-w-0">{subtitle}</div>}
         </div>
 
-        {price !== null && price !== undefined && (
+        {/* A zero is not a price. Meetings two to four of a month carry 0
+            because the month was paid for on the first, and printing "0 zł"
+            beside each of them reads as free rather than already settled. */}
+        {price !== null && price !== undefined && price !== 0 && (
           <span className="shrink-0 font-mono text-sm text-zinc-400">{price} zł</span>
         )}
       </BookingManagementButton>

@@ -72,7 +72,9 @@ body {
 [data-theme="light"] .bg-zinc-900\/80 { background-color: rgba(228,228,231,0.85) !important; }
 [data-theme="light"] .bg-zinc-900\/70 { background-color: rgba(228,228,231,0.75) !important; }
 [data-theme="light"] .bg-zinc-900\/60 { background-color: rgba(228,228,231,0.7) !important; }
+[data-theme="light"] .bg-zinc-900\/50 { background-color: rgba(228,228,231,0.6) !important; }
 [data-theme="light"] .bg-zinc-900\/40 { background-color: rgba(228,228,231,0.5) !important; }
+[data-theme="light"] .bg-zinc-900\/10 { background-color: rgba(228,228,231,0.2) !important; }
 [data-theme="light"] .bg-zinc-900\/30 { background-color: rgba(228,228,231,0.4) !important; }
 [data-theme="light"] .bg-zinc-900\/20 { background-color: rgba(228,228,231,0.3) !important; }
 [data-theme="light"] .bg-zinc-900 { background-color: #e4e4e7 !important; }

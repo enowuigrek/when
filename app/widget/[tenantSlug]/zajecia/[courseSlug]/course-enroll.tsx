@@ -101,6 +101,7 @@ export function CourseEnroll({
           days={calendar}
           selectedDate={undefined}
           today={today}
+          markWeekdays={weekdays}
           onPick={(d) => setStartDate(d)}
           size="lg"
         />

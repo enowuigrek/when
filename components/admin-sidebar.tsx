@@ -247,6 +247,7 @@ function NavWithStripe({
   isSuperAdmin,
   features,
   classesLabel,
+  newEntryLabel,
 }: {
   expanded: boolean;
   pathname: string;
@@ -255,6 +256,7 @@ function NavWithStripe({
   isSuperAdmin?: boolean;
   features: readonly string[];
   classesLabel?: string;
+  newEntryLabel?: string;
 }) {
   const navRef = useRef<HTMLElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; h: number; visible: boolean }>({
@@ -364,11 +366,13 @@ function BottomNav({
   demoSlug,
   features,
   classesLabel,
+  newEntryLabel,
 }: {
   pathname: string;
   demoSlug: string | null;
   features: readonly string[];
   classesLabel?: string;
+  newEntryLabel?: string;
 }) {
   const navRef = useRef<HTMLDivElement>(null);
   const [stripe, setStripe] = useState<{ x: number; y: number; w: number; visible: boolean }>({
@@ -486,6 +490,7 @@ function SidebarBody({
   isSuperAdmin,
   features,
   classesLabel,
+  newEntryLabel,
   showNotifications = true,
   showHomeLink = true,
 }: {
@@ -502,6 +507,7 @@ function SidebarBody({
   isSuperAdmin?: boolean;
   features: readonly string[];
   classesLabel?: string;
+  newEntryLabel?: string;
   /** Off in the mobile drawer — the top bar already carries the bell. */
   showNotifications?: boolean;
   /** Off for a demo prepared for someone: no way out of the panel. */
@@ -563,7 +569,7 @@ function SidebarBody({
         <Link
           href={rewriteAdminHref("/admin/rezerwacja/nowa", demoSlug)}
           onClick={onNavClick}
-          title={!expanded ? "Nowa rezerwacja" : undefined}
+          title={!expanded ? (newEntryLabel ?? "Nowa rezerwacja") : undefined}
           className="flex h-9 w-full items-center justify-center rounded-lg bg-[var(--color-accent)] text-xs font-semibold text-[var(--color-accent-fg)] transition-opacity hover:opacity-85"
         >
           <span className="shrink-0">
@@ -585,7 +591,7 @@ function SidebarBody({
               expanded ? "ml-2 max-w-[160px] opacity-100" : "ml-0 max-w-0 opacity-0"
             }`}
           >
-            Nowa rezerwacja
+            {newEntryLabel ?? "Nowa rezerwacja"}
           </span>
         </Link>
       </div>
@@ -599,6 +605,7 @@ function SidebarBody({
         isSuperAdmin={isSuperAdmin}
         features={features}
         classesLabel={classesLabel}
+          newEntryLabel={newEntryLabel}
       />
 
 
@@ -670,6 +677,7 @@ export function AdminSidebar({
   isSuperAdmin,
   features = [],
   classesLabel,
+  newEntryLabel,
 }: {
   tenantId: string;
   businessName: string;
@@ -681,6 +689,8 @@ export function AdminSidebar({
   features?: readonly string[];
   /** What this tenant calls its recurring groups. See lib/vocabulary.ts. */
   classesLabel?: string;
+  /** "Nowa rezerwacja" for a salon, "Nowy zapis" for a studio. */
+  newEntryLabel?: string;
   /** Off for a demo prepared for a named prospect — no way out of the panel. */
   showHomeLink?: boolean;
 }) {
@@ -728,6 +738,7 @@ export function AdminSidebar({
           isSuperAdmin={isSuperAdmin}
           features={features}
           classesLabel={classesLabel}
+          newEntryLabel={newEntryLabel}
           showHomeLink={showHomeLink}
           onToggle={toggleExpanded}
           pathname={pathname}
@@ -782,6 +793,7 @@ export function AdminSidebar({
             isSuperAdmin={isSuperAdmin}
             features={features}
           classesLabel={classesLabel}
+          newEntryLabel={newEntryLabel}
             showHomeLink={showHomeLink}
             onToggle={() => setMobileOpen(false)}
             pathname={pathname}
@@ -791,7 +803,8 @@ export function AdminSidebar({
           />
         </aside>
 
-        <BottomNav pathname={pathname} demoSlug={demoSlug} features={features} classesLabel={classesLabel} />
+        <BottomNav pathname={pathname} demoSlug={demoSlug} features={features} classesLabel={classesLabel}
+          newEntryLabel={newEntryLabel} />
       </div>
     </>
   );

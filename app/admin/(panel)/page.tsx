@@ -8,6 +8,12 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { StatTile } from "@/components/ui/stat-tile";
 import { card, sectionHeading as heading } from "@/components/ui/surface";
+import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
+import { getClassesOverviewForTenant } from "@/lib/db/classes-overview";
+import { getSettings } from "@/lib/db/settings";
+import { classesLabel } from "@/lib/vocabulary";
+import { ClassesDashboard } from "./classes-dashboard";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
 
@@ -23,7 +29,18 @@ function shortDate(day: string) {
 
 
 export default async function DashboardPage() {
-  const [s, allStaff] = await Promise.all([getDashboardStats(), getActiveStaff()]);
+  const [s, allStaff, features, settings] = await Promise.all([
+    getDashboardStats(),
+    getActiveStaff(),
+    getAdminTenantFeatures(),
+    getSettings(),
+  ]);
+  // A studio's first question is not "how busy is the chair" — see
+  // ClassesDashboard for what replaces the booking tiles.
+  const runsGroups = hasFeature(features, "grupy");
+  const overview = runsGroups
+    ? await getClassesOverviewForTenant(await getAdminTenantId())
+    : null;
 
   const demoSlug = (await headers()).get("x-demo-slug");
   const base = demoSlug ? `/demo/${demoSlug}` : "/admin";
@@ -48,6 +65,14 @@ export default async function DashboardPage() {
 
       {/* Every tile goes somewhere: the number you are looking at is usually
           the start of a question, and the answer lives one click away. */}
+      {overview ? (
+        <ClassesDashboard
+          overview={overview}
+          monthRevenue={pln(s.thisMonthRevenue)}
+          classesLabel={classesLabel(settings)}
+          base={base}
+        />
+      ) : (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
           label="Rezerwacje dziś"
@@ -74,6 +99,7 @@ export default async function DashboardPage() {
           href={`${base}/klienci`}
         />
       </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Chart ───────────────────────────────────────────────────────── */}

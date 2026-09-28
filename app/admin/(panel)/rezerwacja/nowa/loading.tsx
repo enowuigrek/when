@@ -16,7 +16,7 @@ const box = "rounded-lg border border-zinc-800/60 bg-zinc-900/40";
  */
 export default function Loading() {
   return (
-    <PageShell narrow title="Nowa rezerwacja" subtitle="Rezerwacja przez telefon lub wizytę osobistą.">
+    <PageShell narrow title="Nowy wpis" subtitle="Wczytuję formularz…">
       <div className="animate-pulse space-y-8">
         <section>
           <div className="mb-3 h-3 w-20 rounded bg-zinc-800/60" />
