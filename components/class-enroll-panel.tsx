@@ -173,6 +173,10 @@ export function ClassEnrollPanel({
                 : `Podświetlone są ${WEEKDAY[pickedDay].toLowerCase()}i.`}
             </p>
             <CalendarPicker
+              // Remounted when the chosen weekday changes, so the calendar
+              // re-opens on the month holding the next one of those days
+              // rather than staying on a month it has just emptied.
+              key={live.join(",")}
               days={calendar}
               selectedDate={undefined}
               today={today}

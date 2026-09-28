@@ -226,10 +226,18 @@ export function CalendarPicker({
   const daysMap = new Map(days.map((d) => [d.date, d]));
   const todayYM = isoYM(today);
 
+  // Opens where there is something to pick. A timetable narrowed to Fridays
+  // at the end of September has no Friday left in it, so opening on the
+  // current month showed a page of greyed-out numbers and left the visitor
+  // to work out that the answer was one click to the right.
+  const firstOpen = days.find((d) => !d.closed)?.date;
+
   const initialYM = displayYearMonth
     ? displayYearMonth
     : weekMode && viewedWeekStart
     ? isoYM(viewedWeekStart)
+    : firstOpen
+    ? isoYM(firstOpen)
     : todayYM;
 
   const lastDay = days[days.length - 1]?.date ?? today;
