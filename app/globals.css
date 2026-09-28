@@ -220,12 +220,19 @@ body {
    Tinted rather than badged: the badge slot under the number already carries
    the booking count, and the question this answers — "which days do classes
    happen" — is read across a whole month at once, not cell by cell. */
-.cal-day-marked {
-  background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent);
+/* Doubled for the light theme: its .cal-day-available rule carries the
+   [data-theme] attribute too, and at equal weight the later rule wins — so
+   without it a bookable day's white plate hid the tint entirely. */
+.cal-day-marked,
+[data-theme="light"] .cal-day-marked {
+  /* --mark is a class's own colour when the day belongs to one; otherwise the
+     tenant's accent, as before classes had colours. */
+  background-color: color-mix(in srgb, var(--mark, var(--color-accent)) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mark, var(--color-accent)) 45%, transparent);
 }
-.cal-day-marked:hover {
-  background-color: color-mix(in srgb, var(--color-accent) 32%, transparent);
+.cal-day-marked:hover,
+[data-theme="light"] .cal-day-marked:hover {
+  background-color: color-mix(in srgb, var(--mark, var(--color-accent)) 32%, transparent);
 }
 
 /* Text sitting on a saturated fill has to stay light in both themes. The light
@@ -475,4 +482,38 @@ html {
 .no-scrollbar::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+/* ── Page on its way ──
+   A thin bar along the top edge while the next panel page renders. Without it
+   a tap on a slow page looked like a tap that missed, and the usual reaction
+   was to tap again. Indeterminate on purpose: there is no honest percentage
+   for "the server is still thinking". */
+.page-loading-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 500;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.page-loading-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: var(--color-accent);
+  border-radius: 0 3px 3px 0;
+  animation: page-loading-slide 1.1s ease-in-out infinite;
+}
+@keyframes page-loading-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(260%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-loading-bar::before {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
 }

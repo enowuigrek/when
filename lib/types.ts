@@ -45,6 +45,12 @@ export type Service = {
    * and they get in touch, because what it costs is settled in conversation.
    */
   enroll_mode: "self" | "enquiry";
+  /**
+   * The class's own colour, "#rrggbb" from lib/class-colors.ts. Optional in
+   * the type because it arrives with migration 029: until the column exists
+   * the row simply has no such key, and classColor() falls back.
+   */
+  color?: string | null;
 };
 
 /**

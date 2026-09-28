@@ -33,6 +33,7 @@ import {
 import { meetingTimeLabel, nextMeetings } from "@/lib/class-groups";
 import { enrollVocabulary, classesLabel } from "@/lib/vocabulary";
 import { ClassBlock, ClassChip, type ClassBlockData } from "./class-block";
+import { classColor, weekdayColors } from "@/lib/class-colors";
 import { BookingManagementButton, type BookingForModal } from "@/components/booking-management-modal";
 import type { BookingWithService } from "@/lib/db/bookings";
 
@@ -184,11 +185,13 @@ export default async function HarmonogramPage({
   // runs groups; everyone else pays nothing for this.
   const features = await getAdminTenantFeatures();
   const classByDate = new Map<string, ClassBlockData[]>();
-  const classWeekdays = new Set<number>();
+  let classDayColors: Record<number, string[]> = {};
+  const classServiceIds = new Set<string>();
   if (hasFeature(features, "grupy")) {
     const tenantId = await getAdminTenantId();
     const groups = await getClassGroupsForTenant(tenantId);
-    for (const g of groups) classWeekdays.add(g.day_of_week);
+    classDayColors = weekdayColors(groups);
+    for (const g of groups) classServiceIds.add(g.service_id);
     if (groups.length > 0) {
       const dates: string[] = [];
       for (let d = startDate; d <= endDate; d = addDays(d, 1)) dates.push(d);
@@ -238,6 +241,7 @@ export default async function HarmonogramPage({
             ),
             words: enrollVocabulary(p.group.service),
             dayLabel: dayLabels[warsawDayOfWeek(p.date)],
+            color: classColor(p.group.service),
           });
           classByDate.set(p.date, list);
         }
@@ -248,10 +252,24 @@ export default async function HarmonogramPage({
   const classMeetings = classByDate.get(baseDate) ?? [];
   const hasClassesInView =
     view === "dzien" ? classMeetings.length > 0 : classByDate.size > 0;
+  // Whether this tenant sells anything by the appointment at all. A studio
+  // whose every service is a class has no bookings half, so the toggles
+  // between the halves and the "Rezerwacje dziś" card are questions nobody
+  // there asks. A stray booking still shows, rather than vanishing because
+  // the half it sits in is presumed empty.
+  const takesBookings = allServicesRaw.some((s) => !classServiceIds.has(s.id));
+  const hasLooseBookings = all.some(
+    (b) =>
+      b.status !== "cancelled" &&
+      b.status !== "no_show" &&
+      !(b as { class_group_id?: string | null }).class_group_id
+  );
   // The toggles only make sense where there are two halves to choose between.
-  const laneToggles = hasClassesInView;
-  const showClasses = !hasClassesInView ? false : laneOn("zajecia");
-  const showBookings = !hasClassesInView || laneOn("rezerwacje");
+  const laneToggles = hasClassesInView && takesBookings;
+  const showClasses = !hasClassesInView ? false : !takesBookings || laneOn("zajecia");
+  const showBookings = takesBookings
+    ? !hasClassesInView || laneOn("rezerwacje")
+    : hasLooseBookings || !hasClassesInView;
 
   // Numbering needs every lesson of the packages on screen, not just the ones
   // inside this window — a lesson booked for next month still decides whether
@@ -367,12 +385,14 @@ export default async function HarmonogramPage({
             weekHref={weekHrefMap}
             todayHref={navUrl(view, today)}
             badges={dayCounts}
-            markWeekdays={[...classWeekdays]}
+            markColors={classDayColors}
             days={calendarDays}
           />
-          <div className="hidden lg:block">
-            <DaySummary bookings={active} view={view} now={new Date().toISOString()} />
-          </div>
+          {takesBookings && (
+            <div className="hidden lg:block">
+              <DaySummary bookings={active} view={view} now={new Date().toISOString()} />
+            </div>
+          )}
         </aside>
 
         <div className="min-w-0 lg:order-1 lg:flex-1">

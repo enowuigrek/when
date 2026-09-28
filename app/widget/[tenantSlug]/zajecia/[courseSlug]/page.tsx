@@ -16,6 +16,7 @@ import { meetingTimeLabel, nextMeetingDates, WEEKDAY_NAMES } from "@/lib/class-g
 import { warsawToday, warsawDayBoundsUtc, addDays } from "@/lib/slots";
 import { accentFg } from "@/lib/color-utils";
 import { enrollVocabulary } from "@/lib/vocabulary";
+import { classColor } from "@/lib/class-colors";
 import { meetingsLabel } from "@/lib/service-label";
 import { CourseEnroll, type CourseDay } from "./course-enroll";
 
@@ -180,6 +181,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
               today={today}
               karnet={karnet}
               words={enrollVocabulary(service)}
+              color={classColor(service)}
             />
           )}
         </section>

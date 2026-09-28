@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePanelAccess } from "@/lib/auth/panel-access";
 import { getAdminTenantId, getAdminBasePath, getAdminTenantFeatures } from "@/lib/tenant";
 import { hasFeature } from "@/lib/features";
+import { isClassColor } from "@/lib/class-colors";
 
 async function requireAdmin() {
   await requirePanelAccess();
@@ -172,22 +173,35 @@ export async function updateServiceAction(
 
   const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("services")
-    .update({
-      name: parsed.data.name,
-      description: parsed.data.description || null,
-      duration_min: parsed.data.duration_min,
-      price_pln: parsed.data.price_pln,
-      sort_order: parsed.data.sort_order,
-      is_group: parsed.data.is_group,
-      max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
-      total_lessons: parsed.data.is_package ? (parsed.data.total_lessons ?? null) : null,
-      payment_mode: parsed.data.payment_mode,
-      deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
-    })
-    .eq("tenant_id", tenantId)
-    .eq("id", id);
+  // Only a colour from the palette, and only when the form sent one — the
+  // picker exists for classes alone, and a service edited without it keeps
+  // whatever it had.
+  const colorRaw = formData.get("color")?.toString() ?? "";
+  const color = isClassColor(colorRaw) ? colorRaw : null;
+  const row = {
+    name: parsed.data.name,
+    description: parsed.data.description || null,
+    duration_min: parsed.data.duration_min,
+    price_pln: parsed.data.price_pln,
+    sort_order: parsed.data.sort_order,
+    is_group: parsed.data.is_group,
+    max_participants: parsed.data.is_group ? (parsed.data.max_participants ?? null) : null,
+    total_lessons: parsed.data.is_package ? (parsed.data.total_lessons ?? null) : null,
+    payment_mode: parsed.data.payment_mode,
+    deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
+  };
+  const save = (fields: Record<string, unknown>) =>
+    supabase.from("services").update(fields).eq("tenant_id", tenantId).eq("id", id);
+
+  let { error } = await save(color ? { ...row, color } : row);
+  // The colour column arrives with migration 029. Until it is applied a save
+  // that carries a colour is refused whole; the rest of the edit should not
+  // be lost with it.
+  let colorSkipped = false;
+  if (error && color && /color/i.test(error.message)) {
+    ({ error } = await save(row));
+    colorSkipped = !error;
+  }
 
   if (error) return { status: "error", message: error.message };
 
@@ -200,7 +214,13 @@ export async function updateServiceAction(
   // are usually not done with.
   if (hasFeature(await getAdminTenantFeatures(), "grupy")) {
     revalidatePath("/admin/zajecia");
-    return { status: "ok", message: "Zapisano." };
+    revalidatePath("/admin/harmonogram");
+    return {
+      status: "ok",
+      message: colorSkipped
+        ? "Zapisano — bez koloru: baza nie ma jeszcze na niego miejsca."
+        : "Zapisano.",
+    };
   }
   redirect(`${await getAdminBasePath()}/uslugi`);
 }

@@ -47,12 +47,15 @@ export function CourseEnroll({
   today,
   karnet,
   words,
+  color,
 }: {
   tenantSlug: string;
   days: CourseDay[];
   today: string;
   karnet: { lessons: number; pricePln: number } | null;
   words: { enrollee: string; guardian: string | null; action: string };
+  /** The course's colour, which its days are lit in. */
+  color: string;
 }) {
   const [startDate, setStartDate] = useState<string | null>(null);
 
@@ -101,7 +104,7 @@ export function CourseEnroll({
           days={calendar}
           selectedDate={undefined}
           today={today}
-          markWeekdays={weekdays}
+          markColors={Object.fromEntries(weekdays.map((d) => [d, [color]]))}
           onPick={(d) => setStartDate(d)}
           size="lg"
         />

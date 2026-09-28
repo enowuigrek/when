@@ -21,8 +21,8 @@ type Props = {
   todayHref: string;
   /** Bookings per day, shown on the calendar cells. */
   badges: Record<string, number>;
-  /** Weekdays (0 = Sunday) the class timetable runs on. */
-  markWeekdays?: number[];
+  /** Weekday (0 = Sunday) → colours of the classes meeting on it. */
+  markColors?: Record<number, string[]>;
   /** Days outside opening hours, greyed out. */
   days: { date: string; closed: boolean }[];
 };
@@ -57,7 +57,7 @@ export function ScheduleDatePicker({
   weekHref,
   todayHref,
   badges,
-  markWeekdays,
+  markColors,
   days,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -67,7 +67,7 @@ export function ScheduleDatePicker({
       today={today}
       days={days}
       badges={badges}
-          markWeekdays={markWeekdays}
+      markColors={markColors}
       size={size}
       allowPastNav
       variant="browse"
@@ -100,10 +100,27 @@ export function ScheduleDatePicker({
             const sel = view === "tydzien" ? true : d === baseDate;
             const isToday = d === today;
             const n = badges[d] ?? 0;
+            // The strip is the phone's calendar, so class days carry their
+            // colours here as they do in the month: split when two classes
+            // share the day.
+            const colors = markColors?.[(i + 1) % 7] ?? [];
+            const tinted: React.CSSProperties | undefined = colors.length
+              ? {
+                  backgroundImage: `linear-gradient(135deg, ${colors
+                    .map(
+                      (c, k) =>
+                        `color-mix(in srgb, ${c} 28%, transparent) ${(k * 100) / colors.length}% ${
+                          ((k + 1) * 100) / colors.length
+                        }%`
+                    )
+                    .join(", ")})`,
+                }
+              : undefined;
             return (
               <Link
                 key={d}
                 href={(view === "tydzien" ? weekHref[stripStart] : dayHref[d]) ?? todayHref}
+                style={tinted}
                 className={`flex flex-1 flex-col items-center rounded-lg border py-1.5 transition-colors ${
                   sel && view === "dzien"
                     ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15"

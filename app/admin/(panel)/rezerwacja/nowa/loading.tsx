@@ -16,6 +16,8 @@ const box = "rounded-lg border border-zinc-800/60 bg-zinc-900/40";
  */
 export default function Loading() {
   return (
+    <>
+    <div className="page-loading-bar" role="progressbar" aria-label="Wczytywanie strony" />
     <PageShell narrow title="Nowy wpis" subtitle="Wczytuję formularz…">
       <div className="animate-pulse space-y-8">
         <section>
@@ -42,5 +44,6 @@ export default function Loading() {
         </section>
       </div>
     </PageShell>
+    </>
   );
 }

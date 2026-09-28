@@ -14,6 +14,7 @@ import { nextMeetingDates } from "@/lib/class-groups";
 import { warsawToday, warsawDayBoundsUtc, addDays } from "@/lib/slots";
 import { enrollVocabulary, classesLabel } from "@/lib/vocabulary";
 import { CourseCard, type Course, type CourseSlot } from "./course-card";
+import { classColor } from "@/lib/class-colors";
 
 export const metadata = { title: "Zajęcia", robots: { index: false } };
 
@@ -88,6 +89,7 @@ export default async function ZajeciaPage() {
         enrollMode: g.service.enroll_mode === "enquiry" ? "enquiry" : "self",
         words: enrollVocabulary(g.service),
         slots: [],
+        color: classColor(g.service),
       };
       byService.set(g.service_id, course);
     }
@@ -123,6 +125,7 @@ export default async function ZajeciaPage() {
       words: enrollVocabulary(svc),
       slots: [],
       suspended: true,
+      color: classColor(svc),
     });
   }
 

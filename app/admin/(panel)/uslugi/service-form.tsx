@@ -8,6 +8,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useAdminBase } from "@/lib/use-admin-base";
 import { lessonsLabel, meetingsLabel } from "@/lib/service-label";
+import { CLASS_COLORS, classColor } from "@/lib/class-colors";
 
 export function ServiceForm({
   action,
@@ -33,6 +34,11 @@ export function ServiceForm({
   const [isPackage, setIsPackage] = useState((service?.total_lessons ?? null) !== null);
   const [duration, setDuration] = useState(service?.duration_min ?? 30);
   const [lessons, setLessons] = useState(service?.total_lessons ?? 5);
+  // What the class is drawn in now — its own colour, or the one it gets from
+  // its place in the list — so the picker opens on what the schedule shows.
+  const [color, setColor] = useState(() =>
+    service ? classColor(service) : CLASS_COLORS[0].hex
+  );
   const count = classes ? meetingsLabel : lessonsLabel;
   // "4 spotkania" → "spotkania": the word beside the number box has to agree
   // with the number in it, like the preview under it does.
@@ -57,6 +63,41 @@ export function ServiceForm({
           className={fieldClasses()}
         />
       </label>
+
+      {classes && (
+        <fieldset>
+          <legend className="mb-1 block text-sm text-zinc-300">Kolor zajęć</legend>
+          <p className="mb-2 text-xs text-zinc-500">
+            W tym kolorze zajęcia są w harmonogramie, w kalendarzu i przy zapisach.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {CLASS_COLORS.map((c) => {
+              const on = c.hex.toLowerCase() === color.toLowerCase();
+              return (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setColor(c.hex)}
+                  aria-pressed={on}
+                  aria-label={c.label}
+                  title={c.label}
+                  className={`h-11 w-11 rounded-full transition-transform ${
+                    on ? "scale-110" : "hover:scale-105"
+                  }`}
+                  // An outline set off from the swatch reads on either theme,
+                  // without having to know what colour the page behind is.
+                  style={{
+                    backgroundColor: c.hex,
+                    outline: on ? `2px solid ${c.hex}` : undefined,
+                    outlineOffset: 3,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <input type="hidden" name="color" value={color} />
+        </fieldset>
+      )}
 
       {/* PACKAGE TOGGLE */}
       <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">

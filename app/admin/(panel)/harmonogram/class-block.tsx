@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GroupEnrollForm } from "../zajecia/group-enroll-form";
 import type { EnrollWords } from "../zajecia/group-enroll-form";
+import { textOn, tint } from "@/lib/class-colors";
 
 export type ClassBlockData = {
   /** Unique per meeting: the group and the date it falls on. */
@@ -24,6 +25,8 @@ export type ClassBlockData = {
   words: EnrollWords;
   /** Which day this meeting is, spelled out for the modal's heading. */
   dayLabel: string;
+  /** The class's colour — see lib/class-colors.ts. */
+  color: string;
 };
 
 /**
@@ -86,36 +89,53 @@ function EnrollModal({
   );
 }
 
+/** Whether the group has gathered enough people to run. */
+function isReady(data: ClassBlockData): boolean {
+  const goal = data.min ?? data.max ?? null;
+  return goal === null || data.taken >= goal;
+}
+
 function Fill({ data }: { data: ClassBlockData }) {
   const goal = data.min ?? data.max ?? null;
-  const ready = goal === null || data.taken >= goal;
+  const ready = isReady(data);
   const pct = goal ? Math.min(100, Math.round((data.taken / goal) * 100)) : 100;
   if (goal === null) {
-    return <p className="mt-1 truncate text-[10px] text-zinc-400">zapisanych {data.taken}</p>;
+    return <p className="mt-1 truncate text-[10px] opacity-80">zapisanych {data.taken}</p>;
   }
   return (
     <div className="mt-1.5">
-      <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+      {/* On the solid fill the bar would be the class's colour on itself, so
+          it switches to the text colour; while gathering it fills in the
+          class's own. */}
+      <div
+        className="h-1 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: ready ? tint(textOn(data.color), 25) : tint(data.color, 20) }}
+      >
         <div
           className="h-full rounded-full"
-          style={{ width: `${pct}%`, backgroundColor: ready ? "var(--color-accent)" : "#71717a" }}
+          style={{ width: `${pct}%`, backgroundColor: ready ? textOn(data.color) : data.color }}
         />
       </div>
-      <p className="mt-1 truncate text-[10px] text-zinc-400">
+      <p className="mt-1 truncate text-[10px] opacity-80">
         {data.taken} z {goal} {ready ? "— komplet" : "— zbieramy"}
       </p>
     </div>
   );
 }
 
-function surface(data: ClassBlockData) {
-  const goal = data.min ?? data.max ?? null;
-  const ready = goal === null || data.taken >= goal;
+/**
+ * The block in the class's colour: a saturated edge around a pale middle while
+ * the group is gathering, filled solid once it has the people it needs to run.
+ * So a week reads at a glance — which course is which, and which of them are
+ * going ahead — without a grey outline that belonged to no class at all.
+ */
+function surface(data: ClassBlockData): React.CSSProperties {
+  const ready = isReady(data);
   return {
-    borderColor: ready ? "var(--color-accent)" : "#3f3f46",
-    backgroundColor: ready
-      ? "color-mix(in srgb, var(--color-accent) 18%, transparent)"
-      : "color-mix(in srgb, var(--color-accent) 7%, transparent)",
+    borderColor: data.color,
+    borderWidth: 1.5,
+    backgroundColor: ready ? data.color : tint(data.color, 12),
+    color: ready ? textOn(data.color) : undefined,
   };
 }
 
@@ -153,11 +173,22 @@ export function ClassBlock({
         className="absolute overflow-hidden rounded-lg border px-2 py-1.5 text-left transition-[filter] hover:brightness-110"
         style={{ top, height, left, width, ...surface(data) }}
       >
-        <p className="truncate font-mono text-[11px] text-zinc-400">{data.time}</p>
-        <p className="truncate text-xs font-medium text-zinc-100">{data.name}</p>
+        {/* Colours inherit from the surface: on the solid fill they have to
+            be the fill's own readable foreground, which a zinc class would
+            override. */}
+        <p className={`truncate font-mono text-[11px] ${isReady(data) ? "opacity-80" : "text-zinc-400"}`}>
+          {data.time}
+        </p>
+        <p className={`truncate text-xs font-medium ${isReady(data) ? "" : "text-zinc-100"}`}>
+          {data.name}
+        </p>
         <Fill data={data} />
         {height > 120 && data.names.length > 0 && (
-          <p className="mt-1.5 line-clamp-3 text-[10px] leading-snug text-zinc-500">
+          <p
+            className={`mt-1.5 line-clamp-3 text-[10px] leading-snug ${
+              isReady(data) ? "opacity-80" : "text-zinc-500"
+            }`}
+          >
             {data.names.join(", ")}
           </p>
         )}
@@ -179,11 +210,15 @@ export function ClassChip({ data }: { data: ClassBlockData }) {
         type="button"
         onClick={() => setOpen(true)}
         title={`${data.time} · ${data.name} — ${data.words.action.toLowerCase()}`}
-        className="block w-full rounded px-1.5 py-1 text-left transition-[filter] hover:brightness-110"
-        style={{ borderLeft: "2px solid var(--color-accent)", ...surface(data) }}
+        className="block w-full rounded border px-1.5 py-1 text-left transition-[filter] hover:brightness-110"
+        style={surface(data)}
       >
-        <p className="font-mono text-xs text-zinc-300">{data.time}</p>
-        <p className="text-xs font-medium text-zinc-200">{data.name}</p>
+        <p className={`font-mono text-xs ${isReady(data) ? "opacity-80" : "text-zinc-300"}`}>
+          {data.time}
+        </p>
+        <p className={`text-xs font-medium ${isReady(data) ? "" : "text-zinc-200"}`}>
+          {data.name}
+        </p>
         <Fill data={data} />
       </button>
       {open && (

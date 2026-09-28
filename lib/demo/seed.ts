@@ -259,6 +259,11 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     duration_min: 120,
     price_pln: 65,
     sort_order: 5,
+    // Hidden, not dropped: the studio does take birthdays, but the demo is
+    // about classes, and a booking half nobody uses turned the schedule into
+    // two columns and a filter row. It keeps its sixteen themes for the day
+    // it is switched back on.
+    active: false,
     price_per_person: true,
     participants_min: 5,
     participants_label: "Liczba dzieci",

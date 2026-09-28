@@ -25,6 +25,8 @@ export type Course = {
   slots: CourseSlot[];
   /** Parked rather than removed — still on the studio's menu, not running. */
   suspended?: boolean;
+  /** The class's colour — see lib/class-colors.ts. */
+  color: string;
 };
 
 const WEEKDAY = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
@@ -93,7 +95,14 @@ export function CourseCard({ course, today }: { course: Course; today: string })
     <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-zinc-100">{course.name}</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-100">
+            <span
+              aria-hidden
+              className="h-3 w-3 shrink-0 rounded-full"
+              style={{ backgroundColor: course.color }}
+            />
+            {course.name}
+          </h2>
           {course.description && (
             <p className="mt-1 max-w-xl text-sm text-zinc-500">{course.description}</p>
           )}
@@ -203,7 +212,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
                 days={days}
                 selectedDate={undefined}
                 today={today}
-                markWeekdays={weekdays}
+                markColors={Object.fromEntries(weekdays.map((d) => [d, [course.color]]))}
                 onPick={(d) => setStartDate(d)}
                 size="lg"
               />

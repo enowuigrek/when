@@ -77,6 +77,12 @@ type CalendarPickerProps = {
    * what "every Monday" means and a list of dates would only restate it.
    */
   markWeekdays?: number[];
+  /**
+   * The same marks in the colours of the classes meeting that weekday. Wins
+   * over markWeekdays. One colour tints the day; two or more split it, so a
+   * Monday with two groups shows both instead of one "something happens".
+   */
+  markColors?: Record<number, string[]>;
 
   // Week-pick mode (grafik)
   weekMode?: boolean;
@@ -128,6 +134,22 @@ function SelectedRule({ edgeToEdge = false }: { edgeToEdge?: boolean }) {
   );
 }
 
+
+/**
+ * A day's class colours as a background image: hard stops on a diagonal, one
+ * band per class. Hard, not blended — a gradient from orange to blue passes
+ * through a brown that belongs to neither. An image rather than a colour so it
+ * lies over whatever the cell's own fill is (the selected week's grey shows
+ * through the tint instead of being replaced by it).
+ */
+function markImage(colors: string[], percent = 30): string {
+  const stops = colors.map((c, i) => {
+    const from = (i * 100) / colors.length;
+    const to = ((i + 1) * 100) / colors.length;
+    return `color-mix(in srgb, ${c} ${percent}%, transparent) ${from}% ${to}%`;
+  });
+  return `linear-gradient(135deg, ${stops.join(", ")})`;
+}
 
 /** Relative luminance of an "rgb(r, g, b)" or "#rrggbb" colour. */
 function luminance(color: string): number | null {
@@ -191,6 +213,7 @@ export function CalendarPicker({
   hrefMap,
   badges,
   markWeekdays,
+  markColors,
   weekMode = false,
   viewedWeekStart,
   currentWeekStart,
@@ -393,6 +416,12 @@ export function CalendarPicker({
                 }
 
                 const href = weekHrefFor ? weekHrefFor(cellWeek) : undefined;
+                // Class days keep their colours in week mode too — picking a
+                // week is when "which of these days do we teach" matters most.
+                const weekColors = markColors?.[new Date(`${date}T12:00:00Z`).getUTCDay()] ?? [];
+                const weekStyle: React.CSSProperties | undefined = weekColors.length
+                  ? { backgroundImage: markImage(weekColors, isCurrentMonth ? 30 : 15) }
+                  : undefined;
                 const cellInner = (
                   <>
                     <span>{dayLabel}</span>
@@ -412,6 +441,7 @@ export function CalendarPicker({
                       key={date}
                       href={href}
                       className={cls}
+                      style={weekStyle}
                       onMouseEnter={() => setHoveredWeek(cellWeek)}
                       onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     >
@@ -424,6 +454,7 @@ export function CalendarPicker({
                     key={date}
                     type="button"
                     className={cls}
+                    style={weekStyle}
                     onMouseEnter={() => setHoveredWeek(cellWeek)}
                     onMouseLeave={() => setHoveredWeek((w) => (w === cellWeek ? null : w))}
                     onClick={() => onPick?.(cellWeek)}
@@ -443,10 +474,12 @@ export function CalendarPicker({
               // Only days you can actually pick. Marking every Monday of the
               // month lit up the ones already gone, which read as available
               // and did nothing when clicked — the "cannot add a child" bug.
+              const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+              const dayColors = isAvailable ? markColors?.[weekday] ?? [] : [];
               const marked =
                 isAvailable &&
-                !!markWeekdays?.length &&
-                markWeekdays.includes(new Date(`${date}T12:00:00Z`).getUTCDay());
+                (dayColors.length > 0 ||
+                  (!markColors && !!markWeekdays?.length && markWeekdays.includes(weekday)));
               const href = isAvailable && hrefMap ? hrefMap[date] : undefined;
 
               if (!isCurrentMonth) {
@@ -490,6 +523,21 @@ export function CalendarPicker({
               if (marked && !solidPick) {
                 cls += "cal-day-marked ";
               }
+              // Hard stops, not a blend: a gradient from orange to blue
+              // passes through a brown that belongs to neither class.
+              const markStyle: React.CSSProperties | undefined =
+                marked && !solidPick && dayColors.length > 0
+                  ? {
+                      ["--mark" as string]: dayColors[0],
+                      ...(dayColors.length > 1 && {
+                        backgroundImage: markImage(dayColors),
+                        // Under the halves, not showing through them: the first
+                        // colour's tint would stain the second half.
+                        backgroundColor: "transparent",
+                        boxShadow: "none",
+                      }),
+                    }
+                  : undefined;
 
               // Today is bold and in the accent colour — the way the schedule
               // marks the current day in its own gutter. Not on a solid accent
@@ -535,7 +583,7 @@ export function CalendarPicker({
 
               if (href) {
                 return (
-                  <Link key={date} href={href} className={cls}>
+                  <Link key={date} href={href} className={cls} style={markStyle}>
                     {cellInner}
                   </Link>
                 );
@@ -548,6 +596,7 @@ export function CalendarPicker({
                   disabled={!isAvailable}
                   onClick={() => isAvailable && onPick?.(date)}
                   className={cls}
+                  style={markStyle}
                 >
                   {cellInner}
                 </button>
