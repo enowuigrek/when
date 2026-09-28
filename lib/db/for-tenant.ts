@@ -40,12 +40,21 @@ export async function getServicesForTenant(tenantId: string): Promise<Service[]>
  * 3–5 lat, tymczasowo odwołane" answers the question, and an empty page does
  * not. Deleting the service would lose its history along with the answer.
  */
+/**
+ * Classes the tenant has parked — hidden, but still on its menu.
+ *
+ * Hidden alone is not enough: a birthday workshop switched off for a while is
+ * not a course "tymczasowo odwołany", and listing it among the classes put it
+ * on the parents' timetable with a dash for a price. A service that names who
+ * it enrolls (enrollee_label) is a class; one that does not is something else.
+ */
 export async function getSuspendedServicesForTenant(tenantId: string): Promise<Service[]> {
   const { data } = await createAdminClient()
     .from("services")
     .select("*")
     .eq("tenant_id", tenantId)
     .eq("active", false)
+    .not("enrollee_label", "is", null)
     .order("sort_order");
   return (data ?? []) as Service[];
 }

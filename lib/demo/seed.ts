@@ -367,7 +367,9 @@ const SETTINGS = {
   },
   teczowka: {
     business_name: "Tęczówka Studio",
-    tagline: "Urodziny w soboty, zajęcia plastyczne w tygodniu — wolne terminy widać od razu.",
+    // Birthdays are hidden in the demo, so the line under the timetable no
+    // longer promises Saturdays.
+    tagline: "Zajęcia plastyczne dla dzieci i młodzieży — wybierz zajęcia i dzień, od którego dziecko zaczyna.",
     description: "Konto demo przygotowane dla Pracowni Tęczówka. Klikaj śmiało — to kopia, nic tu nie jest prawdziwe.",
     // Adres i telefon przepisane z teczowka.com, nie wymyślone — demo, które
     // podaje zły adres własnej pracowni, traci wiarygodność w jednej sekundzie.
