@@ -26,6 +26,9 @@ const slotSchema = z.object({
   ageLabel: z.string().trim().max(60).optional().or(z.literal("")),
   minParticipants: z.coerce.number().int().min(1).max(100).optional().or(z.literal("")),
   maxParticipants: z.coerce.number().int().min(1).max(200).optional().or(z.literal("")),
+  // Sent only by the form of a day that was switched off: saving it is how
+  // the owner takes it back.
+  active: z.literal("true").optional(),
 });
 
 export type SlotState = { status: "idle" | "error" | "ok"; message?: string };
@@ -46,7 +49,20 @@ function revalidateSchedule() {
   revalidatePath("/admin/zajecia");
   revalidatePath("/admin/harmonogram");
   // The service's own edit page, which is where the list being changed sits.
-  revalidatePath("/admin/uslugi", "layout");
+  // A route pattern has to spell out the (panel) group to match anything.
+  revalidatePath("/admin/(panel)/uslugi/[id]", "page");
+}
+
+/** Meetings still ahead in a slot — what moving or retiring it would strand. */
+async function upcomingInSlot(tenantId: string, groupId: string): Promise<number> {
+  const { count } = await createAdminClient()
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("class_group_id", groupId)
+    .neq("status", "cancelled")
+    .gte("starts_at", new Date().toISOString());
+  return count ?? 0;
 }
 
 export async function saveClassGroupAction(
@@ -92,11 +108,32 @@ export async function saveClassGroupAction(
   };
 
   if (d.id) {
+    const { data: current } = await supabase
+      .from("class_groups")
+      .select("day_of_week")
+      .eq("tenant_id", tenantId)
+      .eq("id", d.id)
+      .maybeSingle();
+    if (!current) return { status: "error", message: "Nie ma takiego dnia." };
+
+    // An hour later is the same class; its meetings still count towards it,
+    // because seats are counted over the whole day. Another weekday is not:
+    // the booked Mondays would stay on Mondays, belong to a Tuesday group and
+    // drop out of every count. So a day with children in it is not moved —
+    // the new day is added and this one retired.
+    if (current.day_of_week !== d.dayOfWeek && (await upcomingInSlot(tenantId, d.id)) > 0) {
+      return {
+        status: "error",
+        message:
+          "Na ten dzień są już zapisane dzieci. Dodaj nowy dzień, a ten usuń — umówione spotkania zostaną.",
+      };
+    }
+
     // The slug stays put on an edit. It is in the links a parent may already
     // hold, and moving a class an hour later is not a new class.
     const { error } = await supabase
       .from("class_groups")
-      .update(row)
+      .update(d.active ? { ...row, active: true } : row)
       .eq("tenant_id", tenantId)
       .eq("id", d.id);
     if (error) return { status: "error", message: error.message };
@@ -138,15 +175,8 @@ export async function deleteClassGroupAction(
   }
   const supabase = createAdminClient();
 
-  const { count } = await supabase
-    .from("bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .eq("class_group_id", id)
-    .neq("status", "cancelled")
-    .gte("starts_at", new Date().toISOString());
-
-  if ((count ?? 0) > 0) {
+  const count = await upcomingInSlot(tenantId, id);
+  if (count > 0) {
     const { error } = await supabase
       .from("class_groups")
       .update({ active: false })
@@ -156,7 +186,7 @@ export async function deleteClassGroupAction(
     revalidateSchedule();
     return {
       status: "ok",
-      message: `Zajęcia wyłączone z zapisów. Zostaje ${count} umówionych spotkań — odwołaj je w harmonogramie, jeśli mają przepaść.`,
+      message: `Dzień wyłączony z zapisów. Umówione spotkania zostają (${count}) — odwołaj je w harmonogramie, jeśli mają przepaść.`,
     };
   }
 

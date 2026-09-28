@@ -11,7 +11,7 @@ import type { Service } from "@/lib/types";
 import { PageShell } from "@/components/ui/page-shell";
 
 type Params = Promise<{ id: string }>;
-type Search = Promise<{ nowa?: string }>;
+type Search = Promise<{ nowa?: string; z?: string }>;
 
 export const metadata = { title: "Edytuj usługę", robots: { index: false } };
 
@@ -23,7 +23,10 @@ export default async function EditServicePage({
   searchParams: Search;
 }) {
   const { id } = await params;
-  const { nowa } = await searchParams;
+  const { nowa, z } = await searchParams;
+  // Opened from the classes page: that is where "back" goes, and the service
+  // is a class even while it has no days yet (a course parked for the summer).
+  const fromClasses = z === "1";
   const tenantId = await getAdminTenantId();
   const { data } = await createAdminClient()
     .from("services").select("*").eq("tenant_id", tenantId).eq("id", id).maybeSingle();
@@ -49,7 +52,7 @@ export default async function EditServicePage({
           active: g.active,
         }))
     : [];
-  const isClass = slots.length > 0;
+  const isClass = slots.length > 0 || (runsGroups && fromClasses);
 
   const boundAction = updateServiceAction.bind(null, id);
 
@@ -59,25 +62,35 @@ export default async function EditServicePage({
       title={isClass ? "Edytuj zajęcia" : "Edytuj usługę"}
       subtitle={service.name}
       back={
-        <AdminLink href="/admin/uslugi" className="inline-flex text-sm text-zinc-500 hover:text-zinc-300">
-          ← Usługi
+        <AdminLink
+          href={fromClasses ? "/admin/zajecia" : "/admin/uslugi"}
+          className="inline-flex text-sm text-zinc-500 hover:text-zinc-300"
+        >
+          {fromClasses ? "← Zajęcia" : "← Usługi"}
         </AdminLink>
       }
     >
-      {nowa && runsGroups && (
+      {/* Only while there is nothing below yet: once a day exists the advice
+          is done, and ?nowa stays in the address through every save. */}
+      {nowa && runsGroups && slots.length === 0 && (
         <p className="mb-6 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-300">
-          Zapisane. Jeśli to zajęcia w stałe dni tygodnia, dodaj je poniżej.
+          Zapisane. Jeśli to zajęcia w stałe dni tygodnia, dodaj dni i godziny poniżej.
         </p>
       )}
 
-      <ServiceForm action={boundAction} service={service} classes={isClass} />
+      <ServiceForm
+        action={boundAction}
+        service={service}
+        classes={isClass}
+        backTo={fromClasses ? "/zajecia" : "/uslugi"}
+      />
 
       {runsGroups && (
         <section className="mt-10 max-w-2xl">
           <h2 className="text-base font-semibold text-zinc-100">Dni i godziny</h2>
           <p className="mt-1 text-sm text-zinc-500">
             {isClass
-              ? "Każdy dzień to osobna grupa, do której dopisują się uczestnicy."
+              ? "Każdy dzień to osobna grupa, do której dopisują się uczestnicy, a jego godziny Od–Do to godziny spotkań. Każdy dzień zapisujesz jego własnym przyciskiem."
               : "Dodaj dzień, jeśli to zajęcia w stałe dni tygodnia. Usługa rezerwowana na wybrany termin nie potrzebuje żadnego."}
           </p>
           <SlotEditor serviceId={service.id} slots={slots} />

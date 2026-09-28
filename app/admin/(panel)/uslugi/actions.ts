@@ -63,6 +63,7 @@ const serviceSchema = z.object({
 
 export type ServiceFormState =
   | { status: "idle" }
+  | { status: "ok"; message: string }
   | { status: "error"; message: string; fieldErrors?: Record<string, string> };
 
 function parseForm(formData: FormData) {
@@ -193,6 +194,14 @@ export async function updateServiceAction(
   revalidatePath("/admin/uslugi");
   revalidatePath("/");
   revalidatePath("/rezerwacja");
+  // Where the tenant runs classes the edit page also holds the days, each
+  // saved on its own. Leaving for the list on "Zapisz zmiany" would drop a
+  // day edited but not yet saved, and take the owner away from a page they
+  // are usually not done with.
+  if (hasFeature(await getAdminTenantFeatures(), "grupy")) {
+    revalidatePath("/admin/zajecia");
+    return { status: "ok", message: "Zapisano." };
+  }
   redirect(`${await getAdminBasePath()}/uslugi`);
 }
 

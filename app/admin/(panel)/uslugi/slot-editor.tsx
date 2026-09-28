@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { saveClassGroupAction, deleteClassGroupAction, type SlotState } from "./slot-actions";
 
 export type SlotRow = {
@@ -58,7 +58,7 @@ export function SlotEditor({
           onClick={() => setAdding(true)}
           className="mt-1 rounded-full border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
         >
-          Dodaj termin
+          Dodaj dzień
         </button>
       )}
     </div>
@@ -83,11 +83,30 @@ function SlotForm({
     { status: "idle" }
   );
 
+  // A new day, once saved, is in the list above; leaving its blank form open
+  // under it is how the same Monday gets added twice.
+  useEffect(() => {
+    if (!slot && state.status === "ok") onDone?.();
+  }, [slot, state.status, onDone]);
+
+  // Switched off rather than deleted, because children are still booked into
+  // it. Without saying so it would look like any day taking sign-ups.
+  const off = slot ? !slot.active : false;
+
   return (
-    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-3">
+    <div
+      className={`rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-3 ${off ? "opacity-70" : ""}`}
+    >
+      {off && (
+        <p className="mb-2 text-[11px] text-zinc-400">
+          Wyłączony z zapisów — umówione spotkania zostają. Zapisz, żeby znów
+          przyjmować zapisy na ten dzień.
+        </p>
+      )}
       <form action={formAction} className="flex flex-wrap items-end gap-2">
         {slot && <input type="hidden" name="id" value={slot.id} />}
         <input type="hidden" name="serviceId" value={serviceId} />
+        {off && <input type="hidden" name="active" value="true" />}
 
         <label className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wider text-zinc-600">Dzień</span>
@@ -164,7 +183,7 @@ function SlotForm({
           disabled={pending}
           className="rounded-full bg-[var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-[var(--color-accent-fg)] disabled:opacity-60"
         >
-          {pending ? "Zapisuję…" : slot ? "Zapisz" : "Dodaj"}
+          {pending ? "Zapisuję…" : off ? "Zapisz i włącz" : slot ? "Zapisz" : "Dodaj"}
         </button>
         {onDone && (
           <button
@@ -185,7 +204,7 @@ function SlotForm({
             disabled={removing}
             className="text-[11px] text-zinc-600 hover:text-red-400 disabled:opacity-60"
           >
-            {removing ? "Usuwam…" : "Usuń termin"}
+            {removing ? "Usuwam…" : "Usuń dzień"}
           </button>
         </form>
       )}

@@ -13,6 +13,7 @@ export function ServiceForm({
   action,
   service,
   classes = false,
+  backTo = "/uslugi",
 }: {
   action: (prev: ServiceFormState, fd: FormData) => Promise<ServiceFormState>;
   service?: Service;
@@ -20,6 +21,9 @@ export function ServiceForm({
       school's package whose dates are agreed one by one. Same fields, its
       own words. */
   classes?: boolean;
+  /** Where "Anuluj" leads, under the admin base — back to the page the owner
+      came from, not always the services list. */
+  backTo?: string;
 }) {
   const adminBase = useAdminBase();
   const [state, formAction, pending] = useActionState<ServiceFormState, FormData>(
@@ -30,6 +34,9 @@ export function ServiceForm({
   const [duration, setDuration] = useState(service?.duration_min ?? 30);
   const [lessons, setLessons] = useState(service?.total_lessons ?? 5);
   const count = classes ? meetingsLabel : lessonsLabel;
+  // "4 spotkania" → "spotkania": the word beside the number box has to agree
+  // with the number in it, like the preview under it does.
+  const unit = count(lessons).replace(/^\d+\s/, "");
 
   return (
     <form action={formAction} className="space-y-5 max-w-lg">
@@ -92,7 +99,7 @@ export function ServiceForm({
                 // with a fixed basis sidesteps the fight.
                 className={fieldClasses({ className: "!w-20" })}
               />
-              <span className="text-sm text-zinc-500">{classes ? "spotkań" : "lekcji"}</span>
+              <span className="text-sm text-zinc-500">{unit}</span>
             </span>
             {/* Nothing is computed from this: the name and the price are what
                 the school actually charges, typed as they are on its price
@@ -100,8 +107,14 @@ export function ServiceForm({
                 nobody sells. */}
             {/* The owner sees the shape of what they are selling without
                 having to hold two fields in their head. */}
+            {/* For classes the length of a meeting is its hours, set per day
+                below — a minutes figure here would be one nobody reads and
+                bookings do not follow. */}
             <span className="mt-2 block text-xs text-zinc-500">
-              Klient zobaczy: <span className="text-zinc-300">{count(lessons)} × {duration} min</span>
+              Klient zobaczy:{" "}
+              <span className="text-zinc-300">
+                {classes ? count(lessons) : `${count(lessons)} × ${duration} min`}
+              </span>
             </span>
             <span className="mt-1 block text-xs text-zinc-600">
               {classes
@@ -115,10 +128,15 @@ export function ServiceForm({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className={`grid gap-4 ${classes ? "grid-cols-1" : "grid-cols-2"}`}>
+        {classes ? (
+          // Kept so saving does not change it; the meeting's real length is
+          // the Od–Do of each day, which is what bookings are made from.
+          <input type="hidden" name="duration_min" value={duration} />
+        ) : (
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
-            {isPackage ? (classes ? "Czas jednego spotkania" : "Czas jednej lekcji") : "Czas trwania"}{" "}
+            {isPackage ? "Czas jednej lekcji" : "Czas trwania"}{" "}
             <span className="text-[var(--color-accent)]">*</span>
           </span>
           <span className="flex items-center gap-2">
@@ -139,6 +157,7 @@ export function ServiceForm({
             <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.duration_min}</span>
           )}
         </label>
+        )}
 
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
@@ -183,13 +202,16 @@ export function ServiceForm({
           {state.message}
         </p>
       )}
+      {state.status === "ok" && (
+        <p className="text-sm text-emerald-400">{state.message}</p>
+      )}
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" variant="primary" radius="full" disabled={pending} className="px-5 py-2.5">
           {pending ? "Zapisuję…" : service ? "Zapisz zmiany" : "Dodaj usługę"}
         </Button>
-        <ButtonLink href={`${adminBase}/uslugi`} variant="secondary" radius="full" className="px-5 py-2.5">
-          Anuluj
+        <ButtonLink href={`${adminBase}${backTo}`} variant="secondary" radius="full" className="px-5 py-2.5">
+          {state.status === "ok" ? "Wróć" : "Anuluj"}
         </ButtonLink>
       </div>
     </form>

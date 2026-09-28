@@ -154,8 +154,8 @@ export function CourseCard({ course, today }: { course: Course; today: string })
         {course.slots.length === 0 && (
           <li className="text-sm text-zinc-600">
             {course.suspended
-              ? "Bez terminów — dodasz je w ustawieniach zajęć, gdy wrócą."
-              : "Brak terminów — dodaj dni i godziny w ustawieniach zajęć."}
+              ? "Bez dni — dodasz je pod „Edytuj zajęcia”, gdy zajęcia wrócą."
+              : "Brak dni — dodaj dni i godziny pod „Edytuj zajęcia”."}
           </li>
         )}
       </ul>
@@ -183,7 +183,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
           </button>
         )}
         <Link
-          href={`${adminBase}/uslugi/${course.serviceId}`}
+          href={`${adminBase}/uslugi/${course.serviceId}?z=1`}
           className="rounded-full border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
           Edytuj zajęcia

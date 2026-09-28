@@ -1,8 +1,11 @@
 import { AdminLink } from "@/components/admin-link";
-import { lessonsLabel } from "@/lib/service-label";
+import { lessonsLabel, meetingsLabel } from "@/lib/service-label";
 import { PageShell } from "@/components/ui/page-shell";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAdminTenantId } from "@/lib/tenant";
+import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
+import { getClassGroupsForTenant } from "@/lib/db/class-groups";
+import { WEEK_ORDER } from "@/lib/class-groups";
 import { toggleServiceActiveAction } from "./actions";
 import { DeleteServiceButton } from "./delete-service-button";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -22,8 +25,34 @@ async function getAllServices(): Promise<Service[]> {
   return (data ?? []) as Service[];
 }
 
+const WEEKDAY_SHORT = ["nd", "pn", "wt", "śr", "czw", "pt", "sob"];
+
+/**
+ * For each service that meets on fixed days, which days — "pn, wt, czw, pt".
+ *
+ * A class is made on its edit page now, and the list that leads there spoke
+ * of "pakiet · 4 lekcje" and "90 min / lekcja" for the very same course.
+ */
+async function getClassDays(): Promise<Map<string, string>> {
+  const tenantId = await getAdminTenantId();
+  if (!hasFeature(await getAdminTenantFeatures(), "grupy")) return new Map();
+  const byService = new Map<string, Set<number>>();
+  for (const g of await getClassGroupsForTenant(tenantId, { includeInactive: true })) {
+    if (!g.active) continue;
+    const days = byService.get(g.service_id) ?? new Set<number>();
+    days.add(g.day_of_week);
+    byService.set(g.service_id, days);
+  }
+  return new Map(
+    [...byService].map(([id, days]) => [
+      id,
+      WEEK_ORDER.filter((d) => days.has(d)).map((d) => WEEKDAY_SHORT[d]).join(", "),
+    ])
+  );
+}
+
 export default async function ServicesPage() {
-  const services = await getAllServices();
+  const [services, classDays] = await Promise.all([getAllServices(), getClassDays()]);
   const active = services.filter((s) => s.active);
   const inactive = services.filter((s) => !s.active);
 
@@ -38,7 +67,7 @@ export default async function ServicesPage() {
     >
 
       <div className="space-y-2">
-        {active.map((s) => <ServiceRow key={s.id} service={s} />)}
+        {active.map((s) => <ServiceRow key={s.id} service={s} days={classDays.get(s.id)} />)}
       </div>
 
       {inactive.length > 0 && (
@@ -47,7 +76,7 @@ export default async function ServicesPage() {
             Ukryte ({inactive.length})
           </summary>
           <div className="mt-3 space-y-2">
-            {inactive.map((s) => <ServiceRow key={s.id} service={s} />)}
+            {inactive.map((s) => <ServiceRow key={s.id} service={s} days={classDays.get(s.id)} />)}
           </div>
         </details>
       )}
@@ -55,7 +84,7 @@ export default async function ServicesPage() {
   );
 }
 
-function ServiceRow({ service: s }: { service: Service }) {
+function ServiceRow({ service: s, days }: { service: Service; days?: string }) {
   return (
     <div className={`flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4 sm:flex-row sm:items-center sm:gap-4 ${!s.active ? "opacity-50" : ""}`}>
       <div className="min-w-0 flex-1">
@@ -63,7 +92,7 @@ function ServiceRow({ service: s }: { service: Service }) {
           <span className="font-medium text-zinc-100">{s.name}</span>
           {s.total_lessons && (
             <span className="rounded border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-medium text-[var(--color-accent)]">
-              pakiet · {lessonsLabel(s.total_lessons)}
+              {days ? meetingsLabel(s.total_lessons) : `pakiet · ${lessonsLabel(s.total_lessons)}`}
             </span>
           )}
           {s.is_group && (
@@ -73,7 +102,7 @@ function ServiceRow({ service: s }: { service: Service }) {
           )}
           <span className="font-mono text-sm text-[var(--color-accent)]">{s.price_pln} zł</span>
           <span className="font-mono text-xs text-zinc-500">
-            {s.total_lessons ? `${s.duration_min} min / lekcja` : `${s.duration_min} min`}
+            {days ?? (s.total_lessons ? `${s.duration_min} min / lekcja` : `${s.duration_min} min`)}
           </span>
         </div>
         {s.description && (
@@ -86,7 +115,7 @@ function ServiceRow({ service: s }: { service: Service }) {
           href={`/admin/uslugi/${s.id}`}
           className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
-          Edytuj
+          {days ? "Edytuj zajęcia" : "Edytuj"}
         </AdminLink>
         <form action={toggleServiceActiveAction}>
           <input type="hidden" name="id" value={s.id} />
