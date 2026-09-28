@@ -440,7 +440,11 @@ export function CalendarPicker({
               const isClosed = !!dayInfo && dayInfo.closed;
               const badge = isAvailable && badges ? badges[date] : undefined;
               // A day the timetable runs on, whether or not anyone has booked.
+              // Only days you can actually pick. Marking every Monday of the
+              // month lit up the ones already gone, which read as available
+              // and did nothing when clicked — the "cannot add a child" bug.
               const marked =
+                isAvailable &&
                 !!markWeekdays?.length &&
                 markWeekdays.includes(new Date(`${date}T12:00:00Z`).getUTCDay());
               const href = isAvailable && hrefMap ? hrefMap[date] : undefined;
