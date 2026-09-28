@@ -144,7 +144,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
           </span>
         ) : course.enrollMode === "enquiry" ? (
           <span className="text-xs text-zinc-500">
-            Zapisy przez kontakt — ten kurs ustala warunki indywidualnie.
+            Zapisy przez kontakt — warunki tych zajęć ustalane są indywidualnie.
           </span>
         ) : (
           <button

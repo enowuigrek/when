@@ -158,7 +158,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
           {enquiry ? (
             <div className="mt-6 rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-5 py-4">
               <p className="text-sm text-zinc-300">
-                Na ten kurs zapisujemy po rozmowie — warunki ustalamy indywidualnie.
+                Na te zajęcia zapisujemy po rozmowie — warunki ustalamy indywidualnie.
               </p>
               {(settings.phone || settings.email) && (
                 <p className="mt-2 text-sm text-zinc-400">

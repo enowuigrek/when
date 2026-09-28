@@ -127,7 +127,7 @@ export default async function ZajeciaPage() {
   return (
     <PageShell
       title={sectionLabel}
-      subtitle="Kursy i dni, w które się odbywają. Zapis obejmuje od razu cały miesiąc."
+      subtitle="Dni i godziny każdych zajęć. Zapis obejmuje od razu cały miesiąc."
     >
       <div className="mt-8 space-y-4">
         {courses.map((c) => (

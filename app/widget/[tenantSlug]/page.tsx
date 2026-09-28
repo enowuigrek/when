@@ -131,7 +131,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
               </h1>
               <p className="mt-2 mb-6 text-sm text-zinc-400">
                 {settings.tagline ??
-                  "Wybierz kurs — dni i godziny znajdziesz w środku."}
+                  "Wybierz zajęcia — dni i godziny znajdziesz w środku."}
               </p>
               <CourseList
                 groups={groups}
