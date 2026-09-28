@@ -38,6 +38,9 @@ export default async function DashboardPage() {
   // A studio's first question is not "how busy is the chair" — see
   // ClassesDashboard for what replaces the booking tiles.
   const runsGroups = hasFeature(features, "grupy");
+  // Without the feature the staff pages are blocked, so a card linking there
+  // would lead nowhere.
+  const hasStaff = hasFeature(features, "pracownicy");
   const overview = runsGroups
     ? await getClassesOverviewForTenant(await getAdminTenantId())
     : null;
@@ -68,7 +71,6 @@ export default async function DashboardPage() {
       {overview ? (
         <ClassesDashboard
           overview={overview}
-          monthRevenue={pln(s.thisMonthRevenue)}
           classesLabel={classesLabel(settings)}
           base={base}
         />
@@ -101,6 +103,10 @@ export default async function DashboardPage() {
       </div>
       )}
 
+      {/* A salon's two questions — how busy the last month was, who sits in
+          the chair next. A studio's are answered by ClassesDashboard above,
+          and a chart of bookings would count each child four times a month. */}
+      {!overview && (
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ── Chart ───────────────────────────────────────────────────────── */}
         <div className={`${card} p-5 lg:col-span-2`}>
@@ -177,8 +183,9 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 ${hasStaff ? "lg:grid-cols-2" : ""}`}>
         {/* ── Top services ────────────────────────────────────────────────── */}
         <div className={`${card} p-5`}>
           <div className="flex items-baseline justify-between">
@@ -204,6 +211,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* ── Top staff ───────────────────────────────────────────────────── */}
+        {hasStaff && (
         <div className={`${card} p-5`}>
           <div className="flex items-baseline justify-between">
             <h2 className={heading}>Najbardziej zajęci — 30 dni</h2>
@@ -235,6 +243,7 @@ export default async function DashboardPage() {
             </ol>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Recent activity ───────────────────────────────────────────────── */}

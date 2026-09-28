@@ -38,6 +38,8 @@ export type ClassesOverview = {
   filling: FillingGroup[];
   runningOut: RunningOut[];
   childrenCount: number;
+  /** Today in Warsaw, YYYY-MM-DD — what "already over" is measured against. */
+  date: string;
 };
 
 /**
@@ -55,7 +57,7 @@ export async function getClassesOverviewForTenant(tenantId: string): Promise<Cla
   const today = warsawToday();
   const groups = await getClassGroupsForTenant(tenantId);
 
-  const empty: ClassesOverview = { today: [], filling: [], runningOut: [], childrenCount: 0 };
+  const empty: ClassesOverview = { today: [], filling: [], runningOut: [], childrenCount: 0, date: today };
   if (groups.length === 0) return empty;
 
   // Everything the groups touch between today and their next meeting.
@@ -121,7 +123,11 @@ export async function getClassesOverviewForTenant(tenantId: string): Promise<Cla
 
   // Months about to run out. A package is a month; when its last booked
   // meeting is inside a fortnight, somebody has to sign the child up again.
+  // One that already ran out stays for a month after — that child has stopped
+  // coming and is the likelier to be forgotten — and then drops off, or the
+  // list would fill with every family that ever left.
   const horizon = addDays(today, 14);
+  const since = addDays(today, -30);
   const { data: packs } = await supabase
     .from("service_packages")
     .select("id, total_lessons, customer_id, service:services(name), customer:customers(name)")
@@ -148,7 +154,7 @@ export async function getClassesOverviewForTenant(tenantId: string): Promise<Cla
       const dates = (byPackage.get(p.id as string) ?? []).sort();
       if (dates.length === 0) continue;
       const last = dayIn.format(new Date(dates.at(-1)!));
-      if (last > horizon) continue;
+      if (last > horizon || last < since) continue;
       // The client types an embedded one-to-one relation as an array.
       const svc = (Array.isArray(p.service) ? p.service[0] : p.service) as
         | { name: string }
@@ -174,5 +180,5 @@ export async function getClassesOverviewForTenant(tenantId: string): Promise<Cla
     .eq("tenant_id", tenantId)
     .not("guardian_id", "is", null);
 
-  return { today: todayClasses, filling, runningOut, childrenCount: count ?? 0 };
+  return { today: todayClasses, filling, runningOut, childrenCount: count ?? 0, date: today };
 }

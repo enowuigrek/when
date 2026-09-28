@@ -22,22 +22,23 @@ function shortDate(day: string) {
  */
 export function ClassesDashboard({
   overview,
-  monthRevenue,
   classesLabel,
   base,
 }: {
   overview: ClassesOverview;
-  monthRevenue: string;
   classesLabel: string;
   /** "/admin" or "/demo/{slug}" — links must stay inside the demo. */
   base: string;
 }) {
-  const { today, filling, runningOut, childrenCount } = overview;
+  const { today, filling, runningOut, childrenCount, date } = overview;
   const todayTotal = today.reduce((n, c) => n + c.taken, 0);
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* No revenue tile: a studio is paid for a month up front, so "this
+          month's revenue" counts the months that happened to start in it —
+          a number that answers nothing they ask. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatTile
           label={`${classesLabel} dziś`}
           value={String(today.length)}
@@ -56,15 +57,10 @@ export function ClassesDashboard({
           sub={filling.length > 0 ? "brakuje osób" : "wszystkie zebrane"}
           href={`${base}/zajecia`}
         />
-        <StatTile
-          label="Przychód w tym miesiącu"
-          value={monthRevenue}
-          sub="z zapisów"
-        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className={card}>
+        <section className={`${card} p-5`}>
           <h2 className={heading}>Dziś w pracowni</h2>
           {today.length === 0 ? (
             <p className="mt-3 text-sm text-zinc-500">Dziś nie ma zajęć.</p>
@@ -86,7 +82,7 @@ export function ClassesDashboard({
           )}
         </section>
 
-        <section className={card}>
+        <section className={`${card} p-5`}>
           <h2 className={heading}>Zbierają się</h2>
           {filling.length === 0 ? (
             <p className="mt-3 text-sm text-zinc-500">
@@ -112,11 +108,11 @@ export function ClassesDashboard({
       </div>
 
       {runningOut.length > 0 && (
-        <section className={card}>
+        <section className={`${card} p-5`}>
           <h2 className={heading}>Kończy się miesiąc</h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Ostatnie opłacone spotkanie w ciągu dwóch tygodni. Zapis nie przedłuża
-            się sam — trzeba dopisać kolejny miesiąc.
+            Ostatnie opłacone spotkanie w ciągu dwóch tygodni albo już za nami.
+            Zapis nie przedłuża się sam — trzeba dopisać kolejny miesiąc.
           </p>
           <ul className="mt-3 space-y-2">
             {runningOut.slice(0, 8).map((r) => (
@@ -131,8 +127,15 @@ export function ClassesDashboard({
                   {r.childName}
                 </AdminLink>
                 <span className="text-xs text-zinc-500">{r.courseName}</span>
-                <span className="ml-auto font-mono text-xs text-zinc-400">
-                  do {shortDate(r.lastDate)}
+                {/* Already over is the more urgent of the two: the child has
+                    stopped appearing and nobody signed them up again. */}
+                <span
+                  className={`ml-auto font-mono text-xs ${
+                    r.lastDate < date ? "text-[var(--color-accent)]" : "text-zinc-400"
+                  }`}
+                >
+                  {r.lastDate < date ? "skończył się " : "do "}
+                  {shortDate(r.lastDate)}
                 </span>
               </li>
             ))}
