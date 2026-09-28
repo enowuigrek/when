@@ -9,7 +9,8 @@ import {
   getTenantSlugById,
   getPackageBookingsForTenant,
 } from "@/lib/db/for-tenant";
-import { formatWarsawDate, formatWarsawTime } from "@/lib/slots";
+import { formatWarsawDate, formatWarsawTime, warsawDayOfWeek } from "@/lib/slots";
+import { WEEKDAY_NAMES } from "@/lib/class-groups";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import { fmtUtc } from "@/lib/ics";
@@ -64,6 +65,13 @@ export default async function SuccessPage({
   // A package is one decision and several appointments; confirming only the
   // first would read as though the rest had not been booked.
   const packageId = (booking as { package_id: string | null }).package_id;
+  // A seat in a recurring class is not an appointment, and the page said
+  // otherwise all the way down: "Rezerwacja potwierdzona", "Usługa", and a
+  // "Zmień termin" link that leads somewhere a class cannot go.
+  const classGroupId = (booking as { class_group_id: string | null }).class_group_id;
+  const isClass = !!classGroupId;
+  const weekdayName = WEEKDAY_NAMES[warsawDayOfWeek(booking.starts_at.slice(0, 10))];
+
   const series = packageId
     ? await getPackageBookingsForTenant(packageId, booking.tenant_id)
     : [];
@@ -125,10 +133,17 @@ export default async function SuccessPage({
           ) : (
             <>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
-                Rezerwacja potwierdzona
+                {isClass ? "Zapis przyjęty" : "Rezerwacja potwierdzona"}
               </h1>
               <p className="mt-3 text-zinc-400">
-                Do zobaczenia! Numer rezerwacji:{" "}
+                {isClass ? (
+                  <>
+                    Zajęcia odbywają się w {weekdayName.toLowerCase()}i, co tydzień.
+                    Numer zapisu:{" "}
+                  </>
+                ) : (
+                  <>Do zobaczenia! Numer rezerwacji: </>
+                )}
                 <span className="font-mono text-zinc-300">{booking.id.slice(0, 8)}</span>
               </p>
             </>
@@ -136,7 +151,7 @@ export default async function SuccessPage({
 
           <dl className="mt-8 space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 sm:space-y-4 sm:p-6">
             {service && (
-              <Row label="Usługa" value={service.name} />
+              <Row label={isClass ? "Zajęcia" : "Usługa"} value={service.name} />
             )}
             <Row
               label="Data"
@@ -214,7 +229,28 @@ export default async function SuccessPage({
           </div>
 
           {/* Self-service links */}
-          {booking.status === "confirmed" && new Date(booking.starts_at) > new Date() && (
+          {/* A class cannot be moved from here: the day belongs to the group,
+              not to one child, and the reschedule screen offers free slots the
+              studio does not have. The studio moves it, so the page says who
+              to ask instead of leading somewhere that refuses. */}
+          {isClass && booking.status === "confirmed" && (
+            <p className="mt-4 text-sm text-zinc-400">
+              Trzeba przełożyć któreś spotkanie? Napisz albo zadzwoń
+              {s.phone ? (
+                <>
+                  :{" "}
+                  <a href={`tel:${s.phone.replace(/\s/g, "")}`} className="font-mono text-zinc-300">
+                    {s.phone}
+                  </a>
+                </>
+              ) : (
+                <> do pracowni</>
+              )}
+              , a przeniesiemy dziecko na inny dzień.
+            </p>
+          )}
+
+          {!isClass && booking.status === "confirmed" && new Date(booking.starts_at) > new Date() && (
             <div className="mt-4 flex flex-wrap gap-3 text-sm">
               <Link
                 href={`/rezerwacja/zmien/${rescheduleToken}`}
