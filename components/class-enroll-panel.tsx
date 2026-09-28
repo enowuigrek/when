@@ -229,7 +229,11 @@ function EnrollFields({
   onAgain: () => void;
   onClose?: () => void;
 }) {
-  const [mode, setMode] = useState<"karnet" | "probne">(karnet ? "karnet" : "probne");
+  // A single meeting was my invention, not theirs: nothing on the studio's
+  // site offers a trial class, and a choice nobody asked for is one more
+  // thing to explain. A class sold by the month is signed up for by the
+  // month; one that is not is a single meeting because that is all it is.
+  const mode: "karnet" | "probne" = karnet ? "karnet" : "probne";
   const [state, formAction, pending] = useActionState<EnrollState, FormData>(action, {
     status: "idle",
   });
@@ -270,33 +274,6 @@ function EnrollFields({
       <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="startDate" value={startDate} />
       <input type="hidden" name="mode" value={mode} />
-
-      {karnet && (
-        <div className="flex flex-wrap gap-2">
-          {(["karnet", "probne"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              aria-pressed={mode === m}
-              className="rounded-full border px-3 py-1 text-xs transition-colors"
-              style={
-                mode === m
-                  ? {
-                      borderColor: color,
-                      backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`,
-                    }
-                  : { borderColor: "#3f3f46" }
-              }
-            >
-              {/* Not "4 × 220 zł" — that reads as 880. One price for the month. */}
-              {m === "karnet"
-                ? `Miesiąc — ${karnet.lessons} spotkania, ${karnet.pricePln} zł`
-                : "Jedno spotkanie"}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div
         className="rounded-lg border px-4 py-3"
