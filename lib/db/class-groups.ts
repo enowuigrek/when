@@ -36,6 +36,30 @@ export async function getClassGroupsForTenant(
   );
 }
 
+/**
+ * Every weekly slot of one course, newest offer first.
+ *
+ * The parent chooses a course, not a Tuesday — so the page is loaded by the
+ * service's slug and the days come with it.
+ */
+export async function getCourseGroupsForTenant(
+  serviceSlug: string,
+  tenantId: string
+): Promise<ClassGroupWithService[]> {
+  const { data, error } = await createAdminClient()
+    .from("class_groups")
+    .select("*, service:services!inner(*)")
+    .eq("tenant_id", tenantId)
+    .eq("active", true)
+    .eq("services.slug", serviceSlug)
+    .order("day_of_week")
+    .order("start_time");
+  if (error) throw new Error(`Failed to load course: ${error.message}`);
+  return ((data ?? []) as ClassGroupWithService[]).filter(
+    (g) => g.service && g.service.active !== false
+  );
+}
+
 export async function getClassGroupBySlugForTenant(
   slug: string,
   tenantId: string

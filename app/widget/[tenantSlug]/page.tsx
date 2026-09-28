@@ -9,11 +9,10 @@ import {
   getBusinessHoursForTenant,
   getFeaturesForTenant,
 } from "@/lib/db/for-tenant";
-import { getClassGroupsForTenant, getSeatCountsForTenant } from "@/lib/db/class-groups";
-import { ClassWeekGrid } from "@/components/class-week-grid";
+import { getClassGroupsForTenant } from "@/lib/db/class-groups";
+import { CourseList } from "@/components/course-list";
 import { hasFeature } from "@/lib/features";
 import { classesLabel } from "@/lib/vocabulary";
-import { nextMeetingDates, meetingInstants } from "@/lib/class-groups";
 import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WidgetPoweredBy } from "@/components/widget-powered-by";
@@ -70,21 +69,9 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
   const groups = runsGroups ? await getClassGroupsForTenant(tenantId) : [];
   const suspended = runsGroups ? await getSuspendedServicesForTenant(tenantId) : [];
 
-  // Seats on each group's next meeting. One window covers them all: every
-  // group meets once a week, so eight days holds exactly one of each.
-  let seats = new Map<string, number>();
-  if (groups.length > 0) {
-    const horizon = groups.map((g) => {
-      const [date] = nextMeetingDates(g.day_of_week, 1);
-      return meetingInstants(g, date);
-    });
-    const from = horizon.reduce((a, b) => (a < b.startsAtIso ? a : b.startsAtIso), horizon[0].startsAtIso);
-    const to = horizon.reduce((a, b) => (a > b.endsAtIso ? a : b.endsAtIso), horizon[0].endsAtIso);
-    seats = await getSeatCountsForTenant(groups.map((g) => g.id), from, to, tenantId);
-  }
-
-  // A course that runs as a group is booked through the grid, not as a slot —
-  // showing it in both places would offer the same thing two different ways.
+  // A course that runs as a group is joined through its own page, not as a
+  // bookable slot — showing it in both places would offer the same thing two
+  // different ways.
   const groupServiceIds = new Set(groups.map((g) => g.service_id));
   const services = allServices.filter((s) => !groupServiceIds.has(s.id));
 
@@ -144,12 +131,11 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
               </h1>
               <p className="mt-2 mb-6 text-sm text-zinc-400">
                 {settings.tagline ??
-                  "Wybierz dzień i grupę. Zapis rezerwuje miejsce na najbliższe spotkania."}
+                  "Wybierz kurs — dni i godziny znajdziesz w środku."}
               </p>
-              <ClassWeekGrid
+              <CourseList
                 groups={groups}
-                seats={seats}
-                hrefFor={(g) => `${basePath}/zajecia/${g.slug}${isEmbed ? "?embed=1" : ""}`}
+                hrefFor={(slug) => `${basePath}/zajecia/${slug}${isEmbed ? "?embed=1" : ""}`}
               />
               {suspended.length > 0 && (
                 <div className="mt-4 rounded-xl border border-zinc-800/40 bg-zinc-900/10 px-5 py-4">

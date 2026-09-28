@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTenantIdBySlug } from "@/lib/tenant";
 import { getSettingsForTenant, getFeaturesForTenant } from "@/lib/db/for-tenant";
-import { getClassGroupBySlugForTenant } from "@/lib/db/class-groups";
+import { getClassGroupsForTenant } from "@/lib/db/class-groups";
 import { enrollInGroup } from "@/lib/db/class-enrollment";
 import { nextMeetings } from "@/lib/class-groups";
 import { recordBookingEvent } from "@/lib/db/booking-events";
@@ -19,7 +19,10 @@ export type EnrollState = { status: "idle" | "error"; message?: string };
 
 const schema = z.object({
   tenantSlug: z.string().min(1),
-  groupSlug: z.string().min(1),
+  groupId: z.string().uuid(),
+  // Which meeting the month starts from — the parent picks it on a calendar
+  // showing only the days this course runs on.
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   mode: z.enum(["karnet", "probne"]),
   childName: z.string().trim().min(2, "Podaj imię i nazwisko dziecka.").max(120),
   guardianName: z.string().trim().max(120).optional().or(z.literal("")),
@@ -44,7 +47,7 @@ export async function enrollAction(
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Sprawdź formularz." };
   }
-  const { tenantSlug, groupSlug, mode } = parsed.data;
+  const { tenantSlug, groupId, mode } = parsed.data;
 
   const tenantId = await getTenantIdBySlug(tenantSlug);
   if (!tenantId) return { status: "error", message: "Nieznana pracownia." };
@@ -54,8 +57,8 @@ export async function enrollAction(
     return { status: "error", message: "Zapisy na zajęcia nie są tu włączone." };
   }
 
-  const group = await getClassGroupBySlugForTenant(groupSlug, tenantId);
-  if (!group || !group.active) return { status: "error", message: "Te zajęcia nie są dostępne." };
+  const group = (await getClassGroupsForTenant(tenantId)).find((g) => g.id === groupId);
+  if (!group) return { status: "error", message: "Te zajęcia nie są dostępne." };
 
   const service = group.service;
 
@@ -76,6 +79,7 @@ export async function enrollAction(
     guardianName: parsed.data.guardianName,
     email: parsed.data.email,
     notes: parsed.data.notes,
+    from: parsed.data.startDate || undefined,
   });
   if (!enrolled.ok) {
     return {

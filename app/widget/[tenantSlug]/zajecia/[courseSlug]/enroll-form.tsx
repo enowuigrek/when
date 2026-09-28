@@ -27,12 +27,15 @@ function Field({
 export function EnrollForm({
   tenantSlug,
   groupSlug,
+  startDate,
   karnet,
   trialLabel,
   words,
 }: {
   tenantSlug: string;
+  /** The group's id — the day within this course the parent picked. */
   groupSlug: string;
+  startDate?: string;
   /** Null when the course is not sold as a month — then there is only a trial. */
   karnet: { lessons: number; pricePln: number } | null;
   trialLabel: string;
@@ -48,7 +51,8 @@ export function EnrollForm({
   return (
     <form action={formAction} className="mt-6 space-y-4">
       <input type="hidden" name="tenantSlug" value={tenantSlug} />
-      <input type="hidden" name="groupSlug" value={groupSlug} />
+      <input type="hidden" name="groupId" value={groupSlug} />
+      {startDate && <input type="hidden" name="startDate" value={startDate} />}
       <input type="hidden" name="mode" value={mode} />
 
       {karnet && (
