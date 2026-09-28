@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/ui/page-shell";
+import { AdminLink } from "@/components/admin-link";
 import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
 import { hasFeature } from "@/lib/features";
 import {
@@ -40,7 +41,11 @@ export default async function ZajeciaPage() {
     return (
       <PageShell title={sectionLabel} narrow>
         <p className="mt-6 text-sm text-zinc-500">
-          Nie ma jeszcze żadnych grup. Dodasz je przy usłudze, gdy powstanie.
+          Nie ma jeszcze żadnych zajęć. Tworzy się je w{" "}
+          <AdminLink href="/admin/uslugi" className="text-zinc-300 underline underline-offset-2">
+            Usługach
+          </AdminLink>
+          {" "}— tam ustawisz też dni i godziny.
         </p>
       </PageShell>
     );
@@ -104,9 +109,8 @@ export default async function ZajeciaPage() {
   }
 
   // A course the studio has parked still belongs here. It is on their own
-  // menu, it will come back, and the terminy editor is where its days get
-  // filled in when it does — a card that simply vanished would give the owner
-  // nowhere to do that.
+  // menu and it will come back — a card that simply vanished would leave the
+  // owner wondering where it went, and with no link to where its days are set.
   for (const svc of suspended) {
     if (byService.has(svc.id)) continue;
     const lessons = svc.total_lessons ?? 0;
@@ -127,7 +131,7 @@ export default async function ZajeciaPage() {
   return (
     <PageShell
       title={sectionLabel}
-      subtitle="Dni i godziny każdych zajęć. Zapis obejmuje od razu cały miesiąc."
+      subtitle="Kto chodzi na które zajęcia. Zapis obejmuje od razu cały miesiąc; dni i godziny zmienisz w edycji zajęć."
     >
       <div className="mt-8 space-y-4">
         {courses.map((c) => (

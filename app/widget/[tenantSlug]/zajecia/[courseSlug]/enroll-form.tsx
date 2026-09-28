@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { enrollAction, type EnrollState } from "./actions";
+import { meetingsLabel } from "@/lib/service-label";
 
 const input =
   "w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-[var(--color-accent)]";
@@ -60,7 +61,7 @@ export function EnrollForm({
           <ModeCard
             active={mode === "karnet"}
             onClick={() => setMode("karnet")}
-            title={`${karnet.lessons} spotkania`}
+            title={meetingsLabel(karnet.lessons)}
             detail={`${karnet.pricePln} zł za miesiąc`}
           />
           <ModeCard

@@ -16,6 +16,7 @@ import { meetingTimeLabel, nextMeetingDates, WEEKDAY_NAMES } from "@/lib/class-g
 import { warsawToday, warsawDayBoundsUtc, addDays } from "@/lib/slots";
 import { accentFg } from "@/lib/color-utils";
 import { enrollVocabulary } from "@/lib/vocabulary";
+import { meetingsLabel } from "@/lib/service-label";
 import { CourseEnroll, type CourseDay } from "./course-enroll";
 
 type Props = {
@@ -143,7 +144,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
               </div>
               {karnet && (
                 <div className="text-xs text-zinc-500 sm:whitespace-nowrap">
-                  miesiąc · {karnet.lessons} spotkania
+                  miesiąc · {meetingsLabel(karnet.lessons)}
                 </div>
               )}
               <Link

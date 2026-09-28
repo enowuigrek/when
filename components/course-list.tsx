@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ClassGroupWithService } from "@/lib/db/class-groups";
 import { WEEKDAY_NAMES, WEEK_ORDER, meetingTimeLabel } from "@/lib/class-groups";
+import { meetingsLabel } from "@/lib/service-label";
 
 /**
  * The courses on offer, each with the days it runs on.
@@ -52,7 +53,7 @@ export function CourseList({
 
             {lessons > 1 && (
               <p className="mt-0.5 text-right text-[11px] text-zinc-500">
-                miesiąc · {lessons} spotkania
+                miesiąc · {meetingsLabel(lessons)}
               </p>
             )}
 

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePanelAccess } from "@/lib/auth/panel-access";
-import { getAdminTenantId, getAdminBasePath } from "@/lib/tenant";
+import { getAdminTenantId, getAdminBasePath, getAdminTenantFeatures } from "@/lib/tenant";
+import { hasFeature } from "@/lib/features";
 
 async function requireAdmin() {
   await requirePanelAccess();
@@ -116,7 +117,7 @@ export async function createServiceAction(
 
   const tenantId = await getAdminTenantId();
   const supabase = createAdminClient();
-  const { error } = await supabase.from("services").insert({
+  const { data: created, error } = await supabase.from("services").insert({
     tenant_id: tenantId,
     slug,
     name: parsed.data.name,
@@ -130,7 +131,7 @@ export async function createServiceAction(
     total_lessons: parsed.data.is_package ? (parsed.data.total_lessons ?? null) : null,
     payment_mode: parsed.data.payment_mode,
     deposit_amount_pln: parsed.data.payment_mode === "deposit" ? (parsed.data.deposit_amount_pln ?? null) : null,
-  });
+  }).select("id").single();
 
   if (error) {
     if (error.code === "23505")
@@ -141,7 +142,14 @@ export async function createServiceAction(
   revalidatePath("/admin/uslugi");
   revalidatePath("/");
   revalidatePath("/rezerwacja");
-  redirect(`${await getAdminBasePath()}/uslugi`);
+  // Where the tenant runs classes, a new service is half made until it has
+  // its days, and those are added on its edit page — so go there, not back
+  // to the list where the next step is nowhere in sight.
+  const base = await getAdminBasePath();
+  if (hasFeature(await getAdminTenantFeatures(), "grupy")) {
+    redirect(`${base}/uslugi/${created.id}?nowa=1`);
+  }
+  redirect(`${base}/uslugi`);
 }
 
 export async function updateServiceAction(

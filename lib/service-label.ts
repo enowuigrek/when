@@ -6,13 +6,23 @@
  * empty, so the lesson count has to come from the data, not from prose.
  */
 
-/** 1 lekcja, 2 lekcje, 5 lekcji — Polish counts the small numbers apart. */
-export function lessonsLabel(n: number): string {
-  if (n === 1) return "1 lekcja";
+/** Polish counts the small numbers apart: 1 lekcja, 2 lekcje, 5 lekcji. */
+function counted(n: number, one: string, few: string, many: string): string {
+  if (n === 1) return `1 ${one}`;
   const last = n % 10;
   const teens = n % 100;
-  const few = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
-  return `${n} ${few ? "lekcje" : "lekcji"}`;
+  const isFew = last >= 2 && last <= 4 && !(teens >= 12 && teens <= 14);
+  return `${n} ${isFew ? few : many}`;
+}
+
+/** 1 lekcja, 2 lekcje, 5 lekcji. */
+export function lessonsLabel(n: number): string {
+  return counted(n, "lekcja", "lekcje", "lekcji");
+}
+
+/** 1 spotkanie, 4 spotkania, 5 spotkań — what a studio calls the same count. */
+export function meetingsLabel(n: number): string {
+  return counted(n, "spotkanie", "spotkania", "spotkań");
 }
 
 /** The small print under a service name: "60 min", or "5 lekcji × 60 min". */

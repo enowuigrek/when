@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { GroupEnrollForm, type EnrollWords } from "./group-enroll-form";
-import { SlotEditor, type SlotRow } from "./slot-editor";
+import type { SlotRow } from "../uslugi/slot-editor";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { useAdminBase } from "@/lib/use-admin-base";
 
 export type CourseSlot = SlotRow & {
   /** YYYY-MM-DD of the next time this slot meets. */
@@ -45,16 +47,27 @@ function human(date: string): string {
   );
 }
 
+function shortDate(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long" }).format(
+    new Date(Date.UTC(y, m - 1, d, 12))
+  );
+}
+
 /**
  * One course, the way the studio's own site lists it: the class, then the days
- * it runs on.
+ * it runs on, and who comes on each.
  *
  * The schedule was built the other way round — a tile per weekly slot — which
  * turned three courses into eight tiles and hid the thing a parent is actually
  * choosing between.
+ *
+ * The days themselves are set where the course is defined, in Usługi. This is
+ * the register: who is in, who is joining.
  */
 export function CourseCard({ course, today }: { course: Course; today: string }) {
-  const [panel, setPanel] = useState<"none" | "enroll" | "slots">("none");
+  const adminBase = useAdminBase();
+  const [panel, setPanel] = useState<"none" | "enroll">("none");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [round, setRound] = useState(0);
 
@@ -126,13 +139,23 @@ export function CourseCard({ course, today }: { course: Course; today: string })
                   : `zapisanych ${s.taken}`
                 : "wyłączone z zapisów"}
             </span>
+            {s.active && (
+              <p className="w-full text-[11px] text-zinc-500">
+                <span className="text-zinc-600">{shortDate(s.nextDate)}: </span>
+                {s.names.length > 0 ? (
+                  <span className="text-zinc-300">{s.names.join(", ")}</span>
+                ) : (
+                  "nikt jeszcze nie jest zapisany"
+                )}
+              </p>
+            )}
           </li>
         ))}
         {course.slots.length === 0 && (
           <li className="text-sm text-zinc-600">
             {course.suspended
-              ? "Bez terminów — dodaj je, gdy zajęcia wrócą."
-              : "Brak terminów — dodaj je poniżej."}
+              ? "Bez terminów — dodasz je w ustawieniach zajęć, gdy wrócą."
+              : "Brak terminów — dodaj dni i godziny w ustawieniach zajęć."}
           </li>
         )}
       </ul>
@@ -159,18 +182,13 @@ export function CourseCard({ course, today }: { course: Course; today: string })
             {course.words.action}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setPanel(panel === "slots" ? "none" : "slots")}
+        <Link
+          href={`${adminBase}/uslugi/${course.serviceId}`}
           className="rounded-full border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
-          Terminy {panel === "slots" ? "▴" : "▾"}
-        </button>
+          Edytuj zajęcia
+        </Link>
       </div>
-
-      {panel === "slots" && (
-        <SlotEditor serviceId={course.serviceId} slots={course.slots} />
-      )}
 
       {panel === "enroll" && (
         <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">

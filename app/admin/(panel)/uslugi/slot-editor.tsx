@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { saveClassGroupAction, deleteClassGroupAction, type SlotState } from "./actions";
+import { saveClassGroupAction, deleteClassGroupAction, type SlotState } from "./slot-actions";
 
 export type SlotRow = {
   id: string;
@@ -46,10 +46,6 @@ export function SlotEditor({
 
   return (
     <div className="mt-4 space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-        Kiedy odbywają się te zajęcia
-      </p>
-
       {slots.map((s) => (
         <SlotForm key={s.id} serviceId={serviceId} slot={s} />
       ))}

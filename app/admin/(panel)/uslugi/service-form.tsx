@@ -7,14 +7,19 @@ import type { Service } from "@/lib/types";
 import { Toggle } from "@/components/ui/toggle";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useAdminBase } from "@/lib/use-admin-base";
-import { lessonsLabel } from "@/lib/service-label";
+import { lessonsLabel, meetingsLabel } from "@/lib/service-label";
 
 export function ServiceForm({
   action,
   service,
+  classes = false,
 }: {
   action: (prev: ServiceFormState, fd: FormData) => Promise<ServiceFormState>;
   service?: Service;
+  /** The service meets on fixed weekdays: a studio's month, not a dance
+      school's package whose dates are agreed one by one. Same fields, its
+      own words. */
+  classes?: boolean;
 }) {
   const adminBase = useAdminBase();
   const [state, formAction, pending] = useActionState<ServiceFormState, FormData>(
@@ -24,11 +29,12 @@ export function ServiceForm({
   const [isPackage, setIsPackage] = useState((service?.total_lessons ?? null) !== null);
   const [duration, setDuration] = useState(service?.duration_min ?? 30);
   const [lessons, setLessons] = useState(service?.total_lessons ?? 5);
+  const count = classes ? meetingsLabel : lessonsLabel;
 
   return (
     <form action={formAction} className="space-y-5 max-w-lg">
       <Field
-        label="Nazwa usługi"
+        label={classes ? "Nazwa zajęć" : "Nazwa usługi"}
         name="name"
         required
         defaultValue={service?.name}
@@ -49,19 +55,28 @@ export function ServiceForm({
       <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 space-y-3">
         <label className="flex cursor-pointer items-center justify-between gap-4">
           <div>
-            <span className="block text-sm font-medium text-zinc-200">To pakiet lekcji</span>
+            <span className="block text-sm font-medium text-zinc-200">
+              {classes ? "Cena obejmuje kilka spotkań" : "To pakiet lekcji"}
+            </span>
             <span className="mt-0.5 block text-xs text-zinc-500">
-              Kilka lekcji sprzedawanych za jedną cenę — terminy ustalacie po kolei
+              {classes
+                ? "Np. miesiąc to 4 spotkania — zapis zajmuje od razu wszystkie"
+                : "Kilka lekcji sprzedawanych za jedną cenę — terminy ustalacie po kolei"}
             </span>
           </div>
-          <Toggle checked={isPackage} onChange={setIsPackage} label="To pakiet lekcji" />
+          <Toggle
+            checked={isPackage}
+            onChange={setIsPackage}
+            label={classes ? "Cena obejmuje kilka spotkań" : "To pakiet lekcji"}
+          />
           <input type="hidden" name="is_package" value={isPackage ? "true" : "false"} />
         </label>
 
         {isPackage && (
           <label className="block">
             <span className="mb-1 block text-sm text-zinc-300">
-              Liczba lekcji w pakiecie <span className="text-[var(--color-accent)]">*</span>
+              {classes ? "Liczba spotkań" : "Liczba lekcji w pakiecie"}{" "}
+              <span className="text-[var(--color-accent)]">*</span>
             </span>
             <span className="flex items-center gap-2">
               <input
@@ -77,7 +92,7 @@ export function ServiceForm({
                 // with a fixed basis sidesteps the fight.
                 className={fieldClasses({ className: "!w-20" })}
               />
-              <span className="text-sm text-zinc-500">lekcji</span>
+              <span className="text-sm text-zinc-500">{classes ? "spotkań" : "lekcji"}</span>
             </span>
             {/* Nothing is computed from this: the name and the price are what
                 the school actually charges, typed as they are on its price
@@ -86,11 +101,12 @@ export function ServiceForm({
             {/* The owner sees the shape of what they are selling without
                 having to hold two fields in their head. */}
             <span className="mt-2 block text-xs text-zinc-500">
-              Klient zobaczy: <span className="text-zinc-300">{lessonsLabel(lessons)} × {duration} min</span>
+              Klient zobaczy: <span className="text-zinc-300">{count(lessons)} × {duration} min</span>
             </span>
             <span className="mt-1 block text-xs text-zinc-600">
-              Cena poniżej dotyczy całego pakietu. Terminy kolejnych lekcji ustalacie
-              po drodze — nikt nie musi podawać wszystkich dat z góry.
+              {classes
+                ? "Cena poniżej dotyczy wszystkich spotkań razem. Daty wynikają z dni tygodnia niżej — zapis zajmuje kolejne tygodnie od wybranego dnia."
+                : "Cena poniżej dotyczy całego pakietu. Terminy kolejnych lekcji ustalacie po drodze — nikt nie musi podawać wszystkich dat z góry."}
             </span>
             {state.status === "error" && state.fieldErrors?.total_lessons && (
               <span className="mt-1 block text-xs text-red-400">{state.fieldErrors.total_lessons}</span>
@@ -102,7 +118,7 @@ export function ServiceForm({
       <div className="grid grid-cols-2 gap-4">
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
-            {isPackage ? "Czas jednej lekcji" : "Czas trwania"}{" "}
+            {isPackage ? (classes ? "Czas jednego spotkania" : "Czas jednej lekcji") : "Czas trwania"}{" "}
             <span className="text-[var(--color-accent)]">*</span>
           </span>
           <span className="flex items-center gap-2">
@@ -126,7 +142,7 @@ export function ServiceForm({
 
         <label className="block">
           <span className="mb-1 block text-sm text-zinc-300">
-            {isPackage ? "Cena pakietu (zł)" : "Cena (zł)"}{" "}
+            {isPackage ? (classes ? "Cena za wszystkie spotkania (zł)" : "Cena pakietu (zł)") : "Cena (zł)"}{" "}
             <span className="text-[var(--color-accent)]">*</span>
           </span>
           <input

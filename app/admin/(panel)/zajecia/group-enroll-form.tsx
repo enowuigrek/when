@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { addToGroupAction, type AddToGroupState } from "./actions";
+import { meetingsLabel } from "@/lib/service-label";
 
 const input =
   "w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-[var(--color-accent)]";
@@ -97,7 +98,7 @@ export function GroupEnrollForm({
               {/* Not "4 × 220 zł" — that reads as 880. It is one price for
                   the month. */}
               {m === "karnet"
-                ? `Miesiąc — ${karnet.lessons} spotkania, ${karnet.pricePln} zł`
+                ? `Miesiąc — ${meetingsLabel(karnet.lessons)}, ${karnet.pricePln} zł`
                 : "Jedno spotkanie"}
             </button>
           ))}
