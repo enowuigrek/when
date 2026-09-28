@@ -11,6 +11,7 @@ type ServiceSeed = {
   participants_label?: string; extra_question_label?: string;
   extra_choice_label?: string; extra_choices?: string[];
   enrollee_label?: string; guardian_label?: string; enroll_action_label?: string;
+  enroll_mode?: "self" | "enquiry";
   total_lessons?: number;
   /** Parked rather than removed — shown as "chwilowo zawieszone". */
   active?: boolean;
@@ -227,11 +228,18 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     sort_order: 3,
     enrollee_label: "Imię i nazwisko uczestnika",
     enroll_action_label: "Dopisz uczestnika",
+    // Ceny nie ma na ich stronie i nie będę jej zgadywał — kurs przygotowuje
+    // do ASP i pewnie rozlicza się inaczej niż zajęcia dla dzieci.
+    enroll_mode: "enquiry",
   },
   {
     slug: "zajecia-3-5",
     name: "Zajęcia plastyczne dla dzieci 3–5 lat",
-    description: "tymczasowo odwołane",
+    // Opis z ich strony. Samo „tymczasowo odwołane" niesie już znacznik
+    // zawieszenia, więc w opisie byłoby powiedziane dwa razy.
+    description:
+      "W zajęciach mogą brać udział rodzice. Bardziej niż efekt liczy się " +
+      "proces: eksperymenty z kolorem, fakturą i materiałem.",
     duration_min: 90,
     price_pln: 200,
     total_lessons: 4,
@@ -356,10 +364,12 @@ const SETTINGS = {
     business_name: "Tęczówka Studio",
     tagline: "Urodziny w soboty, zajęcia plastyczne w tygodniu — wolne terminy widać od razu.",
     description: "Konto demo przygotowane dla Pracowni Tęczówka. Klikaj śmiało — to kopia, nic tu nie jest prawdziwe.",
-    address_street: "ul. Kopernika 4",
+    // Adres i telefon przepisane z teczowka.com, nie wymyślone — demo, które
+    // podaje zły adres własnej pracowni, traci wiarygodność w jednej sekundzie.
+    address_street: "ul. Dekabrystów 1",
     address_city: "Częstochowa",
     address_postal: "42-200",
-    phone: "+48 34 300 00 00",
+    phone: "695 59 01 01",
     email: null,
     color_accent: "#e07a5f",
     // Jasny motyw: pracownia plastyczna dla dzieci, a rodzic ogląda to
@@ -547,6 +557,7 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
       enrollee_label: s.enrollee_label ?? null,
       guardian_label: s.guardian_label ?? null,
       enroll_action_label: s.enroll_action_label ?? null,
+      enroll_mode: s.enroll_mode ?? "self",
       total_lessons: s.total_lessons ?? null,
     })))
     .select("id, slug");

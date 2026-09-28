@@ -8,154 +8,130 @@ import {
   getGroupRosterForTenant,
   seatsKey,
 } from "@/lib/db/class-groups";
-import {
-  WEEKDAY_NAMES,
-  WEEK_ORDER,
-  meetingTimeLabel,
-  nextMeetings,
-} from "@/lib/class-groups";
-import { formatWarsawDate, warsawDayBoundsUtc } from "@/lib/slots";
+import { getSettingsForTenant, getSuspendedServicesForTenant } from "@/lib/db/for-tenant";
+import { nextMeetingDates } from "@/lib/class-groups";
+import { warsawToday, warsawDayBoundsUtc, addDays } from "@/lib/slots";
 import { enrollVocabulary, classesLabel } from "@/lib/vocabulary";
-import { getSettingsForTenant } from "@/lib/db/for-tenant";
-import { AddToGroupDialog } from "./add-to-group-dialog";
+import { CourseCard, type Course, type CourseSlot } from "./course-card";
 
 export const metadata = { title: "Zajęcia", robots: { index: false } };
 
-/** How many meetings ahead the page shows for each group. */
-const HORIZON = 4;
-
 /**
- * The timetable as the owner needs to read it: what runs, when, and who is in
- * it — including the groups nobody has signed up for yet.
+ * The courses a studio teaches, each with the days it runs on.
  *
- * The schedule cannot answer that on its own. It draws bookings, so an empty
- * group is an empty Monday afternoon there, indistinguishable from a free one
- * — which is exactly how you end up putting a haircut on top of a class.
+ * Built the other way round at first — a card per weekly slot — which turned
+ * three courses into eight cards and buried the thing anybody is actually
+ * choosing between. The studio's own site is organised by course; so is this.
  */
 export default async function ZajeciaPage() {
   const tenantId = await getAdminTenantId();
   const features = await getAdminTenantFeatures();
   if (!hasFeature(features, "grupy")) notFound();
 
-  const [groups, settings] = await Promise.all([
+  const [groups, settings, suspended] = await Promise.all([
     getClassGroupsForTenant(tenantId, { includeInactive: true }),
     getSettingsForTenant(tenantId),
+    getSuspendedServicesForTenant(tenantId),
   ]);
   const sectionLabel = classesLabel(settings);
-  if (groups.length === 0) {
+  const today = warsawToday();
+
+  if (groups.length === 0 && suspended.length === 0) {
     return (
       <PageShell title={sectionLabel} narrow>
         <p className="mt-6 text-sm text-zinc-500">
-          Nie ma jeszcze żadnych grup.
+          Nie ma jeszcze żadnych grup. Dodasz je przy usłudze, gdy powstanie.
         </p>
       </PageShell>
     );
   }
 
-  const meetingsByGroup = new Map(
-    groups.map((g) => [g.id, nextMeetings(g, HORIZON)] as const)
+  // Seats and registers for each slot's next meeting, over whole days so a
+  // booking whose hour has drifted still counts towards its class.
+  const nextByGroup = new Map(
+    groups.map((g) => [g.id, nextMeetingDates(g.day_of_week, 1, today)[0]] as const)
   );
-  // Whole days rather than the exact meeting windows: seats are keyed by group
-  // and date, so counting a narrower slice would lose any seat whose hour has
-  // drifted from its class.
-  const allDates = [...meetingsByGroup.values()].flat().map((m) => m.date).sort();
-  const from = warsawDayBoundsUtc(allDates[0]).startIso;
-  const to = warsawDayBoundsUtc(allDates[allDates.length - 1]).endIso;
+  const dates = [...nextByGroup.values()].sort();
+  const [seats, roster] = dates.length
+    ? await Promise.all([
+        getSeatCountsForTenant(
+          groups.map((g) => g.id),
+          warsawDayBoundsUtc(dates[0]).startIso,
+          warsawDayBoundsUtc(addDays(dates[dates.length - 1], 1)).endIso,
+          tenantId
+        ),
+        getGroupRosterForTenant(
+          groups.map((g) => g.id),
+          warsawDayBoundsUtc(dates[0]).startIso,
+          warsawDayBoundsUtc(addDays(dates[dates.length - 1], 1)).endIso,
+          tenantId
+        ),
+      ])
+    : [new Map<string, number>(), new Map<string, string[]>()];
 
-  const ids = groups.map((g) => g.id);
-  const [seats, roster] = await Promise.all([
-    getSeatCountsForTenant(ids, from, to, tenantId),
-    getGroupRosterForTenant(ids, from, to, tenantId),
-  ]);
-
-  const byDay = new Map<number, typeof groups>();
+  // One card per service, its slots underneath.
+  const byService = new Map<string, Course>();
   for (const g of groups) {
-    const list = byDay.get(g.day_of_week) ?? [];
-    list.push(g);
-    byDay.set(g.day_of_week, list);
+    const lessons = g.service.total_lessons ?? 0;
+    let course = byService.get(g.service_id);
+    if (!course) {
+      course = {
+        serviceId: g.service_id,
+        name: g.service.name,
+        description: g.service.description,
+        karnet: lessons > 1 ? { lessons, pricePln: g.service.price_pln } : null,
+        enrollMode: g.service.enroll_mode === "enquiry" ? "enquiry" : "self",
+        words: enrollVocabulary(g.service),
+        slots: [],
+      };
+      byService.set(g.service_id, course);
+    }
+    const nextDate = nextByGroup.get(g.id)!;
+    const slot: CourseSlot = {
+      id: g.id,
+      dayOfWeek: g.day_of_week,
+      startTime: g.start_time.slice(0, 5),
+      endTime: g.end_time.slice(0, 5),
+      ageLabel: g.age_label,
+      minParticipants: g.min_participants,
+      maxParticipants: g.max_participants,
+      active: g.active,
+      nextDate,
+      taken: seats.get(seatsKey(g.id, nextDate)) ?? 0,
+      names: roster.get(seatsKey(g.id, nextDate)) ?? [],
+    };
+    course.slots.push(slot);
   }
-  const days = WEEK_ORDER.filter((d) => (byDay.get(d)?.length ?? 0) > 0);
+
+  // A course the studio has parked still belongs here. It is on their own
+  // menu, it will come back, and the terminy editor is where its days get
+  // filled in when it does — a card that simply vanished would give the owner
+  // nowhere to do that.
+  for (const svc of suspended) {
+    if (byService.has(svc.id)) continue;
+    const lessons = svc.total_lessons ?? 0;
+    byService.set(svc.id, {
+      serviceId: svc.id,
+      name: svc.name,
+      description: svc.description,
+      karnet: lessons > 1 ? { lessons, pricePln: svc.price_pln } : null,
+      enrollMode: svc.enroll_mode === "enquiry" ? "enquiry" : "self",
+      words: enrollVocabulary(svc),
+      slots: [],
+      suspended: true,
+    });
+  }
+
+  const courses = [...byService.values()];
 
   return (
     <PageShell
       title={sectionLabel}
-      subtitle="Stałe grupy w tygodniu. Zapis obejmuje od razu cały karnet."
+      subtitle="Kursy i dni, w które się odbywają. Zapis obejmuje od razu cały karnet."
     >
-      <div className="mt-8 space-y-10">
-        {days.map((dow) => (
-          <section key={dow}>
-            <h2 className="mb-3 border-b border-zinc-800/60 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-              {WEEKDAY_NAMES[dow]}
-            </h2>
-            <div className="grid gap-3 lg:grid-cols-2">
-              {(byDay.get(dow) ?? []).map((g) => {
-                const meetings = meetingsByGroup.get(g.id)!;
-                const names = roster.get(seatsKey(g.id, meetings[0].date)) ?? [];
-                const taken = seats.get(seatsKey(g.id, meetings[0].date)) ?? 0;
-                return (
-                  <div
-                    key={g.id}
-                    className={`rounded-xl border p-4 ${
-                      g.active
-                        ? "border-zinc-800/60 bg-zinc-900/30"
-                        : "border-zinc-800/40 bg-zinc-900/10"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-mono text-sm font-semibold text-zinc-100">
-                          {meetingTimeLabel(g)}
-                        </p>
-                        <p className="mt-0.5 text-sm text-zinc-300">
-                          {g.age_label ?? g.service.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-zinc-500">{g.service.name}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="font-mono text-sm text-zinc-300">
-                          {g.service.total_lessons
-                            ? `${g.service.price_pln} zł / ${g.service.total_lessons} spotkania`
-                            : "cena do ustalenia"}
-                        </p>
-                        <p className="mt-0.5 text-xs text-zinc-500">
-                          {g.max_participants != null
-                            ? `${taken} z ${g.max_participants} miejsc`
-                            : g.min_participants != null && taken < g.min_participants
-                              ? `zapisanych ${taken} z ${g.min_participants} — grupa się zbiera`
-                              : `zapisanych ${taken}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="mt-3 text-xs text-zinc-500">
-                      Najbliżej: {formatWarsawDate(meetings[0].startsAtIso)}
-                      {names.length > 0 && <> · {names.join(", ")}</>}
-                    </p>
-
-                    {!g.active ? (
-                      <p className="mt-3 text-xs text-zinc-600">
-                        Grupa nieaktywna — nie pokazuje się w zapisach.
-                      </p>
-                    ) : (
-                      <AddToGroupDialog
-                        groupId={g.id}
-                        label={`${WEEKDAY_NAMES[dow]} ${meetingTimeLabel(g)} — ${
-                          g.age_label ?? g.service.name
-                        }`}
-                        karnet={
-                          g.service.total_lessons && g.service.total_lessons > 1
-                            ? { lessons: g.service.total_lessons, pricePln: g.service.price_pln }
-                            : null
-                        }
-                        dates={meetings.map((m) => formatWarsawDate(m.startsAtIso))}
-                        words={enrollVocabulary(g.service)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+      <div className="mt-8 space-y-4">
+        {courses.map((c) => (
+          <CourseCard key={c.serviceId} course={c} today={today} />
         ))}
       </div>
     </PageShell>

@@ -15,6 +15,8 @@ export type EnrollWords = {
 
 export type GroupEnrollProps = {
   groupId: string;
+  /** Which meeting the month starts from. Absent means the next one. */
+  startDate?: string;
   /** Which class this is — day, hour, age group. */
   label: string;
   karnet: { lessons: number; pricePln: number } | null;
@@ -31,6 +33,7 @@ export type GroupEnrollProps = {
  */
 export function GroupEnrollForm({
   groupId,
+  startDate,
   label,
   karnet,
   dates,
@@ -74,6 +77,7 @@ export function GroupEnrollForm({
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="mode" value={mode} />
+      {startDate && <input type="hidden" name="startDate" value={startDate} />}
       <p className="text-xs text-zinc-500">{label}</p>
 
       {karnet && (

@@ -40,6 +40,11 @@ export type Service = {
   enrollee_label: string | null;
   guardian_label: string | null;
   enroll_action_label: string | null;
+  /**
+   * How people join. "self" — they book. "enquiry" — the timetable is shown
+   * and they get in touch, because what it costs is settled in conversation.
+   */
+  enroll_mode: "self" | "enquiry";
 };
 
 /**
