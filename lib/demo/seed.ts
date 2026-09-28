@@ -199,7 +199,6 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     total_lessons: 4,
     sort_order: 1,
     enrollee_label: "Imię i nazwisko dziecka",
-    guardian_label: "Rodzic lub opiekun",
     enroll_action_label: "Dopisz dziecko",
   },
   {
@@ -213,7 +212,6 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     total_lessons: 4,
     sort_order: 2,
     enrollee_label: "Imię i nazwisko dziecka",
-    guardian_label: "Rodzic lub opiekun",
     enroll_action_label: "Dopisz dziecko",
   },
   {
@@ -246,7 +244,6 @@ const TECZOWKA_SERVICES: ServiceSeed[] = [
     sort_order: 4,
     active: false,
     enrollee_label: "Imię i nazwisko dziecka",
-    guardian_label: "Rodzic lub opiekun",
     enroll_action_label: "Dopisz dziecko",
   },
   {
@@ -562,7 +559,6 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
       extra_choice_label: s.extra_choice_label ?? null,
       extra_choices: s.extra_choices ?? null,
       enrollee_label: s.enrollee_label ?? null,
-      guardian_label: s.guardian_label ?? null,
       enroll_action_label: s.enroll_action_label ?? null,
       enroll_mode: s.enroll_mode ?? "self",
       total_lessons: s.total_lessons ?? null,

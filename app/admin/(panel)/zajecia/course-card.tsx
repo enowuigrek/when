@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GroupEnrollForm, type EnrollWords } from "./group-enroll-form";
+import type { EnrollWords } from "@/lib/vocabulary";
+import { ClassEnrollPanel } from "@/components/class-enroll-panel";
+import { addToGroupAction } from "./actions";
 import type { SlotRow } from "../uslugi/slot-editor";
-import { CalendarPicker } from "@/components/calendar-picker";
 import { useAdminBase } from "@/lib/use-admin-base";
 
 export type CourseSlot = SlotRow & {
@@ -42,12 +43,6 @@ function weekdayOf(date: string): number {
   const [y, m, d] = date.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
 }
-function human(date: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "long", year: "numeric" }).format(
-    new Date(Date.UTC(y, m - 1, d, 12))
-  );
-}
 
 function shortDate(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -70,13 +65,8 @@ function shortDate(date: string): string {
 export function CourseCard({ course, today }: { course: Course; today: string }) {
   const adminBase = useAdminBase();
   const [panel, setPanel] = useState<"none" | "enroll">("none");
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [round, setRound] = useState(0);
 
   const weekdays = [...new Set(course.slots.filter((s) => s.active).map((s) => s.dayOfWeek))];
-  const slotForDate = startDate
-    ? course.slots.find((s) => s.active && s.dayOfWeek === weekdayOf(startDate))
-    : null;
 
   // Eight weeks is as far ahead as a month's karnet can reach plus room to
   // start it later; beyond that the calendar is scrolling for its own sake.
@@ -86,10 +76,6 @@ export function CourseCard({ course, today }: { course: Course; today: string })
     days.push({ date, closed: !weekdays.includes(weekdayOf(date)) });
   }
 
-  const lessons = course.karnet?.lessons ?? 1;
-  const plannedDates = startDate
-    ? Array.from({ length: lessons }, (_, i) => addDays(startDate, i * 7))
-    : [];
 
   return (
     <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-5">
@@ -183,7 +169,6 @@ export function CourseCard({ course, today }: { course: Course; today: string })
             type="button"
             onClick={() => {
               setPanel(panel === "enroll" ? "none" : "enroll");
-              setStartDate(null);
             }}
             disabled={course.slots.filter((s) => s.active).length === 0}
             className="rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-40"
@@ -201,63 +186,24 @@ export function CourseCard({ course, today }: { course: Course; today: string })
 
       {panel === "enroll" && (
         <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-          {!startDate ? (
-            <>
-              <p className="text-sm text-zinc-300">Od kiedy zaczyna chodzić?</p>
-              <p className="mt-1 mb-3 text-xs text-zinc-500">
-                Podświetlone są dni, w które te zajęcia się odbywają:{" "}
-                {weekdays.map((d) => WEEKDAY[d].toLowerCase()).join(", ")}.
-              </p>
-              <CalendarPicker
-                days={days}
-                selectedDate={undefined}
-                today={today}
-                markColors={Object.fromEntries(weekdays.map((d) => [d, [course.color]]))}
-                onPick={(d) => setStartDate(d)}
-                size="lg"
-              />
-            </>
-          ) : (
-            <>
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm text-zinc-200">
-                  Start: {human(startDate)}
-                  {slotForDate && (
-                    <span className="ml-2 font-mono text-xs text-zinc-500">
-                      {slotForDate.startTime}–{slotForDate.endTime}
-                    </span>
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setStartDate(null)}
-                  className="text-xs text-zinc-500 hover:text-zinc-300"
-                >
-                  Zmień dzień
-                </button>
-              </div>
-              {slotForDate ? (
-                <GroupEnrollForm
-                  key={`${slotForDate.id}-${startDate}-${round}`}
-                  groupId={slotForDate.id}
-                  startDate={startDate}
-                  label={`${WEEKDAY[slotForDate.dayOfWeek]} ${slotForDate.startTime}–${slotForDate.endTime}`}
-                  karnet={course.karnet}
-                  dates={plannedDates.map(human)}
-                  words={course.words}
-                  onAgain={() => setRound((r) => r + 1)}
-                  onClose={() => {
-                    setPanel("none");
-                    setStartDate(null);
-                  }}
-                />
-              ) : (
-                <p className="text-sm text-red-400">
-                  W ten dzień te zajęcia się nie odbywają.
-                </p>
-              )}
-            </>
-          )}
+          <ClassEnrollPanel
+            days={course.slots
+              .filter((s) => s.active)
+              .map((s) => ({
+                groupId: s.id,
+                dayOfWeek: s.dayOfWeek,
+                time: `${s.startTime}–${s.endTime}`,
+                taken: s.taken,
+                min: s.minParticipants,
+                max: s.maxParticipants,
+              }))}
+            today={today}
+            karnet={course.karnet}
+            words={course.words}
+            color={course.color}
+            action={addToGroupAction}
+            onClose={() => setPanel("none")}
+          />
         </div>
       )}
     </div>

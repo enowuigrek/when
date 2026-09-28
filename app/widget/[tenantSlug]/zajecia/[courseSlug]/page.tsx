@@ -18,7 +18,8 @@ import { accentFg } from "@/lib/color-utils";
 import { enrollVocabulary } from "@/lib/vocabulary";
 import { classColor } from "@/lib/class-colors";
 import { meetingsLabel } from "@/lib/service-label";
-import { CourseEnroll, type CourseDay } from "./course-enroll";
+import { ClassEnrollPanel, type EnrollDay } from "@/components/class-enroll-panel";
+import { enrollAction } from "./actions";
 
 type Props = {
   params: Promise<{ tenantSlug: string; courseSlug: string }>;
@@ -84,11 +85,10 @@ export default async function CoursePage({ params, searchParams }: Props) {
     tenantId
   );
 
-  const days: CourseDay[] = groups.map((g) => ({
+  const days: EnrollDay[] = groups.map((g) => ({
     groupId: g.id,
     dayOfWeek: g.day_of_week,
     time: meetingTimeLabel(g),
-    ageLabel: g.age_label,
     min: g.min_participants,
     max: g.max_participants,
     taken: seats.get(seatsKey(g.id, nextByGroup.get(g.id)!)) ?? 0,
@@ -175,13 +175,14 @@ export default async function CoursePage({ params, searchParams }: Props) {
               )}
             </div>
           ) : (
-            <CourseEnroll
-              tenantSlug={tenantSlug}
+            <ClassEnrollPanel
               days={days}
               today={today}
               karnet={karnet}
               words={enrollVocabulary(service)}
               color={classColor(service)}
+              action={enrollAction}
+              hidden={{ tenantSlug }}
             />
           )}
         </section>

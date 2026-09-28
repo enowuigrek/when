@@ -174,11 +174,19 @@ export async function getClassesOverviewForTenant(tenantId: string): Promise<Cla
     runningOut.sort((a, b) => a.lastDate.localeCompare(b.lastDate));
   }
 
-  const { count } = await supabase
-    .from("customers")
-    .select("id", { count: "exact", head: true })
+  // Everybody currently signed up to something, counted once. Was "clients
+  // with a guardian", which stopped meaning anything when guardians went.
+  const { data: enrolled } = await supabase
+    .from("bookings")
+    .select("customer_name, customer_phone")
     .eq("tenant_id", tenantId)
-    .not("guardian_id", "is", null);
+    .not("class_group_id", "is", null)
+    .neq("status", "cancelled");
+  const childrenCount = new Set(
+    (enrolled ?? []).map(
+      (b) => `${b.customer_phone as string}|${(b.customer_name as string).toLowerCase()}`
+    )
+  ).size;
 
-  return { today: todayClasses, filling, runningOut, childrenCount: count ?? 0, date: today };
+  return { today: todayClasses, filling, runningOut, childrenCount, date: today };
 }

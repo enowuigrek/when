@@ -222,6 +222,7 @@ export default async function HarmonogramPage({
           const list = classByDate.get(p.date) ?? [];
           list.push({
             key: `${p.group.id}@${p.date}`,
+            date: p.date,
             groupId: p.group.id,
             time: meetingTimeLabel(p.group),
             name: p.group.age_label ?? p.group.service.name,

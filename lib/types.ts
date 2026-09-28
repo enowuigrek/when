@@ -38,7 +38,6 @@ export type Service = {
   extra_choices: string[] | null;
   /** See lib/vocabulary.ts — what this business calls the people it teaches. */
   enrollee_label: string | null;
-  guardian_label: string | null;
   enroll_action_label: string | null;
   /**
    * How people join. "self" — they book. "enquiry" — the timetable is shown

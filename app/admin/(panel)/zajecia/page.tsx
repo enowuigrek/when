@@ -8,6 +8,7 @@ import {
   getSeatCountsForTenant,
   getGroupRosterForTenant,
   seatsKey,
+  type RosterEntry,
 } from "@/lib/db/class-groups";
 import { getSettingsForTenant, getSuspendedServicesForTenant } from "@/lib/db/for-tenant";
 import { nextMeetingDates } from "@/lib/class-groups";
@@ -73,7 +74,7 @@ export default async function ZajeciaPage() {
           tenantId
         ),
       ])
-    : [new Map<string, number>(), new Map<string, string[]>()];
+    : [new Map<string, number>(), new Map<string, RosterEntry[]>()];
 
   // One card per service, its slots underneath.
   const byService = new Map<string, Course>();
@@ -105,7 +106,7 @@ export default async function ZajeciaPage() {
       active: g.active,
       nextDate,
       taken: seats.get(seatsKey(g.id, nextDate)) ?? 0,
-      names: roster.get(seatsKey(g.id, nextDate)) ?? [],
+      names: (roster.get(seatsKey(g.id, nextDate)) ?? []).map((r) => r.name),
     };
     course.slots.push(slot);
   }

@@ -12,30 +12,23 @@
  * Every field is optional; left unset a service gets neutral wording that
  * reads correctly for anyone.
  */
+/** What the enrolment screens call the people they sign up. */
+export type EnrollWords = { enrollee: string; action: string };
+
 export type EnrollVocabulary = {
   /** Label of the field naming the person attending. */
   enrollee: string;
-  /** Label of the guardian field, or null when the service has no guardian. */
-  guardian: string | null;
   /** The button that adds somebody to a group. */
   action: string;
-  /** Prefix written into the booking's notes for the guardian. */
-  guardianNote: string;
 };
 
 export function enrollVocabulary(service: {
   enrollee_label: string | null;
-  guardian_label: string | null;
   enroll_action_label: string | null;
 }): EnrollVocabulary {
-  const guardian = service.guardian_label?.trim() || null;
   return {
     enrollee: service.enrollee_label?.trim() || "Imię i nazwisko",
-    guardian,
     action: service.enroll_action_label?.trim() || "Dopisz uczestnika",
-    // The note keeps the tenant's own word so the owner reads "Rodzic/opiekun"
-    // where that is what they call it, and something neutral where it is not.
-    guardianNote: guardian ?? "Opiekun",
   };
 }
 

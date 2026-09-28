@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AdminLink } from "@/components/admin-link";
 import { PageShell } from "@/components/ui/page-shell";
 import { ListRow, ListRows, InitialAvatar } from "@/components/ui/list-row";
@@ -83,22 +82,7 @@ export default async function KlienciPage({ searchParams }: { searchParams: Sear
                   )}
                 </span>
               }
-              subtitle={
-                <span className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-mono text-xs">{c.phone}</span>
-                  {/* Whose number it is. A child shares its guardian's, so the
-                      bare number on a child's row belongs to somebody the list
-                      never named. */}
-                  {c.guardianName && (
-                    <span className="text-xs text-zinc-500">· opiekun: {c.guardianName}</span>
-                  )}
-                  {c.childCount > 0 && (
-                    <span className="text-xs text-zinc-500">
-                      · {c.childCount === 1 ? "1 podopieczny" : `${c.childCount} podopiecznych`}
-                    </span>
-                  )}
-                </span>
-              }
+              subtitle={<span className="font-mono text-xs">{c.phone}</span>}
               right={
                 <>
                   {/* Phones get the two figures that matter; the rest is desktop only. */}

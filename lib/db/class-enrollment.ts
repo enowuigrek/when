@@ -1,8 +1,7 @@
 import "server-only";
 import { createBookingForTenant } from "@/lib/db/for-tenant";
 import { ensurePackageForTenant } from "@/lib/db/packages";
-import { upsertCustomerForTenant, upsertChildForTenant } from "@/lib/db/customers";
-import { enrollVocabulary } from "@/lib/vocabulary";
+import { upsertCustomerForTenant } from "@/lib/db/customers";
 import {
   getSeatCountsForTenant,
   seatsKey,
@@ -18,7 +17,6 @@ export type EnrollInput = {
   mode: EnrollMode;
   childName: string;
   phone: string;
-  guardianName?: string | null;
   email?: string | null;
   notes?: string | null;
   /** Where to start counting meetings from. Defaults to today. */
@@ -68,38 +66,23 @@ export async function enrollInGroup(input: EnrollInput): Promise<EnrollResult> {
     }
   }
 
-  const guardian = input.guardianName?.trim() || null;
   const email = input.email?.trim() || null;
-  const words = enrollVocabulary(service);
   const firstNotes =
-    [
-      guardian ? `${words.guardianNote}: ${guardian}` : null,
-      mode === "probne" ? "Zajęcia próbne" : null,
-      input.notes?.trim() || null,
-    ]
+    [mode === "probne" ? "Zajęcia próbne" : null, input.notes?.trim() || null]
       .filter(Boolean)
       .join(" · ") || null;
 
-  // Who the client is.
-  //
-  // With a guardian there are two people, and both belong in the book: the
-  // parent is who you call, the child is who attends and who holds the
-  // karnet. Storing only the child left "Klienci" listing children against
-  // somebody else's phone number with no way to see whose.
+  // The person who attends is the client. Matched on name and number
+  // together, so a sibling on the same phone is a second child rather than a
+  // rename of the first.
   let attendeeId: string | null = null;
   try {
-    const contactId = await upsertCustomerForTenant(
-      { phone: input.phone, name: guardian ?? input.childName, email },
+    attendeeId = await upsertCustomerForTenant(
+      { phone: input.phone, name: input.childName, email },
       tenantId
     );
-    attendeeId = guardian
-      ? await upsertChildForTenant(
-          { name: input.childName, guardianId: contactId, guardianPhone: input.phone },
-          tenantId
-        )
-      : contactId;
   } catch (e) {
-    // The appointment is the thing the parent is waiting on; the address book
+    // The sign-up is the thing the parent is waiting on; the address book
     // catching up can fail without taking it down.
     console.error("[zapisy] could not record the client:", e);
   }
@@ -127,7 +110,7 @@ export async function enrollInGroup(input: EnrollInput): Promise<EnrollResult> {
         customerEmail: email,
         startsAtIso: m.startsAtIso,
         endsAtIso: m.endsAtIso,
-        notes: i === 0 ? firstNotes : guardian ? `${words.guardianNote}: ${guardian}` : null,
+        notes: i === 0 ? firstNotes : null,
         staffId: null,
         classGroupId: group.id,
         packageId,

@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { GroupEnrollForm } from "../zajecia/group-enroll-form";
-import type { EnrollWords } from "../zajecia/group-enroll-form";
+import { ClassEnrollPanel } from "@/components/class-enroll-panel";
+import { addToGroupAction } from "../zajecia/actions";
+import Link from "next/link";
+import { useAdminBase } from "@/lib/use-admin-base";
+import type { EnrollWords } from "@/lib/vocabulary";
 import { textOn, tint } from "@/lib/class-colors";
 
 export type ClassBlockData = {
@@ -14,7 +17,10 @@ export type ClassBlockData = {
   taken: number;
   min: number | null;
   max: number | null;
-  names: string[];
+  /** Who is already down for this meeting, with a link where there is one. */
+  names: { name: string; customerId: string | null }[];
+  /** YYYY-MM-DD of this meeting. */
+  date: string;
   /** Minutes from midnight, Warsaw. */
   startMin: number;
   endMin: number;
@@ -47,14 +53,15 @@ function useEnroll() {
 function EnrollModal({
   data,
   round,
-  onAgain,
   onClose,
 }: {
   data: ClassBlockData;
   round: number;
-  onAgain: () => void;
   onClose: () => void;
 }) {
+  // AdminLink reads request headers and is server-only; inside a client
+  // component the demo prefix has to come from the URL instead.
+  const adminBase = useAdminBase();
   return (
     <div
       className="fixed inset-0 z-[400] flex items-start justify-center bg-black/70 px-4"
@@ -73,14 +80,49 @@ function EnrollModal({
           </p>
         </div>
         <div className="overflow-y-auto px-5 py-4">
-          <GroupEnrollForm
+          {data.names.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                Zapisani ({data.names.length})
+              </p>
+              <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                {data.names.map((p, i) =>
+                  p.customerId ? (
+                    <li key={`${p.customerId}-${i}`}>
+                      <Link
+                        href={`${adminBase}/klienci/${p.customerId}`}
+                        className="text-sm text-zinc-300 underline-offset-2 hover:text-zinc-100 hover:underline"
+                      >
+                        {p.name}
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={`${p.name}-${i}`} className="text-sm text-zinc-400">
+                      {p.name}
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+          )}
+          <ClassEnrollPanel
             key={round}
-            groupId={data.groupId}
-            label={`${data.taken} zapisanych${data.min ? ` z ${data.min}` : ""}`}
+            days={[
+              {
+                groupId: data.groupId,
+                dayOfWeek: new Date(`${data.date}T12:00:00Z`).getUTCDay(),
+                time: data.time,
+                taken: data.taken,
+                min: data.min,
+                max: data.max,
+              },
+            ]}
+            today={data.date}
+            initialDate={data.date}
             karnet={data.karnet}
-            dates={data.dates}
             words={data.words}
-            onAgain={onAgain}
+            color={data.color}
+            action={addToGroupAction}
             onClose={onClose}
           />
         </div>
@@ -189,13 +231,13 @@ export function ClassBlock({
               isReady(data) ? "opacity-80" : "text-zinc-500"
             }`}
           >
-            {data.names.join(", ")}
+            {data.names.map((p) => p.name).join(", ")}
           </p>
         )}
       </button>
 
       {open && (
-        <EnrollModal data={data} round={round} onAgain={again} onClose={() => setOpen(false)} />
+        <EnrollModal data={data} round={round} onClose={() => setOpen(false)} />
       )}
     </>
   );
@@ -222,7 +264,7 @@ export function ClassChip({ data }: { data: ClassBlockData }) {
         <Fill data={data} />
       </button>
       {open && (
-        <EnrollModal data={data} round={round} onAgain={again} onClose={() => setOpen(false)} />
+        <EnrollModal data={data} round={round} onClose={() => setOpen(false)} />
       )}
     </>
   );

@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { sectionHeading } from "@/components/ui/surface";
 import { CalendarPicker } from "@/components/calendar-picker";
-import { GroupEnrollForm, type EnrollWords } from "../../zajecia/group-enroll-form";
+import type { EnrollWords } from "@/lib/vocabulary";
+import { ClassEnrollPanel } from "@/components/class-enroll-panel";
+import { addToGroupAction } from "../../zajecia/actions";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEK_ORDER } from "@/lib/class-groups";
 import { meetingsLabel } from "@/lib/service-label";
 import { tint } from "@/lib/class-colors";
@@ -81,7 +83,6 @@ export function ClassEntry({
   );
   const [date, setDate] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | null>(null);
-  const [round, setRound] = useState(0);
 
   const chosen = open.find((c) => c.serviceId === serviceId) ?? null;
   const pool = chosen ? [chosen] : open;
@@ -136,9 +137,6 @@ export function ClassEntry({
     setGroupId(null);
   }
 
-  const lessons = picked?.c.karnet?.lessons ?? 1;
-  const planned =
-    date && picked ? Array.from({ length: lessons }, (_, i) => addDays(date, i * 7)) : [];
   const weekdaysOfChosen = chosen
     ? WEEK_ORDER.filter((d) => chosen.slots.some((s) => s.dayOfWeek === d))
     : [];
@@ -286,15 +284,21 @@ export function ClassEntry({
                 </span>
               </span>
             </p>
-            <GroupEnrollForm
-              key={`${picked.s.groupId}-${date}-${round}`}
-              groupId={picked.s.groupId}
-              startDate={date}
-              label={picked.s.ageLabel ?? picked.c.name}
+            <ClassEnrollPanel
+              days={picked.c.slots.map((s) => ({
+                groupId: s.groupId,
+                dayOfWeek: s.dayOfWeek,
+                time: `${s.startTime}–${s.endTime}`,
+                taken: 0,
+                min: null,
+                max: null,
+              }))}
+              today={today}
+              initialDate={date}
               karnet={picked.c.karnet}
-              dates={planned.map(human)}
               words={picked.c.words}
-              onAgain={() => setRound((r) => r + 1)}
+              color={picked.c.color}
+              action={addToGroupAction}
               onClose={reset}
             />
           </div>

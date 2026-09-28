@@ -122,18 +122,28 @@ export async function getSeatCountsForTenant(
  * The owner's question before a class is not "how many" but "who" — a count
  * is what the parent needs, a register is what the room needs.
  */
+export type RosterEntry = { name: string; customerId: string | null };
+
+/**
+ * Who is down for each meeting, keyed the same way as the seat counts.
+ *
+ * Carries the client's id where there is one, so a register is a list of
+ * links rather than a list of names — the owner reading "kto przyjdzie"
+ * usually wants the profile next.
+ */
 export async function getGroupRosterForTenant(
   groupIds: string[],
   fromIso: string,
   toIso: string,
   tenantId: string
-): Promise<Map<string, string[]>> {
-  const out = new Map<string, string[]>();
+): Promise<Map<string, RosterEntry[]>> {
+  const out = new Map<string, RosterEntry[]>();
   if (groupIds.length === 0) return out;
 
-  const { data, error } = await createAdminClient()
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
     .from("bookings")
-    .select("class_group_id, starts_at, customer_name")
+    .select("class_group_id, starts_at, customer_name, customer_phone")
     .eq("tenant_id", tenantId)
     .in("class_group_id", groupIds)
     .neq("status", "cancelled")
@@ -142,6 +152,25 @@ export async function getGroupRosterForTenant(
     .order("customer_name");
   if (error) throw new Error(`Failed to load roster: ${error.message}`);
 
+  const rows = data ?? [];
+  // A booking stores the name and number it was made with, not a reference —
+  // so the client is found the same way the sign-up files them: by both.
+  const byPerson = new Map<string, string>();
+  const phones = [...new Set(rows.map((r) => r.customer_phone as string))];
+  if (phones.length > 0) {
+    const { data: people } = await supabase
+      .from("customers")
+      .select("id, name, phone")
+      .eq("tenant_id", tenantId)
+      .in("phone", phones);
+    for (const c of people ?? []) {
+      byPerson.set(
+        `${c.phone as string}|${(c.name as string).trim().toLowerCase()}`,
+        c.id as string
+      );
+    }
+  }
+
   const dayInWarsaw = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Warsaw",
     year: "numeric",
@@ -149,12 +178,17 @@ export async function getGroupRosterForTenant(
     day: "2-digit",
   });
 
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const key = `${row.class_group_id as string}|${dayInWarsaw.format(
       new Date(row.starts_at as string)
     )}`;
+    const name = row.customer_name as string;
     const list = out.get(key) ?? [];
-    list.push(row.customer_name as string);
+    list.push({
+      name,
+      customerId:
+        byPerson.get(`${row.customer_phone as string}|${name.trim().toLowerCase()}`) ?? null,
+    });
     out.set(key, list);
   }
   return out;

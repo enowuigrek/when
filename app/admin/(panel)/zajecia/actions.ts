@@ -7,7 +7,6 @@ import { getAdminTenantId, getAdminTenantFeatures } from "@/lib/tenant";
 import { hasFeature } from "@/lib/features";
 import { getClassGroupsForTenant } from "@/lib/db/class-groups";
 import { enrollInGroup } from "@/lib/db/class-enrollment";
-import { enrollVocabulary } from "@/lib/vocabulary";
 import { meetingsLabel } from "@/lib/service-label";
 
 export type AddToGroupState = { status: "idle" | "error" | "ok"; message?: string };
@@ -18,7 +17,6 @@ const schema = z.object({
   childName: z.string().trim().min(2, "Podaj imię i nazwisko dziecka.").max(120),
   // Which meeting the month starts from. Absent means the next one.
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
-  guardianName: z.string().trim().max(120).optional().or(z.literal("")),
   phone: z.string().trim().min(7, "Podaj numer telefonu.").max(30),
   email: z.string().trim().email("Niepoprawny e-mail.").optional().or(z.literal("")),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
@@ -53,10 +51,6 @@ export async function addToGroupAction(
   );
   if (!group) return { status: "error", message: "Nie ma takiej grupy." };
 
-  const words = enrollVocabulary(group.service);
-  if (words.guardian && !parsed.data.guardianName?.trim()) {
-    return { status: "error", message: `Uzupełnij: ${words.guardian}.` };
-  }
 
   const result = await enrollInGroup({
     group,
@@ -64,7 +58,6 @@ export async function addToGroupAction(
     mode: parsed.data.mode,
     childName: parsed.data.childName,
     phone: parsed.data.phone,
-    guardianName: parsed.data.guardianName,
     email: parsed.data.email,
     notes: parsed.data.notes,
     from: parsed.data.startDate || undefined,

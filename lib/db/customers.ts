@@ -10,11 +10,6 @@ export type Customer = {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  /**
-   * Who is called about this person. A child attends and holds the karnet;
-   * the parent is the contact, and the two share the phone number.
-   */
-  guardian_id: string | null;
 };
 
 /**
@@ -55,31 +50,33 @@ export async function upsertCustomer(data: {
  * admin session to read one from.
  */
 /**
- * The person reachable at this number.
+ * The person this booking is for.
  *
- * Read-then-write rather than an upsert: the phone is unique only among
- * clients who have no guardian — a child shares its parent's number, and
- * three siblings would otherwise fight over one row. A partial unique index
- * cannot be named as an ON CONFLICT target through the client, so the lookup
- * is explicit.
+ * Matched on the number *and* the name. A phone belongs to a family, not to
+ * a person: two children on one number are two clients, and matching on the
+ * number alone renamed the first one every time the second signed up.
+ *
+ * Read-then-write rather than an upsert, because the key is an expression
+ * index on lower(name) and the client cannot name that as a conflict target.
  */
 export async function upsertCustomerForTenant(
   data: { phone: string; name: string; email: string | null },
   tenantId: string
 ): Promise<string> {
   const supabase = createAdminClient();
+  const name = data.name.trim();
   const { data: existing } = await supabase
     .from("customers")
     .select("id")
     .eq("tenant_id", tenantId)
     .eq("phone", data.phone)
-    .is("guardian_id", null)
+    .ilike("name", name)
     .maybeSingle();
 
   if (existing) {
     const { error } = await supabase
       .from("customers")
-      .update({ name: data.name, email: data.email, updated_at: new Date().toISOString() })
+      .update({ email: data.email, updated_at: new Date().toISOString() })
       .eq("id", existing.id);
     if (error) throw new Error(`upsertCustomer: ${error.message}`);
     return existing.id as string;
@@ -90,7 +87,7 @@ export async function upsertCustomerForTenant(
     .insert({
       tenant_id: tenantId,
       phone: data.phone,
-      name: data.name,
+      name,
       email: data.email,
       updated_at: new Date().toISOString(),
     })
@@ -101,41 +98,24 @@ export async function upsertCustomerForTenant(
 }
 
 /**
- * The person who attends, under the person who is called about it.
+ * Everybody already filed under this number.
  *
- * Matched on the name within one guardian, because that is how a parent
- * identifies their own child to a studio — there is no other handle, and
- * inventing one would mean asking a parent for their child's phone number.
+ * What stops the duplicate: typing a number that is in the book shows who
+ * has it, so the owner picks the child instead of creating a second one.
  */
-export async function upsertChildForTenant(
-  data: { name: string; guardianId: string; guardianPhone: string },
+export async function findByPhoneForTenant(
+  phone: string,
   tenantId: string
-): Promise<string> {
-  const supabase = createAdminClient();
-  const { data: existing } = await supabase
+): Promise<{ id: string; name: string; email: string | null }[]> {
+  const digits = phone.replace(/\s+/g, "");
+  if (digits.length < 6) return [];
+  const { data } = await createAdminClient()
     .from("customers")
-    .select("id")
+    .select("id, name, email")
     .eq("tenant_id", tenantId)
-    .eq("guardian_id", data.guardianId)
-    .ilike("name", data.name)
-    .maybeSingle();
-  if (existing) return existing.id as string;
-
-  const { data: created, error } = await supabase
-    .from("customers")
-    .insert({
-      tenant_id: tenantId,
-      // Kept in step with the guardian so a call from the child's profile
-      // reaches somebody. The child is not reachable at it; the parent is.
-      phone: data.guardianPhone,
-      name: data.name,
-      guardian_id: data.guardianId,
-      updated_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`upsertChild: ${error.message}`);
-  return created.id as string;
+    .eq("phone", digits)
+    .order("name");
+  return (data ?? []) as { id: string; name: string; email: string | null }[];
 }
 
 export async function getAllCustomers(): Promise<Customer[]> {
@@ -149,10 +129,6 @@ export async function getAllCustomers(): Promise<Customer[]> {
 }
 
 export type CustomerSummary = Customer & {
-  /** Set on a child: the name of whoever is called about them. */
-  guardianName: string | null;
-  /** Set on a guardian: how many people they are the contact for. */
-  childCount: number;
   visitCount: number;
   totalSpent: number;
   lastVisit: string | null;
@@ -186,11 +162,6 @@ export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
   }
 
   const all = (customers.data ?? []) as Customer[];
-  const nameById = new Map(all.map((c) => [c.id, c.name]));
-  const childCounts = new Map<string, number>();
-  for (const c of all) {
-    if (c.guardian_id) childCounts.set(c.guardian_id, (childCounts.get(c.guardian_id) ?? 0) + 1);
-  }
 
   return all.map((c) => {
     const cBookings = byPerson.get(key(c.phone, c.name)) ?? [];
@@ -198,36 +169,12 @@ export async function getAllCustomersWithStats(): Promise<CustomerSummary[]> {
     const lastVisit = past.sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0]?.starts_at ?? null;
     return {
       ...(c as Customer),
-      guardianName: c.guardian_id ? nameById.get(c.guardian_id) ?? null : null,
-      childCount: childCounts.get(c.id) ?? 0,
       visitCount: past.length,
       totalSpent: past.reduce((s, b) => s + (b.service?.price_pln ?? 0), 0),
       lastVisit,
       noShowCount: cBookings.filter((b) => b.status === "no_show").length,
     };
   });
-}
-
-/**
- * The people this client is filed with: who is called about them, and who
- * they are called about.
- */
-export async function getFamily(customer: {
-  id: string;
-  guardian_id: string | null;
-}): Promise<{ guardian: Customer | null; children: Customer[] }> {
-  const tenantId = await getAdminTenantId();
-  const supabase = createAdminClient();
-  const [guardianRes, childrenRes] = await Promise.all([
-    customer.guardian_id
-      ? supabase.from("customers").select("*").eq("tenant_id", tenantId).eq("id", customer.guardian_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase.from("customers").select("*").eq("tenant_id", tenantId).eq("guardian_id", customer.id).order("name"),
-  ]);
-  return {
-    guardian: (guardianRes.data as Customer | null) ?? null,
-    children: ((childrenRes as { data: Customer[] | null }).data ?? []) as Customer[],
-  };
 }
 
 export async function getCustomerByPhone(phone: string): Promise<Customer | null> {

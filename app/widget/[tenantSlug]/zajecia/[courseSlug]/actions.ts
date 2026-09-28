@@ -15,7 +15,7 @@ import { buildOwnerNotificationEmail } from "@/lib/email/owner-notification";
 import { hasFeature } from "@/lib/features";
 import { enrollVocabulary } from "@/lib/vocabulary";
 
-export type EnrollState = { status: "idle" | "error"; message?: string };
+export type EnrollState = { status: "idle" | "error" | "ok"; message?: string };
 
 const schema = z.object({
   tenantSlug: z.string().min(1),
@@ -25,7 +25,6 @@ const schema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   mode: z.enum(["karnet", "probne"]),
   childName: z.string().trim().min(2, "Podaj imię i nazwisko dziecka.").max(120),
-  guardianName: z.string().trim().max(120).optional().or(z.literal("")),
   phone: z.string().trim().min(7, "Podaj numer telefonu.").max(30),
   email: z.string().trim().email("Niepoprawny e-mail.").optional().or(z.literal("")),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
@@ -62,21 +61,12 @@ export async function enrollAction(
 
   const service = group.service;
 
-  // A service that names a guardian needs one: the phone and the e-mail are
-  // theirs, and without the name the studio has a child's booking against an
-  // adult's number with nothing saying whose.
-  const words = enrollVocabulary(service);
-  if (words.guardian && !parsed.data.guardianName?.trim()) {
-    return { status: "error", message: `Uzupełnij: ${words.guardian}.` };
-  }
-
   const enrolled = await enrollInGroup({
     group,
     tenantId,
     mode,
     childName: parsed.data.childName,
     phone: parsed.data.phone,
-    guardianName: parsed.data.guardianName,
     email: parsed.data.email,
     notes: parsed.data.notes,
     from: parsed.data.startDate || undefined,
@@ -91,16 +81,12 @@ export async function enrollAction(
     };
   }
 
-  const meetings = nextMeetings(group, 1);
+  const meetings = nextMeetings(group, 1, parsed.data.startDate || undefined);
   const email = parsed.data.email?.trim() || null;
   const first = enrolled.bookingIds[0];
   // Rebuilt for the owner's email only — the booking itself already carries it.
   const notes =
-    [
-      parsed.data.guardianName?.trim() ? `Rodzic/opiekun: ${parsed.data.guardianName.trim()}` : null,
-      mode === "probne" ? "Zajęcia próbne" : null,
-      parsed.data.notes?.trim() || null,
-    ]
+    [mode === "probne" ? "Zajęcia próbne" : null, parsed.data.notes?.trim() || null]
       .filter(Boolean)
       .join(" · ") || null;
 
