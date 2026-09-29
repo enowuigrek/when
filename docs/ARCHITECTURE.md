@@ -128,7 +128,35 @@ mogłyby.
 
 ---
 
-## 6. Pułapki, w które już wpadliśmy
+## 6. Czy prospekt ogląda demo
+
+`demo_visits` (tenant, ścieżka, czas) + `DemoVisitBeacon` w dwóch layoutach:
+panelu (`/demo/{slug}`) i strony klienta (`/widget/{slug}`, zapisywana pod
+`/zapisy`, żeby `/` panelu i `/` widgetu nie były jednym wierszem).
+Widać to w Zarządcy: wizyty, odsłony, liczba stron, „ostatnio".
+
+Trzy rzeczy, o których trzeba pamiętać:
+
+- **Wiersz nie mówi nic o gościu** — tylko ścieżka i czas. To jest celowe
+  i dlatego **nie da się po fakcie odsiać własnych kliknięć**. Endpoint
+  odrzuca je z góry: ruch z `localhost`/`127.0.0.1`/`*.local` i każdy
+  z ciasteczkiem `when_admin`. Zanim to powstało, poranek testów dołożył
+  kilkanaście „wejść" do dema, którego nikt z zewnątrz nie otworzył.
+- **Tylko demo i trial.** `getDemoTenantIdBySlug` zwraca null dla `main`,
+  więc beacon na widgecie nie liczy klientów prawdziwego salonu — odpowiada
+  404 i nic nie zapisuje.
+- **Wizyty, nie odsłony.** Zarządca grupuje odsłony w wizyty po przerwie
+  30 minut. Jedno długie popołudnie i cztery powroty w tygodniu dają tę samą
+  liczbę odsłon i znaczą co innego; powrót jest sygnałem. Liczone z samych
+  czasów, bez przechowywania czegokolwiek o gościu.
+
+Czego to nie powie: czy dwie wizyty to ta sama osoba. Bez identyfikatora się
+nie da, a identyfikator to zmiana postawy wobec prywatności — decyzja
+biznesowa, nie techniczna.
+
+---
+
+## 7. Pułapki, w które już wpadliśmy
 
 - **Kalendarz otwiera się na złym miesiącu.** `CalendarPicker` wybiera
   miesiąc tak: `displayYearMonth` → tryb tygodnia → **`selectedDate`** →
@@ -149,7 +177,7 @@ mogłyby.
 
 ---
 
-## 7. Zanim scommitujesz
+## 8. Zanim scommitujesz
 
 ```bash
 npx tsc --noEmit && npm run lint && npm run build
@@ -164,7 +192,7 @@ nie co.
 
 ---
 
-## 8. Mapa katalogów
+## 9. Mapa katalogów
 
 ```
 app/admin/(panel)/       panel właściciela; obsługuje też /demo/{slug}

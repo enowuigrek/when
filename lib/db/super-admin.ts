@@ -198,11 +198,24 @@ export type TenantLink = {
   services: number;
   staff: number;
   bookings: number;
-  /** Page views recorded on the demo panel. Always 0 for a live client —
-   *  the beacon runs in demo panels only, and nobody is being watched. */
+  /** Page views recorded on the demo. Always 0 for a live client — the
+   *  endpoint answers only for demo and trial tenants, and nobody is
+   *  being watched. */
   views: number;
   /** Distinct pages opened — one means they looked at the first screen only. */
   pagesSeen: number;
+  /**
+   * Separate sittings, counted as runs of views less than 30 minutes apart.
+   *
+   * A raw view count cannot tell one long afternoon from four visits across
+   * a week, and the difference is the whole signal: somebody who comes back
+   * is interested, somebody who scrolled once is being polite. Grouping by
+   * a gap needs nothing stored about the visitor, which is the point — the
+   * row holds a path and a time and that stays true.
+   */
+  sessions: number;
+  /** Whether anyone has opened the page a customer sees, not just the panel. */
+  sawCustomerView: boolean;
   firstSeenAt: string | null;
   lastSeenAt: string | null;
 };
@@ -253,6 +266,16 @@ export async function getTenantLinks(): Promise<TenantLink[]> {
   return rows.map((t) => {
     const mine = visits.filter((v) => v.tenant_id === t.id);
     const times = mine.map((v) => v.at).sort();
+    // Half an hour: long enough that reading a page and clicking on stays
+    // one visit, short enough that coming back after lunch counts as two.
+    const GAP_MS = 30 * 60_000;
+    let sessions = 0;
+    let prev = 0;
+    for (const at of times) {
+      const t0 = new Date(at).getTime();
+      if (sessions === 0 || t0 - prev > GAP_MS) sessions++;
+      prev = t0;
+    }
     return {
       id: t.id,
       slug: t.slug,
@@ -265,6 +288,8 @@ export async function getTenantLinks(): Promise<TenantLink[]> {
       bookings: count(bookingsRes.data, t.id),
       views: mine.length,
       pagesSeen: new Set(mine.map((v) => v.path)).size,
+      sessions,
+      sawCustomerView: mine.some((v) => v.path.startsWith("/zapisy")),
       firstSeenAt: times[0] ?? null,
       lastSeenAt: times[times.length - 1] ?? null,
     };

@@ -11,9 +11,26 @@ import { usePathname } from "next/navigation";
  * would only ever see the first load and would answer "did they open it" but
  * never "did they look around".
  *
- * Sends nothing but the slug and the path.
+ * Sends nothing but the slug and the path. The server drops the hit when it
+ * comes from a signed-in admin or from a dev host, so our own clicking
+ * around does not read back as the prospect's.
  */
-export function DemoVisitBeacon({ slug }: { slug: string }) {
+export function DemoVisitBeacon({
+  slug,
+  prefix = "",
+}: {
+  slug: string;
+  /**
+   * Namespace for the recorded path, so the two surfaces stay apart.
+   *
+   * Once the slug prefix is stripped, the panel's home page and the
+   * customer's are both "/" and would be one row saying nothing. The
+   * customer-facing pages record under "/zapisy" — panel paths keep the
+   * spelling they have always had, so rows written before this still read
+   * the same way.
+   */
+  prefix?: string;
+}) {
   const pathname = usePathname();
   const lastSent = useRef<string | null>(null);
 
@@ -21,9 +38,12 @@ export function DemoVisitBeacon({ slug }: { slug: string }) {
     if (lastSent.current === pathname) return;
     lastSent.current = pathname;
 
-    // Strip the demo prefix: the slug is already sent, and keeping it would
-    // make every path unique to one demo and harder to read in a list.
-    const path = pathname.replace(/^\/demo\/[^/]+/, "") || "/";
+    // Strip whichever prefix carries the slug — /demo/{slug} for the panel,
+    // /widget/{slug} for the page a parent sees. The slug is already sent,
+    // and leaving it in would make every path unique to one tenant and
+    // harder to read in a list. A subdomain has no prefix to strip.
+    const stripped = pathname.replace(/^\/(?:demo|widget)\/[^/]+/, "");
+    const path = `${prefix}${stripped}` || "/";
 
     fetch("/api/demo/visit", {
       method: "POST",
@@ -33,7 +53,7 @@ export function DemoVisitBeacon({ slug }: { slug: string }) {
     }).catch(() => {
       // A missed count is not worth a broken page.
     });
-  }, [pathname, slug]);
+  }, [pathname, slug, prefix]);
 
   return null;
 }

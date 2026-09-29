@@ -126,19 +126,32 @@ function TenantRow({ link: d, origin }: { link: TenantLink; origin: string }) {
         </div>
       </div>
 
-      {/* No visit line for a live client: the beacon only runs in demo panels,
-          so the number would always be zero and would read as "nobody came". */}
+      {/* No visit line for a live client: the endpoint records demo and trial
+          tenants only, so the number would always be zero and would read as
+          "nobody came" rather than "nobody is being counted". */}
       {d.kind !== "live" && (
       <div className="mt-3 border-t border-zinc-800/60 pt-3">
         {d.views === 0 ? (
           <p className="text-xs text-zinc-600">Nikt jeszcze nie otworzył.</p>
         ) : (
           <p className="text-xs text-zinc-400">
-            <span className="font-medium text-zinc-200">{d.views}</span> wejść ·{" "}
+            {/* Sittings first, views second. One long afternoon and four
+                visits across a week can be the same number of views and
+                mean opposite things; coming back is the signal. */}
+            <span className="font-medium text-zinc-200">{d.sessions}</span>{" "}
+            {d.sessions === 1 ? "wizyta" : d.sessions < 5 ? "wizyty" : "wizyt"} ·{" "}
+            <span className="font-medium text-zinc-200">{d.views}</span> odsłon ·{" "}
             <span className="font-medium text-zinc-200">{d.pagesSeen}</span>{" "}
             {d.pagesSeen === 1 ? "strona" : "stron"}
             {d.pagesSeen === 1 && <span className="text-zinc-600"> (tylko pierwszy ekran)</span>}
             {d.lastSeenAt && <span className="text-zinc-600"> · ostatnio {ago(d.lastSeenAt)}</span>}
+          </p>
+        )}
+        {d.views > 0 && (
+          <p className="mt-1 text-xs text-zinc-600">
+            {d.sawCustomerView
+              ? "Widział panel i stronę zapisów."
+              : "Tylko panel — strony zapisów jeszcze nie otwierał."}
           </p>
         )}
       </div>
