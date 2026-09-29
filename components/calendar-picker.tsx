@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { WEEK_ORDER_SHORT } from "@/lib/weekdays";
 
 type Day = {
   date: string; // YYYY-MM-DD
@@ -16,7 +17,6 @@ const MONTH_PL_SHORT = [
   "Sty","Lut","Mar","Kwi","Maj","Cze",
   "Lip","Sie","Wrz","Paź","Lis","Gru",
 ];
-const DOW_PL = ["Pn","Wt","Śr","Cz","Pt","Sb","Nd"];
 
 function isoYM(dateStr: string): { year: number; month: number } {
   const [y, m] = dateStr.split("-").map(Number);
@@ -230,12 +230,21 @@ export function CalendarPicker({
   // at the end of September has no Friday left in it, so opening on the
   // current month showed a page of greyed-out numbers and left the visitor
   // to work out that the answer was one click to the right.
-  const firstOpen = days.find((d) => !d.closed)?.date;
+  //
+  // Only days from today on count. The schedule hands over a range that
+  // starts weeks in the past so the owner can page back through it, and
+  // taking the first open day of *that* meant the panel opened on August
+  // while the day it was showing was in September.
+  const firstOpen = days.find((d) => !d.closed && d.date >= today)?.date;
 
+  // A chosen day wins over a merely available one: whatever the calendar is
+  // showing beside it is the month the person is already looking at.
   const initialYM = displayYearMonth
     ? displayYearMonth
     : weekMode && viewedWeekStart
     ? isoYM(viewedWeekStart)
+    : selectedDate
+    ? isoYM(selectedDate)
     : firstOpen
     ? isoYM(firstOpen)
     : todayYM;
@@ -372,7 +381,7 @@ export function CalendarPicker({
         <>
           {/* Weekday headers */}
           <div className="mb-1 grid grid-cols-7 text-center">
-            {DOW_PL.map((d) => (
+            {WEEK_ORDER_SHORT.map((d) => (
               <div key={d} className={`${dowPad} font-medium uppercase tracking-wider text-zinc-600`}>
                 {d}
               </div>
