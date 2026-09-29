@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ClassGroupWithService } from "@/lib/db/class-groups";
-import { WEEKDAY_NAMES, WEEK_ORDER, meetingTimeLabel } from "@/lib/class-groups";
+import { meetingTimeLabel } from "@/lib/class-groups";
+import { WEEKDAY_NAMES, WEEK_ORDER } from "@/lib/weekdays";
 import { meetingsLabel } from "@/lib/service-label";
 
 /**
@@ -32,8 +33,8 @@ export function CourseList({
         const lessons = service.total_lessons ?? 0;
         const days = [...slots].sort(
           (a, b) =>
-            WEEK_ORDER.indexOf(a.day_of_week as never) -
-            WEEK_ORDER.indexOf(b.day_of_week as never)
+            WEEK_ORDER.indexOf(a.day_of_week) -
+            WEEK_ORDER.indexOf(b.day_of_week)
         );
         return (
           <Link

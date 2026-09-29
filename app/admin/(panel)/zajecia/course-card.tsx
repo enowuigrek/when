@@ -7,6 +7,8 @@ import { ClassEnrollPanel } from "@/components/class-enroll-panel";
 import { addToGroupAction } from "./actions";
 import type { SlotRow } from "../uslugi/slot-editor";
 import { useAdminBase } from "@/lib/use-admin-base";
+import { addDays, warsawDayOfWeek as weekdayOf } from "@/lib/slots";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 
 export type CourseSlot = SlotRow & {
   /** YYYY-MM-DD of the next time this slot meets. */
@@ -30,19 +32,6 @@ export type Course = {
   color: string;
 };
 
-const WEEKDAY = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
-const WEEKDAY_FULL = WEEKDAY;
-
-/** Warsaw-safe enough for whole dates: no time component, so no DST to lose. */
-function addDays(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const next = new Date(Date.UTC(y, m - 1, d + days));
-  return next.toISOString().slice(0, 10);
-}
-function weekdayOf(date: string): number {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-}
 
 function shortDate(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
@@ -118,7 +107,7 @@ export function CourseCard({ course, today }: { course: Course; today: string })
           >
             <span className="flex items-baseline gap-3">
               <span className="w-24 shrink-0 text-xs text-zinc-300">
-                {WEEKDAY_FULL[s.dayOfWeek]}
+                {WEEKDAY_NAMES[s.dayOfWeek]}
               </span>
               <span className="font-mono text-xs text-zinc-200">
                 {s.startTime}–{s.endTime}

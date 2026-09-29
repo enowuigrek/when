@@ -13,7 +13,7 @@ import {
 import { getBookingCountsByDay } from "@/lib/db/bookings";
 import { warsawToday, addDays, mondayOfWeek, warsawDayBoundsUtc, formatShortDate } from "@/lib/slots";
 import { calendarWindow } from "@/lib/calendar-window";
-import { dayLabels } from "@/lib/business";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 import { PageShell } from "@/components/ui/page-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AdminLink } from "@/components/admin-link";
@@ -284,7 +284,7 @@ export default async function GrafikPage({
                     <tr key={date} className="border-b border-zinc-800/60">
                       <td className="sticky left-0 z-20 border-r border-zinc-800/60 bg-zinc-950 px-3 py-2.5 align-top">
                         <p className={`text-sm font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
-                          {dayLabels[dow]}
+                          {WEEKDAY_NAMES[dow]}
                         </p>
                         <p className="font-mono text-xs text-zinc-600">
                           {d}.{m}

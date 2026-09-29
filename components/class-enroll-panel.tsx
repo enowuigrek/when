@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { addDays, warsawDayOfWeek as weekdayOf } from "@/lib/slots";
+import { WEEKDAY_NAMES as WEEKDAY, WEEKDAY_PLURAL } from "@/lib/weekdays";
 
 export type EnrollState = { status: "idle" | "error" | "ok"; message?: string };
 
@@ -16,16 +18,6 @@ export type EnrollDay = {
   max: number | null;
 };
 
-const WEEKDAY = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
-
-function addDays(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
-function weekdayOf(date: string): number {
-  const [y, m, d] = date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
-}
 function human(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
   return new Intl.DateTimeFormat("pl-PL", {
@@ -170,7 +162,7 @@ export function ClassEnrollPanel({
             <p className="mt-1 mb-3 text-sm text-zinc-500">
               {pickedDay === null
                 ? "Podświetlone są dni, w które te zajęcia się odbywają."
-                : `Podświetlone są ${WEEKDAY[pickedDay].toLowerCase()}i.`}
+                : `Podświetlone są ${WEEKDAY_PLURAL[pickedDay]}.`}
             </p>
             <CalendarPicker
               // Remounted when the chosen weekday changes, so the calendar

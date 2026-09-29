@@ -17,6 +17,7 @@ import { WidgetHeader } from "@/components/widget-header";
 import { SiteFooter } from "@/components/site-footer";
 import { WidgetPoweredBy } from "@/components/widget-powered-by";
 import { serviceMeta, priceLabel } from "@/lib/service-label";
+import { WEEKDAY_SHORT } from "@/lib/weekdays";
 
 type Props = {
   params: Promise<{ tenantSlug: string }>;
@@ -39,8 +40,6 @@ export async function generateMetadata({ params }: Props) {
     },
   };
 }
-
-const DAY_SHORT = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"];
 
 export default async function WidgetHomePage({ params, searchParams }: Props) {
   const { tenantSlug } = await params;
@@ -204,7 +203,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
                 <div className="space-y-2">
                   {allHours.filter((h) => h.day_of_week >= 1 && h.day_of_week <= 5).map((h) => (
                     <div key={h.day_of_week} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{DAY_SHORT[h.day_of_week]}</span>
+                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{WEEKDAY_SHORT[h.day_of_week]}</span>
                       {h.closed
                         ? <span className="font-mono text-xs text-zinc-600 line-through">nieczynne</span>
                         : <span className="font-mono text-sm text-zinc-300">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>
@@ -216,7 +215,7 @@ export default async function WidgetHomePage({ params, searchParams }: Props) {
                 <div className="space-y-2">
                   {allHours.filter((h) => h.day_of_week === 6 || h.day_of_week === 0).map((h) => (
                     <div key={h.day_of_week} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{DAY_SHORT[h.day_of_week]}</span>
+                      <span className="w-5 shrink-0 text-zinc-400 font-medium">{WEEKDAY_SHORT[h.day_of_week]}</span>
                       {h.closed
                         ? <span className="font-mono text-xs text-zinc-600 line-through">nieczynne</span>
                         : <span className="font-mono text-sm text-zinc-300">{h.open_time?.slice(0, 5)}–{h.close_time?.slice(0, 5)}</span>

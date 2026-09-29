@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { saveClassGroupAction, deleteClassGroupAction, type SlotState } from "./slot-actions";
+import { WEEKDAY_NAMES, WEEK_ORDER } from "@/lib/weekdays";
 
 export type SlotRow = {
   id: string;
@@ -15,15 +16,7 @@ export type SlotRow = {
   active: boolean;
 };
 
-const WEEKDAYS = [
-  [1, "Poniedziałek"],
-  [2, "Wtorek"],
-  [3, "Środa"],
-  [4, "Czwartek"],
-  [5, "Piątek"],
-  [6, "Sobota"],
-  [0, "Niedziela"],
-] as const;
+const WEEKDAYS = WEEK_ORDER.map((d) => [d, WEEKDAY_NAMES[d]] as const);
 
 const field =
   "rounded-lg border border-zinc-800 bg-zinc-900/40 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-[var(--color-accent)]";

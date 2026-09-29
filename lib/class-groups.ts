@@ -83,21 +83,3 @@ export function meetingTimeLabel(
 ): string {
   return `${group.start_time.slice(0, 5)}–${group.end_time.slice(0, 5)}`;
 }
-
-export const WEEKDAY_NAMES = [
-  "Niedziela",
-  "Poniedziałek",
-  "Wtorek",
-  "Środa",
-  "Czwartek",
-  "Piątek",
-  "Sobota",
-] as const;
-
-export const WEEKDAY_SHORT = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"] as const;
-
-/**
- * Monday first, Sunday last — how a Polish week is read, and how the studio's
- * own printed timetable is laid out.
- */
-export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;

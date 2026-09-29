@@ -6,7 +6,7 @@ import { sectionHeading } from "@/components/ui/surface";
 import type { EnrollWords } from "@/lib/vocabulary";
 import { ClassEnrollPanel } from "@/components/class-enroll-panel";
 import { addToGroupAction } from "../../zajecia/actions";
-import { WEEKDAY_SHORT, WEEK_ORDER } from "@/lib/class-groups";
+import { WEEKDAY_SHORT, WEEK_ORDER } from "@/lib/weekdays";
 import { meetingsLabel } from "@/lib/service-label";
 import { tint } from "@/lib/class-colors";
 import { useAdminBase } from "@/lib/use-admin-base";

@@ -10,7 +10,7 @@ import {
   getPackageBookingsForTenant,
 } from "@/lib/db/for-tenant";
 import { formatWarsawDate, formatWarsawTime, warsawDayOfWeek } from "@/lib/slots";
-import { WEEKDAY_NAMES } from "@/lib/class-groups";
+import { everyWeekday } from "@/lib/weekdays";
 import { signBookingToken } from "@/lib/booking-token";
 import { AddToCalendarButton } from "@/components/add-to-calendar-button";
 import { fmtUtc } from "@/lib/ics";
@@ -70,7 +70,7 @@ export default async function SuccessPage({
   // "Zmień termin" link that leads somewhere a class cannot go.
   const classGroupId = (booking as { class_group_id: string | null }).class_group_id;
   const isClass = !!classGroupId;
-  const weekdayName = WEEKDAY_NAMES[warsawDayOfWeek(booking.starts_at.slice(0, 10))];
+  const weekdayDow = warsawDayOfWeek(booking.starts_at.slice(0, 10));
 
   const series = packageId
     ? await getPackageBookingsForTenant(packageId, booking.tenant_id)
@@ -138,7 +138,7 @@ export default async function SuccessPage({
               <p className="mt-3 text-zinc-400">
                 {isClass ? (
                   <>
-                    Zajęcia odbywają się w {weekdayName.toLowerCase()}i, co tydzień.
+                    Zajęcia odbywają się {everyWeekday(weekdayDow)}, co tydzień.
                     Numer zapisu:{" "}
                   </>
                 ) : (

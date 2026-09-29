@@ -1,12 +1,11 @@
 import Link from "next/link";
 import type { ClassGroupWithService } from "@/lib/db/class-groups";
 import {
-  WEEKDAY_NAMES,
-  WEEK_ORDER,
   meetingTimeLabel,
   nextMeetingDates,
 } from "@/lib/class-groups";
 import { seatsKey } from "@/lib/db/class-groups";
+import { WEEKDAY_NAMES, WEEK_ORDER } from "@/lib/weekdays";
 
 /**
  * The week the way the studio prints it on its own wall: one column per day,

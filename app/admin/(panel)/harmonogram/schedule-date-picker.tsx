@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { WEEK_ORDER_SHORT } from "@/lib/weekdays";
+import { addDays } from "@/lib/slots";
 
 type Props = {
   /** Which mode the calendar picks in. */
@@ -27,12 +29,7 @@ type Props = {
   days: { date: string; closed: boolean }[];
 };
 
-function addDays(d: string, n: number): string {
-  const [y, m, day] = d.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, day + n)).toISOString().slice(0, 10);
-}
 
-const DOW = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
 
 /**
  * Date navigation for the schedule.
@@ -127,7 +124,7 @@ export function ScheduleDatePicker({
                     : "border-zinc-800 hover:border-zinc-600"
                 }`}
               >
-                <span className="text-[10px] uppercase text-zinc-600">{DOW[i]}</span>
+                <span className="text-[10px] uppercase text-zinc-600">{WEEK_ORDER_SHORT[i]}</span>
                 <span className={`font-mono text-sm ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
                   {Number(d.slice(8, 10))}
                 </span>

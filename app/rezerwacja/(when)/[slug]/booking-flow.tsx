@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import type { Slot } from "@/lib/slots";
 import type { TimeFilter } from "@/lib/db/settings";
 import { CalendarPicker } from "@/components/calendar-picker";
+import { TimeFilterBar, applyTimeFilter } from "@/components/booking/time-filter-bar";
 import { StaffAvatar } from "@/components/ui/staff-avatar";
 import { submitBooking } from "./actions";
 import type { BookingFormState } from "./actions";
@@ -81,14 +82,7 @@ export function BookingFlow({
     ? days.map((d) => (unavailableSet.has(d.date) ? { ...d, closed: true } : d))
     : days;
 
-  const visibleSlots = activeFilter
-    ? slots.filter((s) => {
-        const f = timeFilters.find((f) => f.id === activeFilter);
-        if (!f) return true;
-        const h = Number(s.label.split(":")[0]);
-        return h >= f.from_hour && h < f.to_hour;
-      })
-    : slots;
+  const visibleSlots = applyTimeFilter(slots, activeFilter, timeFilters);
 
   return (
     <div className="mt-8 space-y-10">
@@ -155,24 +149,11 @@ export function BookingFlow({
           <h2 className="text-sm font-medium uppercase tracking-wider text-zinc-400">
             Wolne godziny
           </h2>
-          {timeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {timeFilters.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setActiveFilter(activeFilter === f.id ? null : f.id)}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                    activeFilter === f.id
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-accent)]"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <TimeFilterBar
+            filters={timeFilters}
+            activeId={activeFilter}
+            onToggle={(id) => setActiveFilter(activeFilter === id ? null : id)}
+          />
         </div>
 
         {loadingSlots ? (
@@ -184,6 +165,8 @@ export function BookingFlow({
               : "Brak terminów w tym przedziale — spróbuj inny filtr."}
           </p>
         ) : (
+          /* Not TimeSlotGrid: a group service shows seats left inside each
+             cell, which needs wider cells and a second line of text. */
           <div className={`grid gap-2 ${isGroup ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" : "grid-cols-3 sm:grid-cols-4 md:grid-cols-6"}`}>
             {visibleSlots.map((s) => {
               const isSelected = s.startsAtIso === selectedSlot?.startsAtIso;

@@ -2,21 +2,12 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TenantThemeWrapper } from "@/components/tenant-theme-wrapper";
 import { getMainBusinessHours, getMainSettings } from "@/lib/db/main-tenant";
+import { WEEKDAY_NAMES, WEEK_ORDER } from "@/lib/weekdays";
 
 export async function generateMetadata() {
   const s = await getMainSettings();
   return { title: `Godziny otwarcia — ${s.business_name}` };
 }
-
-const DAY_NAMES = [
-  "Niedziela",
-  "Poniedziałek",
-  "Wtorek",
-  "Środa",
-  "Czwartek",
-  "Piątek",
-  "Sobota",
-];
 
 // "HH:MM:SS" → "HH:MM"
 function formatTime(t: string | null): string {
@@ -24,15 +15,13 @@ function formatTime(t: string | null): string {
   return t.slice(0, 5);
 }
 
-// Mon–Fri order: 1,2,3,4,5,6,0
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export default async function HoursPage() {
   const [hours, settings] = await Promise.all([getMainBusinessHours(), getMainSettings()]);
 
-  const sorted = DAY_ORDER.map((dow) => ({
+  const sorted = WEEK_ORDER.map((dow) => ({
     dow,
-    name: DAY_NAMES[dow],
+    name: WEEKDAY_NAMES[dow],
     data: hours.find((h) => h.day_of_week === dow),
   }));
 

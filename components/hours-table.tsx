@@ -1,5 +1,5 @@
 import type { BusinessHours } from "@/lib/types";
-import { dayLabels } from "@/lib/business";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 
 function formatTime(t: string | null): string {
   if (!t) return "";
@@ -31,7 +31,7 @@ export function HoursTable({ hours }: { hours: BusinessHours[] }) {
                 isToday ? "text-[var(--color-accent)]" : "text-zinc-200"
               }`}
             >
-              {dayLabels[h.day_of_week]}
+              {WEEKDAY_NAMES[h.day_of_week]}
               {isToday && <span className="ml-2 text-xs text-zinc-500">dziś</span>}
             </span>
             <span className="font-mono text-sm text-zinc-400">

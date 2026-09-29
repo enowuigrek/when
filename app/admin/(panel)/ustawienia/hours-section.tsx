@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BusinessHours } from "@/lib/types";
-import { dayLabels } from "@/lib/business";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 import { fieldClasses } from "@/components/ui/field";
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0] as const; // Mon → Sun
@@ -48,7 +48,7 @@ export function HoursSection({ hours }: { hours: BusinessHours[] }) {
               <input type="hidden" name={`closed_${dow}`} value={isClosed ? "1" : "0"} />
 
               <span className="w-32 text-sm font-medium text-zinc-200">
-                {dayLabels[dow]}
+                {WEEKDAY_NAMES[dow]}
               </span>
 
               <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-400">

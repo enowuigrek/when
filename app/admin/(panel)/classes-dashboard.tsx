@@ -2,7 +2,7 @@ import { AdminLink } from "@/components/admin-link";
 import { StatTile } from "@/components/ui/stat-tile";
 import { card, sectionHeading as heading } from "@/components/ui/surface";
 import type { ClassesOverview } from "@/lib/db/classes-overview";
-import { WEEKDAY_NAMES } from "@/lib/class-groups";
+import { WEEKDAY_NAMES } from "@/lib/weekdays";
 
 function shortDate(day: string) {
   return new Date(day + "T12:00:00Z").toLocaleDateString("pl-PL", {
