@@ -1,0 +1,11 @@
+-- The last of the guardians.
+--
+-- 030 took the guardian_id off customers when the parent row stopped being a
+-- row at all, but left services.guardian_label behind: the wording for a
+-- field that no form renders any more. Three of Tęczówka's services still
+-- carry "Rodzic lub opiekun" in it, read by nothing.
+--
+-- A column that nothing writes and nothing reads is worse than no column:
+-- the next person to open the schema has to work out whether it is a feature
+-- that broke or a feature that went.
+alter table services drop column if exists guardian_label;

@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Feature } from "@/lib/features";
 
 export type DemoVariant = "barber" | "kosmetyka" | "joga" | "taniec" | "zorba" | "teczowka";
 
@@ -10,7 +11,7 @@ type ServiceSeed = {
   price_per_person?: boolean; participants_min?: number;
   participants_label?: string; extra_question_label?: string;
   extra_choice_label?: string; extra_choices?: string[];
-  enrollee_label?: string; guardian_label?: string; enroll_action_label?: string;
+  enrollee_label?: string; enroll_action_label?: string;
   enroll_mode?: "self" | "enquiry";
   total_lessons?: number;
   /** Parked rather than removed — shown as "chwilowo zawieszone". */
@@ -475,22 +476,30 @@ const VARIANTS: Record<DemoVariant, {
   /** Weekly class groups, for variants that sell time that way. */
   classGroups?: ClassGroupSeed[];
   /**
-   * What this demo's WHEN has. Left off means the classic set, which is what
-   * every variant before Tęczówka showed — see lib/features.ts.
+   * What this demo's WHEN has switched on — see lib/features.ts.
+   *
+   * Required, and required for a reason: it used to be optional and
+   * documented as "left off means the classic set", but nothing wrote a
+   * default, so every demo but Tęczówka was seeded with an empty column.
+   * They got three barbers and no Pracownicy tab to manage them with — the
+   * sidebar hides what the flag does not name, and the page answers 404.
+   * Spelling it out per variant is one line each and cannot silently drift.
    */
-  features?: string[];
+  features: Feature[];
 }> = {
-  barber:    { services: BARBER_SERVICES,    staff: BARBER_STAFF,    groups: BARBER_GROUPS,    hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
-  kosmetyka: { services: KOSMETYKA_SERVICES, staff: KOSMETYKA_STAFF, groups: KOSMETYKA_GROUPS, hours: HOURS_STANDARD, customers: SAMPLE_NAMES },
-  joga:      { services: JOGA_SERVICES,      staff: JOGA_STAFF,      groups: JOGA_GROUPS,      hours: HOURS_STUDIO,   customers: SAMPLE_NAMES },
-  taniec:    { services: TANIEC_SERVICES,    staff: TANIEC_STAFF,    groups: TANIEC_GROUPS,    hours: HOURS_DANCE,    customers: SAMPLE_NAMES },
-  zorba:     { services: ZORBA_SERVICES,     staff: ZORBA_STAFF,     groups: ZORBA_GROUPS,     hours: HOURS_DANCE,    customers: ZORBA_CUSTOMERS },
+  barber:    { services: BARBER_SERVICES,    staff: BARBER_STAFF,    groups: BARBER_GROUPS,    hours: HOURS_STANDARD, customers: SAMPLE_NAMES, features: ["pracownicy"] },
+  kosmetyka: { services: KOSMETYKA_SERVICES, staff: KOSMETYKA_STAFF, groups: KOSMETYKA_GROUPS, hours: HOURS_STANDARD, customers: SAMPLE_NAMES, features: ["pracownicy"] },
+  joga:      { services: JOGA_SERVICES,      staff: JOGA_STAFF,      groups: JOGA_GROUPS,      hours: HOURS_STUDIO,   customers: SAMPLE_NAMES, features: ["pracownicy"] },
+  taniec:    { services: TANIEC_SERVICES,    staff: TANIEC_STAFF,    groups: TANIEC_GROUPS,    hours: HOURS_DANCE,    customers: SAMPLE_NAMES, features: ["pracownicy"] },
+  // Jednoosobowa szkoła, ale Marcin to wciąż profil do edycji — zakładka
+  // Pracownicy jest tam, gdzie się opisuje siebie i swoje godziny.
+  zorba:     { services: ZORBA_SERVICES,     staff: ZORBA_STAFF,     groups: ZORBA_GROUPS,     hours: HOURS_DANCE,    customers: ZORBA_CUSTOMERS, features: ["pracownicy"] },
   teczowka:  {
     services: TECZOWKA_SERVICES, staff: TECZOWKA_STAFF, groups: TECZOWKA_GROUPS,
     hours: HOURS_TECZOWKA, customers: TECZOWKA_CUSTOMERS,
     classGroups: TECZOWKA_CLASS_GROUPS,
-    // Bez „pracownicy": pracownię prowadzi jedna osoba i wybór instruktora nie
-    // ma czego rozstrzygać. Bez „platnosci": rozliczają się na miejscu.
+    // Bez „pracownicy": pracownia nie ma ani jednego pracownika w bazie, więc
+    // zakładka nie miałaby czego pokazać.
     features: ["grupy"],
   },
 };
@@ -510,13 +519,11 @@ export async function seedDemoTenant(tenantId: string, variant: DemoVariant): Pr
 
   // What this demo's WHEN has. Written before anything else so a half-failed
   // seed still produces a panel shaped like the client it was made for.
-  if (features) {
-    const { error: featuresError } = await supabase
-      .from("tenants")
-      .update({ features })
-      .eq("id", tenantId);
-    report("tenant features", featuresError);
-  }
+  const { error: featuresError } = await supabase
+    .from("tenants")
+    .update({ features })
+    .eq("id", tenantId);
+  report("tenant features", featuresError);
 
   // Settings
   const { error: settingsError } = await supabase

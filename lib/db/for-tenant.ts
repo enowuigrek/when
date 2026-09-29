@@ -118,6 +118,23 @@ export async function getTimeFiltersForTenant(tenantId: string): Promise<TimeFil
   return (data ?? []) as TimeFilter[];
 }
 
+/**
+ * Confirmed appointments overlapping a window — what makes a slot unavailable.
+ *
+ * Seats in a class are not appointments and are excluded. A Monday class of
+ * twelve children is twelve confirmed rows at one hour; counted as bookings
+ * they would fill every chair the business has, and a studio that runs classes
+ * *and* takes appointments would show an empty afternoon as fully booked.
+ *
+ * This is the same rule the database enforces: both overlap constraints on
+ * `bookings` carry `class_group_id is null`, so a class neither blocks nor is
+ * blocked. Leaving it out here let the panel refuse a slot Postgres would
+ * happily accept — the two halves of one rule disagreeing.
+ *
+ * A class occupies a room, not a chair. The day a tenant needs the room held
+ * against appointments, that is a resource of its own to model, not a side
+ * effect of how seats happen to be stored.
+ */
 export async function getBookingsInRangeForTenant(
   startIso: string,
   endIso: string,
@@ -130,6 +147,7 @@ export async function getBookingsInRangeForTenant(
     .select("starts_at, ends_at")
     .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
+    .is("class_group_id", null)
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);
   if (staffId) query = query.eq("staff_id", staffId);
@@ -188,6 +206,10 @@ export async function getGroupBookingCountForTenant(
   return count ?? 0;
 }
 
+/**
+ * Who is already busy in this window. Class seats are excluded for the same
+ * reason as above: teaching a group is not an appointment on the teacher.
+ */
 export async function getBusyStaffIdsForTenant(
   startIso: string,
   endIso: string,
@@ -198,6 +220,7 @@ export async function getBusyStaffIdsForTenant(
     .select("staff_id")
     .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
+    .is("class_group_id", null)
     .not("staff_id", "is", null)
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);

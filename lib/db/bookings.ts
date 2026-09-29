@@ -5,6 +5,9 @@ import { getAdminTenantId } from "@/lib/tenant";
 /**
  * Fetch confirmed bookings overlapping a UTC instant range.
  * Used to know which slots are taken on a given day.
+ *
+ * Class seats are excluded — see getBookingsInRangeForTenant in
+ * lib/db/for-tenant.ts for why, and for the database constraint this matches.
  */
 export async function getBookingsInRange(
   startIso: string,
@@ -19,6 +22,7 @@ export async function getBookingsInRange(
     .select("starts_at, ends_at")
     .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
+    .is("class_group_id", null)
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);
 
@@ -118,6 +122,13 @@ export type BookingWithService = {
   price_pln_snapshot: number | null;
   duration_min_snapshot: number | null;
   package_id: string | null;
+  /**
+   * Set when this row is one meeting of a recurring group rather than an
+   * appointment. The query is `select("*")`, so the column was always there;
+   * leaving it off the type meant three places in the schedule casting it
+   * back in by hand to tell a class seat from a booking.
+   */
+  class_group_id: string | null;
   service: { name: string; duration_min: number; price_pln: number } | null;
   staff: { name: string; color: string } | null;
 };
@@ -150,6 +161,7 @@ export async function getBusyStaffIds(
     .select("staff_id")
     .eq("tenant_id", tenantId)
     .eq("status", "confirmed")
+    .is("class_group_id", null)
     .not("staff_id", "is", null)
     .lt("starts_at", endIso)
     .gt("ends_at", startIso);

@@ -72,7 +72,7 @@ import {
   formatWarsawTime,
   formatWarsawDate,
 } from "@/lib/slots";
-import { dayLabels, dayLabelsShort } from "@/lib/business";
+import { WEEKDAY_NAMES, WEEKDAY_SHORT } from "@/lib/weekdays";
 
 export const metadata = { title: "Harmonogram", robots: { index: false } };
 
@@ -241,7 +241,7 @@ export default async function HarmonogramPage({
               formatWarsawDate(m.startsAtIso)
             ),
             words: enrollVocabulary(p.group.service),
-            dayLabel: dayLabels[warsawDayOfWeek(p.date)],
+            dayLabel: WEEKDAY_NAMES[warsawDayOfWeek(p.date)],
             color: classColor(p.group.service),
           });
           classByDate.set(p.date, list);
@@ -263,7 +263,7 @@ export default async function HarmonogramPage({
     (b) =>
       b.status !== "cancelled" &&
       b.status !== "no_show" &&
-      !(b as { class_group_id?: string | null }).class_group_id
+      !b.class_group_id
   );
   // The toggles only make sense where there are two halves to choose between.
   const laneToggles = hasClassesInView && takesBookings;
@@ -331,7 +331,7 @@ export default async function HarmonogramPage({
   }
 
   const periodLabel = view === "dzien"
-    ? `${dayLabels[warsawDayOfWeek(baseDate)]}, ${formatShortDate(baseDate)}`
+    ? `${WEEKDAY_NAMES[warsawDayOfWeek(baseDate)]}, ${formatShortDate(baseDate)}`
     : `${formatShortDate(startDate)} — ${formatShortDate(endDate)}`;
 
   // Hrefs are built here rather than passed as callbacks: functions cannot
@@ -684,7 +684,7 @@ function DayView({
   const dayBookings = active.filter(
     (b) =>
       warsawDate(b.starts_at) === date &&
-      !(b as { class_group_id?: string | null }).class_group_id
+      !b.class_group_id
   );
 
   const planKey = (staffId: string, slotMin: number) => `${staffId}@${slotMin}`;
@@ -970,7 +970,7 @@ function WeekView({
   // three children at 15:45 listed one under another say nothing the chip's
   // "3 z 5" does not, and push the day's real bookings off the screen.
   const loose = active.filter(
-    (b) => !(b as { class_group_id?: string | null }).class_group_id
+    (b) => !b.class_group_id
   );
   const hasClasses = days.some((d) => (classByDate.get(d)?.length ?? 0) > 0);
   // Same reasoning as the day view: the timetable gets its own column so the
@@ -1047,8 +1047,8 @@ function WeekView({
                         nowrap either way, since the date wrapping onto a second
                         line was what made these rows tall. */}
                     <p className={`font-medium ${isToday ? "text-[var(--color-accent)]" : "text-zinc-300"}`}>
-                      <span className="sm:hidden">{dayLabelsShort[dow]}</span>
-                      <span className="hidden sm:inline">{dayLabels[dow]}</span>
+                      <span className="sm:hidden">{WEEKDAY_SHORT[dow]}</span>
+                      <span className="hidden sm:inline">{WEEKDAY_NAMES[dow]}</span>
                     </p>
                     <p className="whitespace-nowrap font-mono text-xs text-zinc-600">
                       <span className="sm:hidden">{d.slice(8)}.{d.slice(5, 7)}</span>
